@@ -3,9 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34330.188
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BMG_MicroTextureAnalyzer", "BMG_MicroTextureAnalyzer\BMG_MicroTextureAnalyzer.csproj", "{95905BE6-2676-409C-874A-3FE260EF9809}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BMG_MicroTextureAnalyzer", "BMG_MicroTextureAnalyzer\BMG_MicroTextureAnalyzer.csproj", "{95905BE6-2676-409C-874A-3FE260EF9809}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BMG_MicroTextureAnalyzer_GUI", "BMG_MicroTextureAnalyzer_GUI\BMG_MicroTextureAnalyzer_GUI.csproj", "{158293D2-3A82-43B7-83F1-8F064659CCE3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BMG_MicroTextureAnalyzer_GUI", "BMG_MicroTextureAnalyzer_GUI\BMG_MicroTextureAnalyzer_GUI.csproj", "{158293D2-3A82-43B7-83F1-8F064659CCE3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BMG_MicroTextureAnalyzer_Console", "BMG_MicroTextureAnalyzer_Console\BMG_MicroTextureAnalyzer_Console.csproj", "{229390DD-6726-407A-A51E-D318495E92E0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{158293D2-3A82-43B7-83F1-8F064659CCE3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{158293D2-3A82-43B7-83F1-8F064659CCE3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{158293D2-3A82-43B7-83F1-8F064659CCE3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{229390DD-6726-407A-A51E-D318495E92E0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{229390DD-6726-407A-A51E-D318495E92E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{229390DD-6726-407A-A51E-D318495E92E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{229390DD-6726-407A-A51E-D318495E92E0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

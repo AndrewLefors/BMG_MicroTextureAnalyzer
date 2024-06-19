@@ -14,7 +14,7 @@ namespace BMG_MicroTextureAnalyzer
     {
 
         private bool BlnConnect;                                 //Connection Status
-        public static SerialPort SCPort = null;                 //Define serial port
+        public SerialPort SCPort = null;                 //Define serial port
         public string StrReceiver;                              //Receive the string from controller
         private bool BlnBusy;                                   //If controller is busy
         private bool BlnReadCom;                                 //If reading is finished, return TRUE
@@ -22,6 +22,7 @@ namespace BMG_MicroTextureAnalyzer
         public short ShrPort;                                   //The serial port number
         private bool BlnSet;                                    //If the command sent is a set command or an inquiry command. TRUE is a set command
         private double DblMotorDegree;                          //Motor degree
+        private double DblLeadScrewPitch;                       //Lead screw pitch
         private double DblTransmissionRatio;                    //Transmission ratio
         private double DblSubDivision;                          //Subdivision
         private double DblPulseEqui;                            //Pulse equivalent
@@ -31,11 +32,17 @@ namespace BMG_MicroTextureAnalyzer
         long lCurrStep;                                         //Current steps
         double dCurrPosi;                                       //Current position
 
+        private double _currentXPosition;
+        private long _currentXStep;
+        private double _currentYPosition;
+        private long _currentYStep;
+
         public event PropertyChangedEventHandler? PropertyChanged;
 
         public MotionController()
         {
             SCPort = new SerialPort();
+            
             sSpeed = 200;
         }
 
@@ -106,18 +113,97 @@ namespace BMG_MicroTextureAnalyzer
             }
         }
 
+
+        public double CurrentXPosition
+        {
+            get
+            {
+                return _currentXPosition;
+            }
+            private set
+            {
+                if (_currentXPosition != value)
+                {
+                    _currentXPosition = value;
+                    OnPropertyChanged(nameof(CurrentXPosition));
+                }
+            }
+        }
+        public double CurrentYPosition
+        {
+            get
+            {
+                return _currentYPosition;
+            }
+            private set
+            {
+                if (_currentYPosition != value)
+                {
+                    _currentYPosition = value;
+                    OnPropertyChanged(nameof(CurrentYPosition));
+                }
+            }
+        }
+
+        public long CurrentXStep
+        {
+            get
+            {
+                return _currentXStep;
+            }
+            private set
+            {
+                if (_currentXStep != value)
+                {
+                    _currentXStep = value;
+                    OnPropertyChanged(nameof(CurrentXStep));
+                }
+            }
+        }
+
+        public long CurrentYStep
+        {
+            get
+            {
+                return _currentYStep;
+            }
+            private set
+            {
+                if (_currentYStep != value)
+                {
+                    _currentYStep = value;
+                    OnPropertyChanged(nameof(CurrentYStep));
+                }
+            }
+        }
         public double MotorDegree
         {
             get
             {
                 return DblMotorDegree;
             }
-            private set
+            internal set
             {
                 if (DblMotorDegree != value)
                 {
                     DblMotorDegree = value;
                     OnPropertyChanged(nameof(MotorDegree));
+                }
+            }
+        }
+
+        public double LeadScrewPitch
+        {
+            get
+            {
+                return DblLeadScrewPitch;
+            }
+            internal set
+            {
+                if (DblLeadScrewPitch != value)
+                {
+                    DblLeadScrewPitch = value;
+                    OnPropertyChanged(nameof(LeadScrewPitch));
                 }
             }
         }
@@ -138,18 +224,18 @@ namespace BMG_MicroTextureAnalyzer
             }
         }
 
-        public double SubDivision
+        public double Subdivision
         {
             get
             {
                 return DblSubDivision;
             }
-            private set
+            internal set
             {
                 if (DblSubDivision != value)
                 {
                     DblSubDivision = value;
-                    OnPropertyChanged(nameof(SubDivision));
+                    OnPropertyChanged(nameof(Subdivision));
                 }
             }
         }
@@ -160,7 +246,7 @@ namespace BMG_MicroTextureAnalyzer
             {
                 return DblPulseEqui;
             }
-            private set
+            set
             {
                 if (DblPulseEqui != value)
                 {
@@ -250,7 +336,7 @@ namespace BMG_MicroTextureAnalyzer
             }
         }
 
-        private void ConnectPort(short sPort)
+        public void ConnectPort(short sPort)
             {
                 if (SCPort.IsOpen == true) SCPort.Close();
                 SCPort.PortName = "COM" + sPort.ToString();            //Set the serial port number
@@ -267,6 +353,7 @@ namespace BMG_MicroTextureAnalyzer
 
                 //This delegate should be a trigger event for fetching data asynchronously, it will be triggered when there is data passed from serial port.
                 SCPort.DataReceived += new SerialDataReceivedEventHandler(SCPort_DataReceived);     //DataReceivedEvent delegate
+            
                 try
                 {
                     SCPort.Open();                                     //Open serial port
@@ -282,7 +369,7 @@ namespace BMG_MicroTextureAnalyzer
                         if (StrReceiver == "?R\rOK\n")
                         {
                             ConnectionStatus = true;  //Connected successfully
-                            ShrPort = sPort;                          //Setial port number
+                            ShrPort = sPort;                          //Serial port number
                             
                         }
                         else
@@ -298,55 +385,55 @@ namespace BMG_MicroTextureAnalyzer
                 {
                     ErrorMessage = ex.Message;
                 }
-            }
+        }
 
-            private void SCPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
+        internal void SCPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
+        {
+            //****************************************************************
+            //Function: SCPort_DataReceived
+            //Parameters: 
+            //Description: receive the data sent from serial port and handle
+            //Return:
+            //****************************************************************
+            try
             {
-                //****************************************************************
-                //Function: SCPort_DataReceived
-                //Parameters: 
-                //Description: receive the data sent from serial port and handle
-                //Return:
-                //****************************************************************
-                try
+                string sCurString = "";
+                sCurString = SCPort.ReadExisting();
+                if (sCurString != "")
+                    StrReceiver = StrReceiver + sCurString;
+                if (SetCommand == true)
                 {
-                    string sCurString = "";
-                    sCurString = SCPort.ReadExisting();
-                    if (sCurString != "")
-                        StrReceiver = StrReceiver + sCurString;
-                    if (SetCommand == true)
+                    if (StrReceiver.Length == 3)
                     {
-                        if (StrReceiver.Length == 3)
-                        {
-                            if (StrReceiver.Substring(StrReceiver.Length - 3) == "OK\n")
-                                ReadCom = true;
-                        }
-                        else if (StrReceiver.Length == 4)
-                        {
-                            if (StrReceiver.Substring(StrReceiver.Length - 3) == "OK\n" || StrReceiver.Substring(StrReceiver.Length - 4) == "OK\nS")
-                                ReadCom = true;
-                        }
-                        else if (StrReceiver.Length > 4)
-                        {
-                            if (StrReceiver.Substring(StrReceiver.Length - 3) == "OK\n" || StrReceiver.Substring(StrReceiver.Length - 4) == "OK\nS" ||
-                                StrReceiver.Substring(StrReceiver.Length - 5) == "ERR1\n" || StrReceiver.Substring(StrReceiver.Length - 5) == "ERR5\n")
-                                ReadCom = true;
-                        }
+                        if (StrReceiver.Substring(StrReceiver.Length - 3) == "OK\n")
+                            ReadCom = true;
                     }
-                    else
+                    else if (StrReceiver.Length == 4)
                     {
-                        if (StrReceiver.Length > 1)
-                        {
-                            if (StrReceiver.Substring(StrReceiver.Length - 1, 1) == "\n")
-                                ReadCom = true;
-                        }
+                        if (StrReceiver.Substring(StrReceiver.Length - 3) == "OK\n" || StrReceiver.Substring(StrReceiver.Length - 4) == "OK\nS")
+                            ReadCom = true;
+                    }
+                    else if (StrReceiver.Length > 4)
+                    {
+                        if (StrReceiver.Substring(StrReceiver.Length - 3) == "OK\n" || StrReceiver.Substring(StrReceiver.Length - 4) == "OK\nS" ||
+                            StrReceiver.Substring(StrReceiver.Length - 5) == "ERR1\n" || StrReceiver.Substring(StrReceiver.Length - 5) == "ERR5\n")
+                            ReadCom = true;
                     }
                 }
-                catch (Exception ex)
+                else
                 {
-                    ErrorMessage = ex.Message;
+                    if (StrReceiver.Length > 1)
+                    {
+                        if (StrReceiver.Substring(StrReceiver.Length - 1, 1) == "\n")
+                            ReadCom = true;
+                    }
                 }
             }
+            catch (Exception ex)
+            {
+                ErrorMessage = ex.Message;
+            }
+        }
             public void ClosePort()
             {
                 //****************************************************************
@@ -431,46 +518,153 @@ namespace BMG_MicroTextureAnalyzer
 
                 if (StrReceiver != "")
                 {
-                    Speed = Convert.ToInt16(System.Text.RegularExpressions.Regex.Replace(StrReceiver, @"[^0-9]+", ""));
+                    this.Speed = Convert.ToInt16(System.Text.RegularExpressions.Regex.Replace(StrReceiver, @"[^0-9]+", ""));
                     //label3.Text = "The speed is " + sSpeed.ToString();
                 }
             }
-            // TODO: Fix equation for calculating pulse equivalent
-            private void CalculatePulseEquiv()      //Get the pulse equivalent
+        // TODO: Fix equation for calculating pulse equivalent
+        internal void CalculatePulseEquiv()
+        {
+            try
             {
-                PulseEquivalent = Math.Round(MotorDegree / (TransmissionRatio * SubDivision), 5);
-                //label8.Text = "The pulse equivalent is " + DblPulseEqui.ToString();
+                if (this.MotorDegree == 0)
+                {
+                    this.WarningMessage = "Stepper Angle is 0";
+                    return;
+                }
+                if (this.LeadScrewPitch == 0)
+                {
+                    this.WarningMessage = "Lead Screw Pitch is 0";
+                    return;
+                }
+                if (this.Subdivision == 0)
+                {
+                    this.WarningMessage = "Subdivision is 0";
+                    return;
+                }
+                double stepsPerRevolution = 360 / this.MotorDegree;
+                double microsteppedSteps = stepsPerRevolution * this.Subdivision;
+                this.PulseEquivalent = microsteppedSteps / this.LeadScrewPitch; //Should provide steps per mm
+                //this.PulseEquiv = 0.005;
+                this.WarningMessage = "Pulse Equivalent:" + this.PulseEquivalent.ToString();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message.ToString());
+
             }
 
-            private void MoveYAbsolute(double yPos)      //Move Y axis to the appointed position and get the current position
+        }
+
+        public void MoveYAbsolute(double yPos, bool flag = true)      //Move Y axis to the appointed position and get the current position
+        {
+
+            try
             {
-                long lStep;
-                string s;
-               // button7.Focus();
-                //button6_Click(sender, e);
-                CurrentStep = Convert.ToInt64((yPos - CurrentPosition) / PulseEquivalent);
-                if (CurrentStep > 0)
-                    s = "+" + CurrentStep.ToString();
+                if (this != null)
+                {
+
+                    string commandString = string.Empty;
+                    if (flag)
+                    {
+                        ConvertDistanceToSteps(yPos, 1);
+                    }
+
+
+                    //this.currentYStep = Convert.ToInt64((Convert.ToDouble(yPosition) - this.CurrentYPosition) / this.PulseEquiv);
+                    //this.currentYStep = Convert.ToInt64(yPosition);
+                    if (this.CurrentYStep > 0)
+                        commandString = "+" + this.CurrentYStep.ToString();
+                    else
+                        commandString = this.CurrentYStep.ToString();
+                    this.SendCommand("Y" + commandString + "\r");
+                    Thread.Sleep(1000);
+                    Console.WriteLine(this.WarningMessage);
+                    if (this.StrReceiver == "Y" + commandString + "\rOK\n")
+                    {
+                        this.WarningMessage = "Success";
+                    }
+                    else
+                        this.WarningMessage = "SetYPosition Failed";
+
+                }
                 else
-                    s = CurrentStep.ToString();
-                StrReceiver = "";
-                Busy = true;
-                SetCommand = true;
-                SendCommand("Y" + s + "\r");   //Move Y axis to the appointed position.
-
-                //textBox7.Text = "...... ";
-                //timer1.Interval = 310 - sSpeed;
-                //timer1.Enabled = true;
-                Delay(100000000);
-                Busy = false;
-                //timer1.Enabled = false;
-
-                //button6_Click(sender, e);
-                GetYPosition();
+                {
+                    this.StrReceiver = "Device not Connected";
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message.ToString());
+                this.ErrorMessage = ex.Message;
             }
 
+        }
 
-            private void timer1_Tick(object sender, EventArgs e)
+        internal void ConvertDistanceToSteps(double distance, int axis)
+            {
+                try
+                {
+                    if (this.PulseEquivalent != 0)
+                    {
+                        if (axis == 0)
+                        {
+                            this.CurrentXStep = Convert.ToInt64(distance * this.PulseEquivalent);
+                        }
+                        else if (axis == 1)
+                        {
+                            this.CurrentYStep = Convert.ToInt64(distance * this.PulseEquivalent);
+                        }
+                        else
+                        {
+                            //this.responseString = "Invalid Axis";
+                            this.CurrentYStep = Convert.ToInt64(distance * this.PulseEquivalent);
+                        }
+
+                    }
+                    else
+                    {
+                        //this.responseString = "Pulse Equivalent is 0";
+                        if (axis == 0)
+                        {
+                            this.CurrentXStep = Convert.ToInt64(distance * 0.005);
+                        }
+                        else
+                        {
+                            this.CurrentYStep = Convert.ToInt64(distance * 0.005);
+                        }
+                        //this.currentYStep = Convert.ToInt64(distance * 0.005);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message.ToString());
+
+                }
+            }
+
+            internal void ConvertStepsToDistance(long steps)
+            {
+                try
+                {
+                    if (this.PulseEquivalent != 0)
+                    {
+                        this.CurrentYPosition = steps / this.PulseEquivalent;
+                    }
+                    else
+                    {
+                        //this.responseString = "Pulse Equivalent is 0";
+                        this.CurrentYPosition = steps / 0.005;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message.ToString());
+
+                }
+            }
+
+        private void timer1_Tick(object sender, EventArgs e)
             {
                 string s;
                 if (BlnReadCom == true)
@@ -504,7 +698,7 @@ namespace BMG_MicroTextureAnalyzer
                 //textBox7.Text = dCurrPosi.ToString();
             }
 
-            private void ReturnYToOrigin()      //Return Y to origin
+            internal void ReturnYToOrigin()      //Return Y to origin
             {
                 //button7.Focus();
                 StrReceiver = "";
@@ -512,17 +706,19 @@ namespace BMG_MicroTextureAnalyzer
                 SetCommand = true;
                 SendCommand("HY0\r");   //Home Y axis
 
-                //textBox7.Text = "...... ";
-                //timer1.Interval = 310 - sSpeed;
-                //timer1.Enabled = true;
                 Delay(1000000);
-                //timer1.Enabled = false;
+
                 Busy = false;
-                //button6_Click(sender, e);
+
                 GetYPosition();
             }
+            
+            public void HomeYStage()
+            {
+                
+            }
 
-            private void Stop()      //Stop moving
+            public void Stop()      //Stop moving
             {
                 StrReceiver = "";
                 Busy = true;
@@ -534,6 +730,11 @@ namespace BMG_MicroTextureAnalyzer
                 //DelayWait(500);
                 Busy = false;
 
+            }
+
+            public void SetSpeed(short speed)
+            {
+                SetNewSpeed(speed);
             }
     }
 }

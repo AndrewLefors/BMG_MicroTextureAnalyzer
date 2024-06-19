@@ -10,4 +10,10 @@
     <PackageReference Include="System.IO.Ports" Version="8.0.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="MccDaq">
+      <HintPath>..\..\..\..\..\..\..\..\..\..\Program Files (x86)\Measurement Computing\DAQ\MccDaq.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>

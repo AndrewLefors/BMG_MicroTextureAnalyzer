@@ -12,4 +12,10 @@
     <ProjectReference Include="..\BMG_MicroTextureAnalyzer\BMG_MicroTextureAnalyzer.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="MccDaq">
+      <HintPath>..\..\..\..\..\..\..\..\..\..\Program Files (x86)\Measurement Computing\DAQ\MccDaq.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>
