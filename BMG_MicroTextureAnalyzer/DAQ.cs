@@ -56,7 +56,7 @@ namespace BMG_MicroTextureAnalyzer
 
             float voltage = ConvertDataToVoltage(dataValue, range);
             OnDataChanged(new DataChangedEventArgs(channel, voltage));
-            OnPropertyChanged(nameof(ReadAnalogInput));
+           
             return voltage;
         }
 
@@ -66,8 +66,8 @@ namespace BMG_MicroTextureAnalyzer
             // Assuming a 16-bit resolution DAQ device with ±10V range for simplicity
             // Adjust the conversion logic based on the actual device specs and range
             //_board.
-            const float maxVoltage = 10f;
-            const float minVoltage = -10.0f;
+            float maxVoltage = ((float)range);
+            float minVoltage = -((float)range);
             float voltageRange = maxVoltage - minVoltage;
             float voltage = (dataValue / 65536.0f) * voltageRange + minVoltage;
             return voltage;
@@ -77,16 +77,16 @@ namespace BMG_MicroTextureAnalyzer
         protected virtual void OnDataChanged(DataChangedEventArgs e)
         {
             DataChanged?.Invoke(this, e);
-            OnPropertyChanged(nameof(DataChanged));
+            
         }
 
         // Starts monitoring the specified channel at regular intervals
         public void StartMonitoring(int channel, MccDaq.Range range, int intervalMs)
         {
-            if (_isMonitoring)
+            if (IsMonitoring)
                 throw new InvalidOperationException("Monitoring is already in progress.");
 
-            _isMonitoring = true;
+            IsMonitoring = true;
             _monitorThread = new Thread(() => MonitorChannel(channel, range, intervalMs))
             {
                 IsBackground = true
@@ -97,14 +97,14 @@ namespace BMG_MicroTextureAnalyzer
         // Stops monitoring
         public void StopMonitoring()
         {
-            _isMonitoring = false;
+            IsMonitoring = false;
             _monitorThread?.Join();
         }
 
         // Monitors the specified channel and raises DataChanged events
         private void MonitorChannel(int channel, MccDaq.Range range, int intervalMs)
         {
-            while (_isMonitoring)
+            while (IsMonitoring)
             {
                 try
                 {
@@ -113,7 +113,7 @@ namespace BMG_MicroTextureAnalyzer
                 catch (Exception ex)
                 {
                     Console.WriteLine("An error occurred while monitoring: " + ex.Message);
-                    _isMonitoring = false;
+                    IsMonitoring = false;
                 }
                 Thread.Sleep(intervalMs);
             }

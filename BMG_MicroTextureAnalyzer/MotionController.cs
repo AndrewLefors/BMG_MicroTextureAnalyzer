@@ -664,17 +664,6 @@ namespace BMG_MicroTextureAnalyzer
                 }
             }
 
-        private void timer1_Tick(object sender, EventArgs e)
-            {
-                string s;
-                if (BlnReadCom == true)
-                {
-                    //timer1.Enabled = false;
-                    return;
-                }
-                //s = textBox7.Text;
-                //textBox7.Text = s.Substring(s.Length - 1, 1) + s.Substring(0, s.Length - 1);
-            }
 
             private void GetYPosition()      //Get the current position of Y axis
             {
@@ -732,9 +721,30 @@ namespace BMG_MicroTextureAnalyzer
 
             }
 
-            public void SetSpeed(short speed)
+           
+            internal void SetSpeed(double speed)
             {
-                SetNewSpeed(speed);
+                try
+                {
+                    if (this.SCPort.IsOpen)
+                    {
+                        this.StrReceiver = string.Empty;
+                        this.SendCommand("V" + speed.ToString() + "\r");
+                        Console.WriteLine(this.StrReceiver);
+
+                        if (this.StrReceiver == "V" + speed.ToString() + "\rOK\n")
+                        {
+                            this.WarningMessage = "Success";
+                            //this.GetSpeed();
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message.ToString());
+                    this.WarningMessage = ex.Message;
+                }
             }
+        
     }
 }

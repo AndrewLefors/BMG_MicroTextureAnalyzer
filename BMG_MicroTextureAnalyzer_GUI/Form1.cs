@@ -1,21 +1,44 @@
+using BMG_MicroTextureAnalyzer;
+using System.Diagnostics;
+using System.Windows.Forms;
+using System.Windows.Forms.DataVisualization.Charting;
+using System.Timers;
 namespace BMG_MicroTextureAnalyzer_GUI
 {
-    using BMG_MicroTextureAnalyzer;
     public partial class Form1 : Form
     {
         public Engine MTAengine;
+        public MccDaq.MccBoard board;
+        public Int32 monitorData;
+        public Double monitorVoltage;
+        public Double monitorPounds;
+        public Double monitorNewtons;
+        public Stopwatch stopwatch;
+        public Double newtonThreshold = 1;
+
+
         public Form1()
         {
             BMG_MicroTextureAnalyzer.Engine engine = new BMG_MicroTextureAnalyzer.Engine();
+            board = new MccDaq.MccBoard(1);
+
             MTAengine = engine;
             MTAengine.PropertyChanged += MTAengine_PropertyChanged;
             var subdivisionList = new List<int> { 1, 2, 4, 8 };
 
 
+
             InitializeComponent();
             this.MotionControllerSubdivisionComboBox.DataSource = subdivisionList;
             this.MotionControllerSubdivisionComboBox.SelectedIndex = 0;
+            MonitorTimer.Tick += MonitorTimer_Tick;
+            DAQDataGridView.Columns.Add("Time", "Time");
+            DAQDataGridView.Columns.Add("Voltage", "Voltage");
+            DAQDataGridView.Columns.Add("Pounds", "Pounds");
+            DAQDataGridView.Columns.Add("Newtons", "Newtons");
+
         }
+        //Convert this to event driven so that the data is updated when the event is thrown
 
         private void MTAengine_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
@@ -26,10 +49,10 @@ namespace BMG_MicroTextureAnalyzer_GUI
             }
             //Handle event when connection is successful to change connection status label text to connect in green text
             //Why is this not working? 
-            if (e.PropertyName == "MotionController.ReadCom")
+            if (e.PropertyName == "MotionController.ConnectionStatus")
             {
-                ConnectionStatusResponseLabel.Text = MTAengine.Stage.ConnectionStatus ? "Connected" : "Not Connected";
-                ConnectionStatusResponseLabel.ForeColor = MTAengine.Stage.ConnectionStatus ? Color.Green : Color.Red;
+                ConnectionStatusLabel.Text = MTAengine.Stage.ConnectionStatus ? "Connected" : "Not Connected";
+                ConnectionStatusLabel.ForeColor = MTAengine.Stage.ConnectionStatus ? Color.Green : Color.Red;
             }
             if (e.PropertyName == "MotionController.Busy")
             {
@@ -45,27 +68,21 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 MessageBox.Show(MTAengine.Stage.PulseEquivalent.ToString());
                 PulseEquivalentResponseLabel.Text = MTAengine.Stage.PulseEquivalent.ToString();
             }
-            //FTODO: Fix this to properly respond to the events thrown by the DataChanged event handler from DAQ
-            if (e.PropertyName == "DAQ.ReadAnalogInput")
-            {
-                DAQDataResponseLabel.Text = MTAengine.DataDev.ReadAnalogInput(0, MccDaq.Range.BipPt005Volts).ToString();
-            }
-            if (e.PropertyName == "DAQ.PropertyChanged")
-            {
-                DAQMonitoringStatusResponseLabel.Text = MTAengine.DataDev.IsMonitoring ? "Monitoring" : "Not Monitoring";
-                DAQMonitoringStatusResponseLabel.ForeColor = MTAengine.DataDev.IsMonitoring ? Color.Green : Color.Red;
-            }
+
         }
 
-        private void ScanAvailableMotionControllerDevicesButton_Click(object sender, EventArgs e)
+        private async void ScanAvailableMotionControllerDevicesButton_Click(object sender, EventArgs e)
         {
+            ScanAvailableMotionControllerDevicesButton.Enabled = false;
             MTAengine.GetAvailableDevices();
             //AvailableDevicesComboBox.DataSource = MTAengine.Connection.AvailableDevices;
+            ScanAvailableMotionControllerDevicesButton.Enabled = true;
 
         }
 
-        private void ConnectToMotionControllerButton_Click(object sender, EventArgs e)
+        private async void ConnectToMotionControllerButton_Click(object sender, EventArgs e)
         {
+            ConnectToMotionControllerButton.Enabled = false;
             if (AvailableDevicesComboBox.SelectedItem != null)
             {
                 var selection = AvailableDevicesComboBox.SelectedItem.ToString();
@@ -76,24 +93,27 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 var prt = short.Parse(selection.Substring(selection.Length - 1));
                 MTAengine.ConnectToMotionController(prt);
             }
+            ConnectToMotionControllerButton.Enabled = true;
         }
 
         private async void SendYToHomeButton_Click(object sender, EventArgs e)
         {
             //Check if the motion controller is succesffuly connected; if it is issue the command to send the Y axis to the home position
+            SendYToHomeButton.Enabled = false;
             if (MTAengine.Stage.ConnectionStatus)
             {
                 //Make this a task to run a sepearte thread to leave ui response
-                Task.Run(() => MTAengine.HomeYStage());
+                await Task.Run(() => MTAengine.HomeYStage());
 
             }
+            SendYToHomeButton.Enabled = true;
         }
 
-        private void StopMotionControllerButton_Click(object sender, EventArgs e)
+        private async void StopMotionControllerButton_Click(object sender, EventArgs e)
         {
             if (MTAengine.Stage.ConnectionStatus)
             {
-                Task.Run(() => MTAengine.StopMotionController());
+                await Task.Run(() => MTAengine.StopMotionController());
             }
         }
 
@@ -201,10 +221,11 @@ namespace BMG_MicroTextureAnalyzer_GUI
         {
             if (MTAengine.Stage != null)
             {
-                if (short.TryParse(this.MotionControllerSpeedTextBox.Text, out short sspeed))
+               if(short.TryParse(MotionControllerSpeedTextBox.Text, out short outdata))
                 {
-                    Task.Run(() => MTAengine.SetStageSpeed(sspeed));
+                    await Task.Run(() => MTAengine.SetStageSpeed(outdata));
                 }
+
 
             }
         }
@@ -213,11 +234,6 @@ namespace BMG_MicroTextureAnalyzer_GUI
         {
             if (MTAengine.Stage != null)
             {
-                if (MTAengine.Stage.Busy)
-                {
-                    MessageBox.Show("The stage is currently busy, please wait for the current operation to complete");
-                    return;
-                }
                 if (double.TryParse(this.YAxisDisplacementTextBox.Text, out double distance))
                 {
                     await Task.Run(() => MTAengine.TranslateYStage(distance));
@@ -225,31 +241,105 @@ namespace BMG_MicroTextureAnalyzer_GUI
             }
         }
 
-        private void DAQStartMonitoringButton_Click(object sender, EventArgs e)
-        {
-            if (MTAengine.DataDev != null)
-            {
-                if (MTAengine.DataDev.IsMonitoring)
-                {
-                    MessageBox.Show("Monitoring is already in progress.");
-                    return;
-                }
-                MTAengine.StartMonitoring(7, MccDaq.Range.BipPt005Volts, 100);
-
-            }
-        }
+    
 
         private void DAQStopMonitoringButton_Click(object sender, EventArgs e)
         {
-            if (MTAengine.DataDev != null)
+            MTAengine.StopMotionController();
+            MonitorTimer.Stop();
+        }
+
+        private async void StartConstantMonitorButton_Click(object sender, EventArgs e)
+        {
+            MonitorResponseChart.Series.Clear();
+            DAQDataGridView.Rows.Clear();
+            stopwatch = new Stopwatch();
+            stopwatch.Start();
+            MonitorTimer.Enabled = true;
+            MonitorTimer.Start();
+            MTAengine.SetStageSpeed(5);
+            Thread.Sleep(1000);
+            MonitorTimer.Interval = 1;
+            
+            MTAengine.TranslateYStage(-100);
+
+        }
+
+        private void MonitorTimer_Tick(object sender, EventArgs e)
+        {
+            MccDaq.ErrorInfo ULStat = this.board.AIn32(7, MccDaq.Range.BipPt078Volts, out monitorData, 1);
+            if (ULStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
             {
-                if (!MTAengine.DataDev.IsMonitoring)
-                {
-                    MessageBox.Show("Monitoring is not in progress.");
-                    return;
-                }
-                MTAengine.StopMonitoring();
+                Task.Run(() => MessageBox.Show("Error reading data: " + ULStat.Message));
+                MTAengine.StopMotionController();
+                return;
             }
+            ULStat = this.board.ToEngUnits32(MccDaq.Range.BipPt078Volts, monitorData, out monitorVoltage);
+            if (ULStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
+            {
+                Task.Run(() => MessageBox.Show("Error converting data: " + ULStat.Message));
+                MTAengine.StopMotionController();
+                return;
+            }
+            //Convert the voltage to pounds using factor of 2141.878 lbs/volt
+                monitorPounds = monitorVoltage * 2141.878;
+                DAQMonitoringStatusResponseLabel.Text = monitorVoltage.ToString();
+                DAQDataResponseLabel.Text = monitorPounds.ToString();
+                monitorNewtons = monitorPounds * 4.44822;
+                NewtonsResponseLabel.Text = monitorNewtons.ToString();
+
+
+
+                //Add the value to the datagrid with another colum for the time and another colum for the distance
+                //First add coluns to datagrid
+
+                DAQDataGridView.Rows.Add(stopwatch.Elapsed.TotalSeconds, monitorVoltage, monitorPounds, monitorNewtons);
+                UpdateChartData();
+                
+            
+            //export datagrid to a file csv format
+            //Will do this in a sepearte button or file-dialouge
+            //Thread.Sleep(100);
+            //Check if Threshold has been reached
+            //How can I completely stop these insteado f just throwing a message box
+
+            if (monitorNewtons > newtonThreshold)
+            {
+                //MessageBox.Show("Threshold reached");
+                MTAengine.StopMotionController();
+                MonitorTimer.Stop();
+                return;
+            }
+
+        }
+
+        private void UpdateChartData()
+        {
+            MonitorResponseChart.Series.Clear();
+            Series series = new Series
+            {
+                ChartType = SeriesChartType.Line
+            };
+            MonitorResponseChart.Series.Add(series);
+
+            foreach (DataGridViewRow row in DAQDataGridView.Rows)
+            {
+                if (row.Cells[0].Value != null && row.Cells[1].Value != null)
+                {
+                    //Convert the datetime to relative time in seconds
+
+                    double xValue = Convert.ToDouble(row.Cells[0].Value);
+                    double yValue = Convert.ToDouble(row.Cells[3].Value);
+                    series.Points.AddXY(xValue, yValue);
+                }
+            }
+        }
+
+        private void ReturnProbeToMaxHeightButton_Click(object sender, EventArgs e)
+        {
+            MTAengine.SetStageSpeed(100);
+            Thread.Sleep(100);
+            MTAengine.TranslateYStage(100);
         }
     }
 }

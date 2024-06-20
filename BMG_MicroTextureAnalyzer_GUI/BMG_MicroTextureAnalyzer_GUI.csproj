@@ -9,6 +9,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="WinForms.DataVisualization" Version="1.9.2" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\BMG_MicroTextureAnalyzer\BMG_MicroTextureAnalyzer.csproj" />
   </ItemGroup>
 

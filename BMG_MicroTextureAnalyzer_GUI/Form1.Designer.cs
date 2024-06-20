@@ -28,6 +28,10 @@
         /// </summary>
         private void InitializeComponent()
         {
+            components = new System.ComponentModel.Container();
+            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea1 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
+            System.Windows.Forms.DataVisualization.Charting.Legend legend1 = new System.Windows.Forms.DataVisualization.Charting.Legend();
+            System.Windows.Forms.DataVisualization.Charting.Series series1 = new System.Windows.Forms.DataVisualization.Charting.Series();
             MMELogoPictureBox = new PictureBox();
             tabControl1 = new TabControl();
             MicroTextureAnalyzerTabPage = new TabPage();
@@ -43,6 +47,7 @@
             YHomeLabel = new Label();
             StepperMotorValuesGroupBox = new GroupBox();
             YAxisPropertiesGroupBox = new GroupBox();
+            MotionControllerStatusResponseLabel = new Label();
             StopMotionControllerButton = new Button();
             SendYToHomeButton = new Button();
             StepperMotorSettingsGroupBox = new GroupBox();
@@ -84,12 +89,20 @@
             ConnectionStatusLabel = new Label();
             ConnectionStatusResponseLabel = new Label();
             DaqDeviceTabPage = new TabPage();
-            DAQStopMonitoringButton = new Button();
-            DAQDataResponseLabel = new Label();
+            tableLayoutPanel8 = new TableLayoutPanel();
+            label3 = new Label();
             DAQMonitoringStatusResponseLabel = new Label();
-            DAQStartMonitoringButton = new Button();
+            StartConstantMonitorButton = new Button();
+            label1 = new Label();
+            DAQStopMonitoringButton = new Button();
+            NewtonsResponseLabel = new Label();
+            label2 = new Label();
+            DAQDataResponseLabel = new Label();
+            ReturnProbeToMaxHeightButton = new Button();
+            MonitorResponseChart = new System.Windows.Forms.DataVisualization.Charting.Chart();
             DAQDataGridView = new DataGridView();
-            MotionControllerStatusResponseLabel = new Label();
+            timer1 = new System.Windows.Forms.Timer(components);
+            MonitorTimer = new System.Windows.Forms.Timer(components);
             ((System.ComponentModel.ISupportInitialize)MMELogoPictureBox).BeginInit();
             tabControl1.SuspendLayout();
             MotionControllerTabPage.SuspendLayout();
@@ -107,6 +120,8 @@
             MotionControllerConnectionSettingsGroupBox.SuspendLayout();
             MotionControllerConnectionTableLayout.SuspendLayout();
             DaqDeviceTabPage.SuspendLayout();
+            tableLayoutPanel8.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)MonitorResponseChart).BeginInit();
             ((System.ComponentModel.ISupportInitialize)DAQDataGridView).BeginInit();
             SuspendLayout();
             // 
@@ -274,6 +289,15 @@
             YAxisPropertiesGroupBox.TabIndex = 0;
             YAxisPropertiesGroupBox.TabStop = false;
             YAxisPropertiesGroupBox.Text = "Y-Stage Properties";
+            // 
+            // MotionControllerStatusResponseLabel
+            // 
+            MotionControllerStatusResponseLabel.AutoSize = true;
+            MotionControllerStatusResponseLabel.Location = new Point(3, 164);
+            MotionControllerStatusResponseLabel.Name = "MotionControllerStatusResponseLabel";
+            MotionControllerStatusResponseLabel.Size = new Size(38, 15);
+            MotionControllerStatusResponseLabel.TabIndex = 3;
+            MotionControllerStatusResponseLabel.Text = "label1";
             // 
             // StopMotionControllerButton
             // 
@@ -737,10 +761,8 @@
             // 
             // DaqDeviceTabPage
             // 
-            DaqDeviceTabPage.Controls.Add(DAQStopMonitoringButton);
-            DaqDeviceTabPage.Controls.Add(DAQDataResponseLabel);
-            DaqDeviceTabPage.Controls.Add(DAQMonitoringStatusResponseLabel);
-            DaqDeviceTabPage.Controls.Add(DAQStartMonitoringButton);
+            DaqDeviceTabPage.Controls.Add(tableLayoutPanel8);
+            DaqDeviceTabPage.Controls.Add(MonitorResponseChart);
             DaqDeviceTabPage.Controls.Add(DAQDataGridView);
             DaqDeviceTabPage.Location = new Point(4, 24);
             DaqDeviceTabPage.Name = "DaqDeviceTabPage";
@@ -750,60 +772,152 @@
             DaqDeviceTabPage.Text = "DAQ Device";
             DaqDeviceTabPage.UseVisualStyleBackColor = true;
             // 
+            // tableLayoutPanel8
+            // 
+            tableLayoutPanel8.ColumnCount = 3;
+            tableLayoutPanel8.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 83.425415F));
+            tableLayoutPanel8.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 16.574585F));
+            tableLayoutPanel8.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 66F));
+            tableLayoutPanel8.Controls.Add(label3, 1, 2);
+            tableLayoutPanel8.Controls.Add(DAQMonitoringStatusResponseLabel, 0, 0);
+            tableLayoutPanel8.Controls.Add(StartConstantMonitorButton, 2, 0);
+            tableLayoutPanel8.Controls.Add(label1, 1, 0);
+            tableLayoutPanel8.Controls.Add(DAQStopMonitoringButton, 2, 1);
+            tableLayoutPanel8.Controls.Add(NewtonsResponseLabel, 0, 2);
+            tableLayoutPanel8.Controls.Add(label2, 1, 1);
+            tableLayoutPanel8.Controls.Add(DAQDataResponseLabel, 0, 1);
+            tableLayoutPanel8.Controls.Add(ReturnProbeToMaxHeightButton, 2, 2);
+            tableLayoutPanel8.Location = new Point(490, 3);
+            tableLayoutPanel8.Name = "tableLayoutPanel8";
+            tableLayoutPanel8.RowCount = 3;
+            tableLayoutPanel8.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            tableLayoutPanel8.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            tableLayoutPanel8.RowStyles.Add(new RowStyle(SizeType.Absolute, 36F));
+            tableLayoutPanel8.Size = new Size(275, 122);
+            tableLayoutPanel8.TabIndex = 10;
+            // 
+            // label3
+            // 
+            label3.Anchor = AnchorStyles.Left;
+            label3.AutoSize = true;
+            label3.Location = new Point(177, 96);
+            label3.Name = "label3";
+            label3.Size = new Size(16, 15);
+            label3.TabIndex = 11;
+            label3.Text = "N";
+            // 
+            // DAQMonitoringStatusResponseLabel
+            // 
+            DAQMonitoringStatusResponseLabel.Anchor = AnchorStyles.Right;
+            DAQMonitoringStatusResponseLabel.AutoSize = true;
+            DAQMonitoringStatusResponseLabel.Location = new Point(125, 14);
+            DAQMonitoringStatusResponseLabel.Name = "DAQMonitoringStatusResponseLabel";
+            DAQMonitoringStatusResponseLabel.Size = new Size(46, 15);
+            DAQMonitoringStatusResponseLabel.TabIndex = 2;
+            DAQMonitoringStatusResponseLabel.Text = "Voltage";
+            // 
+            // StartConstantMonitorButton
+            // 
+            StartConstantMonitorButton.Location = new Point(211, 3);
+            StartConstantMonitorButton.Name = "StartConstantMonitorButton";
+            StartConstantMonitorButton.Size = new Size(61, 37);
+            StartConstantMonitorButton.TabIndex = 5;
+            StartConstantMonitorButton.Text = "Find Surface";
+            StartConstantMonitorButton.UseVisualStyleBackColor = true;
+            StartConstantMonitorButton.Click += StartConstantMonitorButton_Click;
+            // 
+            // label1
+            // 
+            label1.Anchor = AnchorStyles.Left;
+            label1.AutoSize = true;
+            label1.Location = new Point(177, 14);
+            label1.Name = "label1";
+            label1.Size = new Size(14, 15);
+            label1.TabIndex = 8;
+            label1.Text = "V";
+            // 
             // DAQStopMonitoringButton
             // 
-            DAQStopMonitoringButton.Location = new Point(467, 79);
+            DAQStopMonitoringButton.Location = new Point(211, 46);
             DAQStopMonitoringButton.Name = "DAQStopMonitoringButton";
-            DAQStopMonitoringButton.Size = new Size(75, 23);
+            DAQStopMonitoringButton.Size = new Size(61, 23);
             DAQStopMonitoringButton.TabIndex = 4;
             DAQStopMonitoringButton.Text = "Stop Monitoring";
             DAQStopMonitoringButton.UseVisualStyleBackColor = true;
             DAQStopMonitoringButton.Click += DAQStopMonitoringButton_Click;
             // 
+            // NewtonsResponseLabel
+            // 
+            NewtonsResponseLabel.Anchor = AnchorStyles.Right;
+            NewtonsResponseLabel.AutoSize = true;
+            NewtonsResponseLabel.Location = new Point(117, 96);
+            NewtonsResponseLabel.Name = "NewtonsResponseLabel";
+            NewtonsResponseLabel.Size = new Size(54, 15);
+            NewtonsResponseLabel.TabIndex = 6;
+            NewtonsResponseLabel.Text = "Newtons";
+            // 
+            // label2
+            // 
+            label2.Anchor = AnchorStyles.Left;
+            label2.AutoSize = true;
+            label2.Location = new Point(177, 57);
+            label2.Name = "label2";
+            label2.Size = new Size(22, 15);
+            label2.TabIndex = 9;
+            label2.Text = "lbs";
+            // 
             // DAQDataResponseLabel
             // 
+            DAQDataResponseLabel.Anchor = AnchorStyles.Right;
             DAQDataResponseLabel.AutoSize = true;
-            DAQDataResponseLabel.Location = new Point(693, 207);
+            DAQDataResponseLabel.Location = new Point(124, 57);
             DAQDataResponseLabel.Name = "DAQDataResponseLabel";
-            DAQDataResponseLabel.Size = new Size(38, 15);
+            DAQDataResponseLabel.Size = new Size(47, 15);
             DAQDataResponseLabel.TabIndex = 3;
-            DAQDataResponseLabel.Text = "label1";
+            DAQDataResponseLabel.Text = "Pounds";
             // 
-            // DAQMonitoringStatusResponseLabel
+            // ReturnProbeToMaxHeightButton
             // 
-            DAQMonitoringStatusResponseLabel.AutoSize = true;
-            DAQMonitoringStatusResponseLabel.Location = new Point(550, 208);
-            DAQMonitoringStatusResponseLabel.Name = "DAQMonitoringStatusResponseLabel";
-            DAQMonitoringStatusResponseLabel.Size = new Size(38, 15);
-            DAQMonitoringStatusResponseLabel.TabIndex = 2;
-            DAQMonitoringStatusResponseLabel.Text = "label1";
+            ReturnProbeToMaxHeightButton.Location = new Point(211, 89);
+            ReturnProbeToMaxHeightButton.Name = "ReturnProbeToMaxHeightButton";
+            ReturnProbeToMaxHeightButton.Size = new Size(61, 23);
+            ReturnProbeToMaxHeightButton.TabIndex = 12;
+            ReturnProbeToMaxHeightButton.Text = "Return Probe to Top";
+            ReturnProbeToMaxHeightButton.UseVisualStyleBackColor = true;
+            ReturnProbeToMaxHeightButton.Click += ReturnProbeToMaxHeightButton_Click;
             // 
-            // DAQStartMonitoringButton
+            // MonitorResponseChart
             // 
-            DAQStartMonitoringButton.Location = new Point(467, 50);
-            DAQStartMonitoringButton.Name = "DAQStartMonitoringButton";
-            DAQStartMonitoringButton.Size = new Size(75, 23);
-            DAQStartMonitoringButton.TabIndex = 1;
-            DAQStartMonitoringButton.Text = "Start Monitoring";
-            DAQStartMonitoringButton.UseVisualStyleBackColor = true;
-            DAQStartMonitoringButton.Click += DAQStartMonitoringButton_Click;
+            chartArea1.Name = "ChartArea1";
+            MonitorResponseChart.ChartAreas.Add(chartArea1);
+            legend1.Name = "Legend1";
+            MonitorResponseChart.Legends.Add(legend1);
+            MonitorResponseChart.Location = new Point(8, 3);
+            MonitorResponseChart.Name = "MonitorResponseChart";
+            series1.ChartArea = "ChartArea1";
+            series1.Legend = "Legend1";
+            series1.Name = "Series1";
+            MonitorResponseChart.Series.Add(series1);
+            MonitorResponseChart.Size = new Size(476, 289);
+            MonitorResponseChart.TabIndex = 7;
+            MonitorResponseChart.Text = "chart1";
             // 
             // DAQDataGridView
             // 
             DAQDataGridView.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            DAQDataGridView.Location = new Point(548, 50);
+            DAQDataGridView.Location = new Point(0, 295);
             DAQDataGridView.Name = "DAQDataGridView";
-            DAQDataGridView.Size = new Size(240, 150);
+            DAQDataGridView.Size = new Size(495, 209);
             DAQDataGridView.TabIndex = 0;
             // 
-            // MotionControllerStatusResponseLabel
+            // timer1
             // 
-            MotionControllerStatusResponseLabel.AutoSize = true;
-            MotionControllerStatusResponseLabel.Location = new Point(3, 164);
-            MotionControllerStatusResponseLabel.Name = "MotionControllerStatusResponseLabel";
-            MotionControllerStatusResponseLabel.Size = new Size(38, 15);
-            MotionControllerStatusResponseLabel.TabIndex = 3;
-            MotionControllerStatusResponseLabel.Text = "label1";
+            timer1.Enabled = true;
+            timer1.Interval = 1;
+            // 
+            // MonitorTimer
+            // 
+            MonitorTimer.Interval = 1;
             // 
             // Form1
             // 
@@ -840,7 +954,9 @@
             MotionControllerConnectionTableLayout.ResumeLayout(false);
             MotionControllerConnectionTableLayout.PerformLayout();
             DaqDeviceTabPage.ResumeLayout(false);
-            DaqDeviceTabPage.PerformLayout();
+            tableLayoutPanel8.ResumeLayout(false);
+            tableLayoutPanel8.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)MonitorResponseChart).EndInit();
             ((System.ComponentModel.ISupportInitialize)DAQDataGridView).EndInit();
             ResumeLayout(false);
         }
@@ -904,10 +1020,19 @@
         private Button SendYToHomeButton;
         private Button StopMotionControllerButton;
         private DataGridView DAQDataGridView;
-        private Button DAQStartMonitoringButton;
         private Label DAQMonitoringStatusResponseLabel;
         private Label DAQDataResponseLabel;
         private Button DAQStopMonitoringButton;
         private Label MotionControllerStatusResponseLabel;
+        private System.Windows.Forms.Timer timer1;
+        private Button StartConstantMonitorButton;
+        private System.Windows.Forms.Timer MonitorTimer;
+        private Label NewtonsResponseLabel;
+        private System.Windows.Forms.DataVisualization.Charting.Chart MonitorResponseChart;
+        private TableLayoutPanel tableLayoutPanel8;
+        private Label label2;
+        private Label label1;
+        private Label label3;
+        private Button ReturnProbeToMaxHeightButton;
     }
 }

@@ -1,5 +1,6 @@
 ﻿using MicroneedleAPI;
 using System.ComponentModel;
+using System.Data;
 using System.IO.Ports;
 
 namespace BMG_MicroTextureAnalyzer
@@ -7,11 +8,12 @@ namespace BMG_MicroTextureAnalyzer
     public class Engine : INotifyPropertyChanged
     {
         private MotionController _stage;
-        private MccDaqWrapper _dataDev;
         private Connection _connection;
         private string _errorString;
+        private Timer _timer;
 
         public event PropertyChangedEventHandler PropertyChanged = delegate { };
+
         protected virtual void OnPropertyChanged(string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
@@ -25,6 +27,20 @@ namespace BMG_MicroTextureAnalyzer
             // Invoke the Engine's PropertyChanged event
             OnPropertyChanged(propertyName);
         }
+
+        public Timer ETimer
+        {
+            get { return this._timer; }
+            set
+            {
+                if (this._timer != value)
+                {
+                    this._timer = value;
+                    this.OnPropertyChanged(nameof(ETimer));
+                }
+            }
+        }
+
         public MotionController Stage
         {
             get { return this._stage; }
@@ -51,19 +67,6 @@ namespace BMG_MicroTextureAnalyzer
             }
         }
 
-        public MccDaqWrapper DataDev
-        {
-            get { return this._dataDev; }
-            set
-            {
-                if (this._dataDev != value)
-                {
-                    this._dataDev = value;
-                    this.OnPropertyChanged(nameof(DataDev));
-                }
-            }
-        }
-
         public string ErrorString
         {
             get { return this._errorString; }
@@ -81,38 +84,11 @@ namespace BMG_MicroTextureAnalyzer
         {
             this.Connection = new Connection();
             this.Stage = new MotionController();
-            this.DataDev = new MccDaqWrapper();
             this.Connection.PropertyChanged +=  Engine_PropertyChanged;
             this.Stage.PropertyChanged += Engine_PropertyChanged;   
-            this.DataDev.PropertyChanged += Engine_PropertyChanged;
-            this.DataDev.DataChanged += DataDev.OnDataChanged;
-            this.Stage.SCPort.DataReceived += Stage.SCPort_DataReceived;
-            
-            
-            //TODO: Add INotifyPropertyChanged event handlers for DataDev
-           // this.DataDev.PropertyChanged += Engine_PropertyChanged;
 
         }
 
-        public void Initialize()
-        {
-            if (this.Stage != null)
-            {
-                this.Stage.ClosePort();
-            }
-
-            this.Stage = new MotionController();
-            this.Stage.PropertyChanged += Engine_PropertyChanged;
-            
-            this.DataDev = new MccDaqWrapper();
-            
-        }
-        //TODO: Add an event to handle all Errors
-        //TODO: Add an event to handle all warnings
-        //TODO: Add an event to handle all messages
-        //TODO: Add an event to handle all DAQ events
-        //TODO: Add an event to handle all stage events
-        //TODO: Add an event to handle all connection events
 
         public void GetAvailableDevices()
         {
@@ -126,6 +102,7 @@ namespace BMG_MicroTextureAnalyzer
 
             }
         }
+
 
         public void ConnectToMotionController(short port)
         {
@@ -265,35 +242,6 @@ namespace BMG_MicroTextureAnalyzer
             }
         }
 
-        //Methods below relate to the DAQ device
-        public void StartMonitoring(int channel, MccDaq.Range range, int intervalMs)
-        {
-            try
-            {
-                if (this.DataDev != null)
-                {
-                    this.DataDev.StartMonitoring(channel, range, intervalMs);
-                }
-            }
-            catch (Exception ex)
-            {
-                this.ErrorString = ex.Message;
-            }
-        }
 
-        public void StopMonitoring()
-        {
-            try
-            {
-                if (this.DataDev != null)
-                {
-                    this.DataDev.StopMonitoring();
-                }
-            }
-            catch (Exception ex)
-            {
-                this.ErrorString = ex.Message;
-            }
-        }
     }
 }
