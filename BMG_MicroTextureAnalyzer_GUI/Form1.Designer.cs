@@ -89,6 +89,11 @@
             ConnectionStatusLabel = new Label();
             ConnectionStatusResponseLabel = new Label();
             DaqDeviceTabPage = new TabPage();
+            tableLayoutPanel9 = new TableLayoutPanel();
+            FractureTestStartButton = new Button();
+            PunctureTestStartButton = new Button();
+            FractureDepthTextBox = new TextBox();
+            PunctureMaxDepthTextBox = new TextBox();
             tableLayoutPanel8 = new TableLayoutPanel();
             label3 = new Label();
             DAQMonitoringStatusResponseLabel = new Label();
@@ -103,6 +108,8 @@
             DAQDataGridView = new DataGridView();
             timer1 = new System.Windows.Forms.Timer(components);
             MonitorTimer = new System.Windows.Forms.Timer(components);
+            FractureTimer = new System.Windows.Forms.Timer(components);
+            PunctureTimer = new System.Windows.Forms.Timer(components);
             ((System.ComponentModel.ISupportInitialize)MMELogoPictureBox).BeginInit();
             tabControl1.SuspendLayout();
             MotionControllerTabPage.SuspendLayout();
@@ -120,6 +127,7 @@
             MotionControllerConnectionSettingsGroupBox.SuspendLayout();
             MotionControllerConnectionTableLayout.SuspendLayout();
             DaqDeviceTabPage.SuspendLayout();
+            tableLayoutPanel9.SuspendLayout();
             tableLayoutPanel8.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)MonitorResponseChart).BeginInit();
             ((System.ComponentModel.ISupportInitialize)DAQDataGridView).BeginInit();
@@ -761,6 +769,7 @@
             // 
             // DaqDeviceTabPage
             // 
+            DaqDeviceTabPage.Controls.Add(tableLayoutPanel9);
             DaqDeviceTabPage.Controls.Add(tableLayoutPanel8);
             DaqDeviceTabPage.Controls.Add(MonitorResponseChart);
             DaqDeviceTabPage.Controls.Add(DAQDataGridView);
@@ -771,6 +780,61 @@
             DaqDeviceTabPage.TabIndex = 1;
             DaqDeviceTabPage.Text = "DAQ Device";
             DaqDeviceTabPage.UseVisualStyleBackColor = true;
+            // 
+            // tableLayoutPanel9
+            // 
+            tableLayoutPanel9.ColumnCount = 2;
+            tableLayoutPanel9.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+            tableLayoutPanel9.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+            tableLayoutPanel9.Controls.Add(FractureTestStartButton, 0, 1);
+            tableLayoutPanel9.Controls.Add(PunctureTestStartButton, 1, 1);
+            tableLayoutPanel9.Controls.Add(FractureDepthTextBox, 0, 0);
+            tableLayoutPanel9.Controls.Add(PunctureMaxDepthTextBox, 1, 0);
+            tableLayoutPanel9.Location = new Point(491, 145);
+            tableLayoutPanel9.Name = "tableLayoutPanel9";
+            tableLayoutPanel9.RowCount = 2;
+            tableLayoutPanel9.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            tableLayoutPanel9.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            tableLayoutPanel9.Size = new Size(200, 100);
+            tableLayoutPanel9.TabIndex = 11;
+            // 
+            // FractureTestStartButton
+            // 
+            FractureTestStartButton.Anchor = AnchorStyles.None;
+            FractureTestStartButton.Location = new Point(12, 63);
+            FractureTestStartButton.Name = "FractureTestStartButton";
+            FractureTestStartButton.Size = new Size(75, 23);
+            FractureTestStartButton.TabIndex = 1;
+            FractureTestStartButton.Text = "Fracture";
+            FractureTestStartButton.UseVisualStyleBackColor = true;
+           // FractureTestStartButton.Click += FractureTestStartButton_Click;
+            // 
+            // PunctureTestStartButton
+            // 
+            PunctureTestStartButton.Anchor = AnchorStyles.None;
+            PunctureTestStartButton.Location = new Point(112, 63);
+            PunctureTestStartButton.Name = "PunctureTestStartButton";
+            PunctureTestStartButton.Size = new Size(75, 23);
+            PunctureTestStartButton.TabIndex = 0;
+            PunctureTestStartButton.Text = "Puncture Test Start";
+            PunctureTestStartButton.UseVisualStyleBackColor = true;
+           // PunctureTestStartButton.Click += PunctureTestStartButton_Click;
+            // 
+            // FractureDepthTextBox
+            // 
+            FractureDepthTextBox.Anchor = AnchorStyles.None;
+            FractureDepthTextBox.Location = new Point(3, 13);
+            FractureDepthTextBox.Name = "FractureDepthTextBox";
+            FractureDepthTextBox.Size = new Size(94, 23);
+            FractureDepthTextBox.TabIndex = 2;
+            // 
+            // PunctureMaxDepthTextBox
+            // 
+            PunctureMaxDepthTextBox.Anchor = AnchorStyles.None;
+            PunctureMaxDepthTextBox.Location = new Point(103, 13);
+            PunctureMaxDepthTextBox.Name = "PunctureMaxDepthTextBox";
+            PunctureMaxDepthTextBox.Size = new Size(94, 23);
+            PunctureMaxDepthTextBox.TabIndex = 3;
             // 
             // tableLayoutPanel8
             // 
@@ -919,6 +983,14 @@
             // 
             MonitorTimer.Interval = 1;
             // 
+            // FractureTimer
+            // 
+            FractureTimer.Interval = 1;
+            // 
+            // PunctureTimer
+            // 
+            PunctureTimer.Interval = 1;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -954,6 +1026,8 @@
             MotionControllerConnectionTableLayout.ResumeLayout(false);
             MotionControllerConnectionTableLayout.PerformLayout();
             DaqDeviceTabPage.ResumeLayout(false);
+            tableLayoutPanel9.ResumeLayout(false);
+            tableLayoutPanel9.PerformLayout();
             tableLayoutPanel8.ResumeLayout(false);
             tableLayoutPanel8.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)MonitorResponseChart).EndInit();
@@ -1034,5 +1108,12 @@
         private Label label1;
         private Label label3;
         private Button ReturnProbeToMaxHeightButton;
+        private TableLayoutPanel tableLayoutPanel9;
+        private Button FractureTestStartButton;
+        private Button PunctureTestStartButton;
+        private TextBox FractureDepthTextBox;
+        private TextBox PunctureMaxDepthTextBox;
+        private System.Windows.Forms.Timer FractureTimer;
+        private System.Windows.Forms.Timer PunctureTimer;
     }
 }

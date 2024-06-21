@@ -14,7 +14,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
         public Double monitorPounds;
         public Double monitorNewtons;
         public Stopwatch stopwatch;
-        public Double newtonThreshold = 1;
+        public Double newtonThreshold = 1.5;
 
 
         public Form1()
@@ -252,13 +252,18 @@ namespace BMG_MicroTextureAnalyzer_GUI
         private async void StartConstantMonitorButton_Click(object sender, EventArgs e)
         {
             MonitorResponseChart.Series.Clear();
+            Series series = new Series
+            {
+                ChartType = SeriesChartType.Line
+            };
+            MonitorResponseChart.Series.Add(series);
             DAQDataGridView.Rows.Clear();
             stopwatch = new Stopwatch();
             stopwatch.Start();
             MonitorTimer.Enabled = true;
             MonitorTimer.Start();
             MTAengine.SetStageSpeed(5);
-            Thread.Sleep(1000);
+            Thread.Sleep(10);
             MonitorTimer.Interval = 1;
             
             MTAengine.TranslateYStage(-100);
@@ -293,8 +298,14 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 //Add the value to the datagrid with another colum for the time and another colum for the distance
                 //First add coluns to datagrid
 
-                DAQDataGridView.Rows.Add(stopwatch.Elapsed.TotalSeconds, monitorVoltage, monitorPounds, monitorNewtons);
-                UpdateChartData();
+                
+            //I want to have a seperate thread run the updatechart, but make sure it's the proper thread using invoke
+            //this.
+            Task.Run(()=> 
+            {
+                //DAQDataGridView.Rows.Add(stopwatch.Elapsed.TotalSeconds, monitorVoltage, monitorPounds, monitorNewtons);
+                UpdatePortionChartData(stopwatch.Elapsed.TotalSeconds, monitorNewtons);
+            });
                 
             
             //export datagrid to a file csv format
@@ -308,6 +319,15 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 //MessageBox.Show("Threshold reached");
                 MTAengine.StopMotionController();
                 MonitorTimer.Stop();
+                //Take the data from the chart and add it to the datagrid
+                Task.Run(() => Invoke((MethodInvoker) (delegate
+                {
+                    foreach (DataPoint point in MonitorResponseChart.Series[0].Points)
+                    {
+                        DAQDataGridView.Rows.Add(point.XValue, point.YValues[0], point.YValues[0] * 21, point.YValues[0] * 4.44822);
+                    }
+                })));
+               // UpdateChartData();
                 return;
             }
 
@@ -335,11 +355,19 @@ namespace BMG_MicroTextureAnalyzer_GUI
             }
         }
 
+        //Make updateportionchartdata function that takes the new time value, new voltage, new pound and new newton values and addits it to the chart
+        //This will be called in the monitor timer tick event
+        private void UpdatePortionChartData(double time, double newtons)
+        {
+
+            MonitorResponseChart.Series[0].Points.AddXY(time, newtons);
+        }
+
         private void ReturnProbeToMaxHeightButton_Click(object sender, EventArgs e)
         {
             MTAengine.SetStageSpeed(100);
             Thread.Sleep(100);
-            MTAengine.TranslateYStage(100);
+            MTAengine.TranslateYStage(10);
         }
     }
 }
