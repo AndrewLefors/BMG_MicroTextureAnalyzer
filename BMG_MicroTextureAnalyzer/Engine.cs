@@ -20,9 +20,11 @@ namespace BMG_MicroTextureAnalyzer
         private BackgroundWorker _dataCollectorWorker;
         private BackgroundWorker _dataProcessorWorker;
         private BackgroundWorker _stageWorker;
+        private BackgroundWorker _stageStarter;
         private bool _isRunning;
 
         private bool thresholdMet = false;
+        private bool _isStageMoving;
 
         private double _voltage;
 
@@ -59,6 +61,8 @@ namespace BMG_MicroTextureAnalyzer
             }
             ThresholdMet = false;
             _isRunning = true;
+            _isStageMoving = false;
+            _dataQueue.Clear();
 
             _dataCollectorWorker = new BackgroundWorker();
             _dataCollectorWorker.DoWork += DataCollectorWorker_FindPlane;
@@ -70,12 +74,28 @@ namespace BMG_MicroTextureAnalyzer
             _dataProcessorWorker.WorkerSupportsCancellation = true;
             _dataProcessorWorker.RunWorkerAsync();
 
-            _stageWorker = new BackgroundWorker();
-            _stageWorker.DoWork += StageWorker_FindPlane;
-            _stageWorker.WorkerSupportsCancellation = true;
-            _stageWorker.RunWorkerAsync();
-            
 
+        }
+
+        public void FractureTest()
+        {
+            if (_isRunning)
+            {
+                return;
+            }
+            ThresholdMet = false;
+            _isRunning = true;
+            _dataQueue.Clear();
+
+            _dataCollectorWorker = new BackgroundWorker();
+            _dataCollectorWorker.DoWork += DataCollectorWorker_FractureTest;
+            _dataCollectorWorker.WorkerSupportsCancellation = true;
+            _dataCollectorWorker.RunWorkerAsync();
+
+            _dataProcessorWorker = new BackgroundWorker();
+            _dataProcessorWorker.DoWork += DataProcessorWorker_FractureTest;
+            _dataProcessorWorker.WorkerSupportsCancellation = true;
+            _dataProcessorWorker.RunWorkerAsync();
         }
 
         public bool ThresholdMet
@@ -109,6 +129,7 @@ namespace BMG_MicroTextureAnalyzer
 
             _dataCollectorWorker.CancelAsync();
             _dataProcessorWorker.CancelAsync();
+            //_stageWorker.CancelAsync();
 
             while (_dataCollectorWorker.IsBusy || _dataProcessorWorker.IsBusy)
             {
@@ -129,12 +150,15 @@ namespace BMG_MicroTextureAnalyzer
 
         private void DataCollectorWorker_DoWork(object sender, DoWorkEventArgs e)
         {
-            MccBoard daqBoard = new MccBoard(1);
+            if (this._board == null)
+            {
+                this._board = new MccBoard(1);
+            }
             int channel = 7;
             MccDaq.Range range = MccDaq.Range.BipPt078Volts;
             while (!_dataCollectorWorker.CancellationPending)
             {
-                MccDaq.ErrorInfo ulStat = daqBoard.AIn32(channel, range, out int rawData, 0);
+                MccDaq.ErrorInfo ulStat = this._board.AIn32(channel, range, out int rawData, 0);
                 if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
                 {
                     throw new Exception("Error reading analog input: " + ulStat.Message);
@@ -143,23 +167,25 @@ namespace BMG_MicroTextureAnalyzer
                 //Create new datachangedevent args to store the timestamp and voltage
                 RawDataChangedEventArgs dataChangedEventArgs = new RawDataChangedEventArgs(rawData);
                 _dataQueue.Enqueue(dataChangedEventArgs);
-                Thread.Sleep(10); // Adjust sampling rate as necessary
+                Thread.Sleep(1); // Adjust sampling rate as necessary
             }
         }
 
         private void DataCollectorWorker_FindPlane(object sender, DoWorkEventArgs e)
         {
-            this._dataQueue.Clear();
-            MccBoard daqBoard = new MccBoard(1);
+            if (this._board == null)
+            {
+                this._board = new MccBoard(1);
+            }
+           
             int channel = 7;
             MccDaq.Range range = MccDaq.Range.BipPt078Volts;
-
-            //TranslateYStage(-100); // Move the stage 100mm down to get the stage on the sample
+            TranslateYStage(-100); // Move the stage 100mm down to get the stage on the sample
 
 
             while (!_dataCollectorWorker.CancellationPending && !ThresholdMet)
             {
-                MccDaq.ErrorInfo ulStat = daqBoard.AIn32(channel, range, out int rawData, 0);
+                MccDaq.ErrorInfo ulStat = this._board.AIn32(channel, range, out int rawData, 0);
                 if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
                 {
                     throw new Exception("Error reading analog input: " + ulStat.Message);
@@ -168,11 +194,41 @@ namespace BMG_MicroTextureAnalyzer
                 //Create new datachangedevent args to store the timestamp and voltage
                 RawDataChangedEventArgs dataChangedEventArgs = new RawDataChangedEventArgs(rawData);
                 _dataQueue.Enqueue(dataChangedEventArgs);
-                Thread.Sleep(10); // Adjust sampling rate as necessary
+                Thread.Sleep(5); // Adjust sampling rate as necessary
 
             }
             
             
+            e.Cancel = true;
+        }
+
+        private void DataCollectorWorker_FractureTest(object sender, DoWorkEventArgs e)
+        {
+            if (this._board == null)
+            {
+                this._board = new MccBoard(1);
+            }
+
+            int channel = 7;
+            MccDaq.Range range = MccDaq.Range.BipPt078Volts;
+            TranslateYStage(-1); // Move the stage 100mm down to get the stage on the sample
+
+            while (!_dataCollectorWorker.CancellationPending && !ThresholdMet)
+            {
+                MccDaq.ErrorInfo ulStat = this._board.AIn32(channel, range, out int rawData, 0);
+                if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
+                {
+                    throw new Exception("Error reading analog input: " + ulStat.Message);
+                }
+                //ulStat = daqBoard.ToEngUnits32(range, rawData, out double voltage);
+                //Create new datachangedevent args to store the timestamp and voltage
+                RawDataChangedEventArgs dataChangedEventArgs = new RawDataChangedEventArgs(rawData);
+                _dataQueue.Enqueue(dataChangedEventArgs);
+                Thread.Sleep(5); // Adjust sampling rate as necessary
+
+            }
+
+
             e.Cancel = true;
         }
 
@@ -194,7 +250,7 @@ namespace BMG_MicroTextureAnalyzer
                     }
                     OnDataChanged(processedData);
                 }
-                Thread.Sleep(1);// Adjust processing rate as necessary
+               // Thread.Sleep(1);// Adjust processing rate as necessary
             }
 
             e.Cancel = true;
@@ -202,8 +258,7 @@ namespace BMG_MicroTextureAnalyzer
 
         private void DataProcessorWorker_FindPlane(object sender, DoWorkEventArgs e)
         {
-            ThresholdMet = false;
-           
+            
             while (!((BackgroundWorker)sender).CancellationPending && !ThresholdMet)
             {
                 if (_dataQueue.TryDequeue(out RawDataChangedEventArgs args))
@@ -216,6 +271,7 @@ namespace BMG_MicroTextureAnalyzer
                     if ((voltage * 2141.878 * 4.4488) > 1.1)
                     {
                         ThresholdMet = true;
+                        this.Stage.Stop();
                     }
                     ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp);
                     lock (_dataLock)
@@ -224,28 +280,81 @@ namespace BMG_MicroTextureAnalyzer
                     }
                     OnDataChanged(processedData);
                 }
-                Thread.Sleep(1);// Adjust processing rate as necessary
+                //Thread.Sleep(1);// Adjust processing rate as necessary
             }
-
+            Thread.Sleep(1000);
+            TranslateYStage(0.25);
             e.Cancel = true;
             
             //((BackgroundWorker)sender).CancelAsync();
 
         }
 
-        private void StageWorker_FindPlane(object sender, DoWorkEventArgs e)
+        private void DataProcessorWorker_FractureTest(object sender, DoWorkEventArgs e)
         {
-            Task.Run(() => TranslateYStage(-100));
+
             while (!((BackgroundWorker)sender).CancellationPending && !ThresholdMet)
             {
-                
-                Thread.Sleep(1);
+                if (_dataQueue.TryDequeue(out RawDataChangedEventArgs args))
+                {
+                    MccDaq.ErrorInfo ulStat = _board.ToEngUnits32(MccDaq.Range.BipPt078Volts, args.RawData, out double voltage);
+                    if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
+                    {
+                        throw new Exception("Error converting raw data to voltage: " + ulStat.Message);
+                    }
+                    if ((voltage * 2141.878) >= 25)
+                    {
+                        ThresholdMet = true;
+                        this.Stage.Stop();
+                    }
+                    ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp);
+                    lock (_dataLock)
+                    {
+                        _processedDataList.Add(processedData);
+                    }
+                    OnDataChanged(processedData);
+                }
+                //Thread.Sleep(1);// Adjust processing rate as necessary
             }
-            Task.Run(() => StopMotionController());
             Thread.Sleep(1000);
-            TranslateYStage(0.2);
+            TranslateYStage(10);
+            e.Cancel = true;
+
+            //((BackgroundWorker)sender).CancelAsync();
+
+        }
+
+        private void StageWorker_StartStage(object sender, DoWorkEventArgs e)
+        {
+            _isStageMoving = true;
+            // Start stage movement
+            TranslateYStage(100);
+        }
+
+        private void StageWorker_FindPlane(object sender, DoWorkEventArgs e)
+        {
+       
+
+            // Monitor for threshold signal
+            while (_isStageMoving && !((BackgroundWorker)sender).CancellationPending)
+            {
+                // Check threshold from the latest processed data
+                //double latestVoltage = GetLatestProcessedVoltage();
+                if (ThresholdMet)
+                {
+                    // Stop stage movement if threshold is met
+                    StopMotionController(); 
+                    _isStageMoving = false;
+                    
+                }
+
+                //Thread.Sleep(100); // Adjust control rate as necessary
+            }
+
             e.Cancel = true;
         }
+
+        
 
         protected virtual void OnDataChanged(ProcessedDataChangedEventArgs e)
         {

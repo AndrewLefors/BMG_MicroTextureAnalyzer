@@ -34,13 +34,13 @@ namespace BMG_MicroTextureAnalyzer_GUI
             InitializeComponent();
             this.MotionControllerSubdivisionComboBox.DataSource = subdivisionList;
             this.MotionControllerSubdivisionComboBox.SelectedIndex = 0;
-           
+
             DAQDataGridView.Columns.Add("Time", "Time");
             DAQDataGridView.Columns.Add("Voltage", "Voltage");
             DAQDataGridView.Columns.Add("Pounds", "Pounds");
             DAQDataGridView.Columns.Add("Newtons", "Newtons");
 
-            
+
 
         }
         //Convert this to event driven so that the data is updated when the event is thrown
@@ -52,7 +52,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
             var newtons = pounds * 4.44822;
 
             //Update labels in real time
-            
+
             if (InvokeRequired)
             {
                 Invoke(new Action(() =>
@@ -79,7 +79,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
                         MonitorResponseChart.Series[0].Points.AddXY(0, newtons);
                         DAQDataGridView.Rows.Add(0, e.Voltage, pounds, newtons);
                     }
-                    
+
                 }));
 
             }
@@ -117,8 +117,19 @@ namespace BMG_MicroTextureAnalyzer_GUI
             }
             if (e.PropertyName == "MotionController.Busy")
             {
-                MotionControllerStatusResponseLabel.Text = MTAengine.Stage.Busy ? "Busy" : "Not Busy";
-                MotionControllerStatusResponseLabel.ForeColor = MTAengine.Stage.Busy ? Color.Red : Color.Green;
+                if (InvokeRequired)
+                {
+                    Invoke(new Action(() =>
+                    {
+                        MotionControllerStatusResponseLabel.Text = MTAengine.Stage.Busy ? "Busy" : "Not Busy";
+                        MotionControllerStatusResponseLabel.ForeColor = MTAengine.Stage.Busy ? Color.Red : Color.Green;
+                    }));
+                }
+                else
+                {
+                    MotionControllerStatusResponseLabel.Text = MTAengine.Stage.Busy ? "Busy" : "Not Busy";
+                    MotionControllerStatusResponseLabel.ForeColor = MTAengine.Stage.Busy ? Color.Red : Color.Green;
+                }
             }
             if (e.PropertyName == "MotionController.ErrorMessage")
             {
@@ -131,10 +142,11 @@ namespace BMG_MicroTextureAnalyzer_GUI
             }
             if (e.PropertyName == nameof(Engine.ThresholdMet))
             {
-                
+
+
                 if (MTAengine.ThresholdMet)
                 {
-                    
+                    //MTAengine.StopMotionController();
                     //MessageBox.Show("Threshold Met");
                 }
             }
@@ -317,7 +329,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
         {
             MTAengine.StopAsync();
             //MTAengine.StopMotionController();
-           
+
         }
 
         private async void StartConstantMonitorButton_Click(object sender, EventArgs e)
@@ -347,8 +359,9 @@ namespace BMG_MicroTextureAnalyzer_GUI
             };
             MonitorResponseChart.Series.Add(series);
             DAQDataGridView.Rows.Clear();
-            
+            //MTAengine.SetStageSpeed(1);
             MTAengine.FindPlane();
+
 
         }
 
@@ -400,7 +413,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
             {
                 //MessageBox.Show("Threshold reached");
                 MTAengine.StopMotionController();
-               
+
                 //Take the data from the chart and add it to the datagrid
                 Task.Run(() => Invoke((MethodInvoker)(delegate
                 {
@@ -468,6 +481,11 @@ namespace BMG_MicroTextureAnalyzer_GUI
         private void stopBackgroundWorkerButton_Click(object sender, EventArgs e)
         {
             MTAengine.StopAsync();
+        }
+
+        private void FractureTestStartButton_Click(object sender, EventArgs e)
+        {
+            MTAengine.FractureTest();
         }
     }
 }

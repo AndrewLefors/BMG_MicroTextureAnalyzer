@@ -826,6 +826,7 @@
             FractureTestStartButton.TabIndex = 1;
             FractureTestStartButton.Text = "Fracture";
             FractureTestStartButton.UseVisualStyleBackColor = true;
+            FractureTestStartButton.Click += FractureTestStartButton_Click;
             // 
             // PunctureTestStartButton
             // 
