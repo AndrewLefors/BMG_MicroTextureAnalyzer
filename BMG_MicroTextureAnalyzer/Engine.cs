@@ -1,4 +1,6 @@
-﻿using MicroneedleAPI;
+﻿using MccDaq;
+using MicroneedleAPI;
+using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Data;
 using System.IO.Ports;
@@ -7,12 +9,248 @@ namespace BMG_MicroTextureAnalyzer
 {
     public class Engine : INotifyPropertyChanged
     {
+        private MccBoard _board;
+        private bool _isMonitoring;
         private MotionController _stage;
         private Connection _connection;
         private string _errorString;
-        private Timer _timer;
+        private readonly ConcurrentQueue<RawDataChangedEventArgs> _dataQueue = new ConcurrentQueue<RawDataChangedEventArgs>();
+        private readonly List<ProcessedDataChangedEventArgs> _processedDataList = new List<ProcessedDataChangedEventArgs>();
+        private readonly object _dataLock = new object();
+        private BackgroundWorker _dataCollectorWorker;
+        private BackgroundWorker _dataProcessorWorker;
+        private BackgroundWorker _stageWorker;
+        private bool _isRunning;
 
+        private bool thresholdMet = false;
+
+        private double _voltage;
+
+
+        public event EventHandler<ProcessedDataChangedEventArgs> DataChanged;
         public event PropertyChangedEventHandler PropertyChanged = delegate { };
+
+
+        public void StartMonitor()
+        {
+            if (_isRunning)
+            {
+                return;
+            }
+
+            _isRunning = true;
+
+            _dataCollectorWorker = new BackgroundWorker();
+            _dataCollectorWorker.DoWork += DataCollectorWorker_DoWork;
+            _dataCollectorWorker.WorkerSupportsCancellation = true;
+            _dataCollectorWorker.RunWorkerAsync();
+
+            _dataProcessorWorker = new BackgroundWorker();
+            _dataProcessorWorker.DoWork += DataProcessorWorker_DoWork;
+            _dataProcessorWorker.WorkerSupportsCancellation = true;
+            _dataProcessorWorker.RunWorkerAsync();
+        }
+
+        public void FindPlane()
+        {
+            if (_isRunning)
+            {
+                return;
+            }
+            ThresholdMet = false;
+            _isRunning = true;
+
+            _dataCollectorWorker = new BackgroundWorker();
+            _dataCollectorWorker.DoWork += DataCollectorWorker_FindPlane;
+            _dataCollectorWorker.WorkerSupportsCancellation = true;
+            _dataCollectorWorker.RunWorkerAsync();
+
+            _dataProcessorWorker = new BackgroundWorker();
+            _dataProcessorWorker.DoWork += DataProcessorWorker_FindPlane;
+            _dataProcessorWorker.WorkerSupportsCancellation = true;
+            _dataProcessorWorker.RunWorkerAsync();
+
+            _stageWorker = new BackgroundWorker();
+            _stageWorker.DoWork += StageWorker_FindPlane;
+            _stageWorker.WorkerSupportsCancellation = true;
+            _stageWorker.RunWorkerAsync();
+            
+
+        }
+
+        public bool ThresholdMet
+        {
+            get { return thresholdMet; }
+            set
+            {
+                if (thresholdMet != value)
+                {
+                    thresholdMet = value;
+                    OnPropertyChanged(nameof(ThresholdMet));
+                }
+            }
+        }
+
+        public double Voltage
+        {
+            get { return _voltage; }
+            set
+            {
+                if (_voltage != value)
+                {
+                    _voltage = value;
+                    OnPropertyChanged(nameof(Voltage));
+                }
+            }
+        }
+        public async Task StopAsync()
+        {
+            if (!_isRunning) return;
+
+            _dataCollectorWorker.CancelAsync();
+            _dataProcessorWorker.CancelAsync();
+
+            while (_dataCollectorWorker.IsBusy || _dataProcessorWorker.IsBusy)
+            {
+                await Task.Delay(100);
+            }
+            _dataQueue.Clear();
+            _isRunning = false;
+            ThresholdMet = false;
+        }
+
+        public List<ProcessedDataChangedEventArgs> GetProcessedData()
+        {
+            lock (_dataLock)
+            {
+                return new List<ProcessedDataChangedEventArgs>(_processedDataList);
+            }
+        }
+
+        private void DataCollectorWorker_DoWork(object sender, DoWorkEventArgs e)
+        {
+            MccBoard daqBoard = new MccBoard(1);
+            int channel = 7;
+            MccDaq.Range range = MccDaq.Range.BipPt078Volts;
+            while (!_dataCollectorWorker.CancellationPending)
+            {
+                MccDaq.ErrorInfo ulStat = daqBoard.AIn32(channel, range, out int rawData, 0);
+                if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
+                {
+                    throw new Exception("Error reading analog input: " + ulStat.Message);
+                }
+                //ulStat = daqBoard.ToEngUnits32(range, rawData, out double voltage);
+                //Create new datachangedevent args to store the timestamp and voltage
+                RawDataChangedEventArgs dataChangedEventArgs = new RawDataChangedEventArgs(rawData);
+                _dataQueue.Enqueue(dataChangedEventArgs);
+                Thread.Sleep(10); // Adjust sampling rate as necessary
+            }
+        }
+
+        private void DataCollectorWorker_FindPlane(object sender, DoWorkEventArgs e)
+        {
+            this._dataQueue.Clear();
+            MccBoard daqBoard = new MccBoard(1);
+            int channel = 7;
+            MccDaq.Range range = MccDaq.Range.BipPt078Volts;
+
+            //TranslateYStage(-100); // Move the stage 100mm down to get the stage on the sample
+
+
+            while (!_dataCollectorWorker.CancellationPending && !ThresholdMet)
+            {
+                MccDaq.ErrorInfo ulStat = daqBoard.AIn32(channel, range, out int rawData, 0);
+                if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
+                {
+                    throw new Exception("Error reading analog input: " + ulStat.Message);
+                }
+                //ulStat = daqBoard.ToEngUnits32(range, rawData, out double voltage);
+                //Create new datachangedevent args to store the timestamp and voltage
+                RawDataChangedEventArgs dataChangedEventArgs = new RawDataChangedEventArgs(rawData);
+                _dataQueue.Enqueue(dataChangedEventArgs);
+                Thread.Sleep(10); // Adjust sampling rate as necessary
+
+            }
+            
+            
+            e.Cancel = true;
+        }
+
+        private void DataProcessorWorker_DoWork(object sender, DoWorkEventArgs e)
+        {
+            while (!((BackgroundWorker)sender).CancellationPending)
+            {
+                if (_dataQueue.TryDequeue(out RawDataChangedEventArgs args))
+                {
+                    MccDaq.ErrorInfo ulStat = _board.ToEngUnits32(MccDaq.Range.BipPt078Volts, args.RawData, out double voltage);
+                    if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
+                    {
+                        throw new Exception("Error converting raw data to voltage: " + ulStat.Message);
+                    }
+                    ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp);
+                    lock (_dataLock)
+                    {
+                        _processedDataList.Add(processedData);
+                    }
+                    OnDataChanged(processedData);
+                }
+                Thread.Sleep(1);// Adjust processing rate as necessary
+            }
+
+            e.Cancel = true;
+        }
+
+        private void DataProcessorWorker_FindPlane(object sender, DoWorkEventArgs e)
+        {
+            ThresholdMet = false;
+           
+            while (!((BackgroundWorker)sender).CancellationPending && !ThresholdMet)
+            {
+                if (_dataQueue.TryDequeue(out RawDataChangedEventArgs args))
+                {
+                    MccDaq.ErrorInfo ulStat = _board.ToEngUnits32(MccDaq.Range.BipPt078Volts, args.RawData, out double voltage);
+                    if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
+                    {
+                        throw new Exception("Error converting raw data to voltage: " + ulStat.Message);
+                    }
+                    if ((voltage * 2141.878 * 4.4488) > 1.1)
+                    {
+                        ThresholdMet = true;
+                    }
+                    ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp);
+                    lock (_dataLock)
+                    {
+                        _processedDataList.Add(processedData);
+                    }
+                    OnDataChanged(processedData);
+                }
+                Thread.Sleep(1);// Adjust processing rate as necessary
+            }
+
+            e.Cancel = true;
+            
+            //((BackgroundWorker)sender).CancelAsync();
+
+        }
+
+        private void StageWorker_FindPlane(object sender, DoWorkEventArgs e)
+        {
+            Task.Run(() => TranslateYStage(-100));
+            while (!((BackgroundWorker)sender).CancellationPending && !ThresholdMet)
+            {
+                
+                Thread.Sleep(1);
+            }
+            Task.Run(() => StopMotionController());
+            Thread.Sleep(1000);
+            TranslateYStage(0.2);
+            e.Cancel = true;
+        }
+
+        protected virtual void OnDataChanged(ProcessedDataChangedEventArgs e)
+        {
+            DataChanged?.Invoke(this, e);
+        }
 
         protected virtual void OnPropertyChanged(string propertyName = null)
         {
@@ -28,18 +266,6 @@ namespace BMG_MicroTextureAnalyzer
             OnPropertyChanged(propertyName);
         }
 
-        public Timer ETimer
-        {
-            get { return this._timer; }
-            set
-            {
-                if (this._timer != value)
-                {
-                    this._timer = value;
-                    this.OnPropertyChanged(nameof(ETimer));
-                }
-            }
-        }
 
         public MotionController Stage
         {
@@ -84,8 +310,14 @@ namespace BMG_MicroTextureAnalyzer
         {
             this.Connection = new Connection();
             this.Stage = new MotionController();
-            this.Connection.PropertyChanged +=  Engine_PropertyChanged;
-            this.Stage.PropertyChanged += Engine_PropertyChanged;   
+            this.Connection.PropertyChanged += Engine_PropertyChanged;
+            this.Stage.PropertyChanged += Engine_PropertyChanged;
+            _dataQueue = new ConcurrentQueue<RawDataChangedEventArgs>();
+            _processedDataList = new List<ProcessedDataChangedEventArgs>();
+            _isRunning = false;
+            _dataLock = new object();
+            this._board = new MccBoard(1);
+
 
         }
 
@@ -106,7 +338,7 @@ namespace BMG_MicroTextureAnalyzer
 
         public void ConnectToMotionController(short port)
         {
-           try
+            try
             {
                 if (this.Stage != null)
                 {
@@ -116,13 +348,13 @@ namespace BMG_MicroTextureAnalyzer
                 this.Stage = newStage;
                 this.Stage.ConnectPort(port);
                 this.Stage.PropertyChanged += Engine_PropertyChanged;
-                
+
             }
             catch (Exception ex)
             {
                 this.ErrorString = ex.Message;
             }
-            
+
         }
 
         public void HomeYStage()
@@ -132,15 +364,15 @@ namespace BMG_MicroTextureAnalyzer
                 if (this.Stage != null)
                 {
                     //Make this run on a seperate thread so the ui is responsive
-                
-                   this.Stage.ReturnYToOrigin();
+
+                    this.Stage.ReturnYToOrigin();
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 this.ErrorString = ex.Message;
             }
-            
+
         }
 
         public void TranslateYStage(double distance)
@@ -177,11 +409,11 @@ namespace BMG_MicroTextureAnalyzer
         {
             try
             {
-                
-               this.Stage.MotorDegree = motorDeg;
-                
+
+                this.Stage.MotorDegree = motorDeg;
+
             }
-            catch (Exception ex) 
+            catch (Exception ex)
             {
                 this.ErrorString = ex.Message;
             }
@@ -218,7 +450,7 @@ namespace BMG_MicroTextureAnalyzer
                 if (this.Stage != null)
                 {
                     this.Stage.CalculatePulseEquiv();
-                    
+
                 }
             }
             catch (Exception ex)
@@ -242,6 +474,32 @@ namespace BMG_MicroTextureAnalyzer
             }
         }
 
+        //create class for event args that has timestamp and voltage
+        public class ProcessedDataChangedEventArgs : EventArgs
+        {
+            public double TimeStamp { get; }
+            public double Voltage { get; }
 
+            public ProcessedDataChangedEventArgs(double voltage, double TimeStamp_seconds)
+            {
+                //Get the current time in total seconds
+                TimeStamp = TimeStamp_seconds;
+                Voltage = voltage;
+            }
+        }
+
+        public class RawDataChangedEventArgs : EventArgs
+        {
+            public double TimeStamp { get; }
+            public int RawData { get; }
+
+            public RawDataChangedEventArgs(int rawData)
+            {
+                TimeStamp = DateTime.Now.TimeOfDay.TotalSeconds;
+                RawData = rawData;
+            }
+
+
+        }
     }
 }

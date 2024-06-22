@@ -28,7 +28,6 @@
         /// </summary>
         private void InitializeComponent()
         {
-            components = new System.ComponentModel.Container();
             System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea1 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
             System.Windows.Forms.DataVisualization.Charting.Legend legend1 = new System.Windows.Forms.DataVisualization.Charting.Legend();
             System.Windows.Forms.DataVisualization.Charting.Series series1 = new System.Windows.Forms.DataVisualization.Charting.Series();
@@ -89,6 +88,8 @@
             ConnectionStatusLabel = new Label();
             ConnectionStatusResponseLabel = new Label();
             DaqDeviceTabPage = new TabPage();
+            stopBackgroundWorkerButton = new Button();
+            backgroundWorkerStartButton = new Button();
             tableLayoutPanel9 = new TableLayoutPanel();
             FractureTestStartButton = new Button();
             PunctureTestStartButton = new Button();
@@ -106,10 +107,6 @@
             ReturnProbeToMaxHeightButton = new Button();
             MonitorResponseChart = new System.Windows.Forms.DataVisualization.Charting.Chart();
             DAQDataGridView = new DataGridView();
-            timer1 = new System.Windows.Forms.Timer(components);
-            MonitorTimer = new System.Windows.Forms.Timer(components);
-            FractureTimer = new System.Windows.Forms.Timer(components);
-            PunctureTimer = new System.Windows.Forms.Timer(components);
             ((System.ComponentModel.ISupportInitialize)MMELogoPictureBox).BeginInit();
             tabControl1.SuspendLayout();
             MotionControllerTabPage.SuspendLayout();
@@ -769,6 +766,8 @@
             // 
             // DaqDeviceTabPage
             // 
+            DaqDeviceTabPage.Controls.Add(stopBackgroundWorkerButton);
+            DaqDeviceTabPage.Controls.Add(backgroundWorkerStartButton);
             DaqDeviceTabPage.Controls.Add(tableLayoutPanel9);
             DaqDeviceTabPage.Controls.Add(tableLayoutPanel8);
             DaqDeviceTabPage.Controls.Add(MonitorResponseChart);
@@ -780,6 +779,26 @@
             DaqDeviceTabPage.TabIndex = 1;
             DaqDeviceTabPage.Text = "DAQ Device";
             DaqDeviceTabPage.UseVisualStyleBackColor = true;
+            // 
+            // stopBackgroundWorkerButton
+            // 
+            stopBackgroundWorkerButton.Location = new Point(622, 358);
+            stopBackgroundWorkerButton.Name = "stopBackgroundWorkerButton";
+            stopBackgroundWorkerButton.Size = new Size(75, 23);
+            stopBackgroundWorkerButton.TabIndex = 13;
+            stopBackgroundWorkerButton.Text = "Stop Monitoring";
+            stopBackgroundWorkerButton.UseVisualStyleBackColor = true;
+            stopBackgroundWorkerButton.Click += stopBackgroundWorkerButton_Click;
+            // 
+            // backgroundWorkerStartButton
+            // 
+            backgroundWorkerStartButton.Location = new Point(622, 329);
+            backgroundWorkerStartButton.Name = "backgroundWorkerStartButton";
+            backgroundWorkerStartButton.Size = new Size(75, 23);
+            backgroundWorkerStartButton.TabIndex = 12;
+            backgroundWorkerStartButton.Text = "StartMonitoring";
+            backgroundWorkerStartButton.UseVisualStyleBackColor = true;
+            backgroundWorkerStartButton.Click += backgroundWorkerStartButton_Click;
             // 
             // tableLayoutPanel9
             // 
@@ -807,7 +826,6 @@
             FractureTestStartButton.TabIndex = 1;
             FractureTestStartButton.Text = "Fracture";
             FractureTestStartButton.UseVisualStyleBackColor = true;
-           // FractureTestStartButton.Click += FractureTestStartButton_Click;
             // 
             // PunctureTestStartButton
             // 
@@ -818,7 +836,6 @@
             PunctureTestStartButton.TabIndex = 0;
             PunctureTestStartButton.Text = "Puncture Test Start";
             PunctureTestStartButton.UseVisualStyleBackColor = true;
-           // PunctureTestStartButton.Click += PunctureTestStartButton_Click;
             // 
             // FractureDepthTextBox
             // 
@@ -974,23 +991,6 @@
             DAQDataGridView.Size = new Size(495, 209);
             DAQDataGridView.TabIndex = 0;
             // 
-            // timer1
-            // 
-            timer1.Enabled = true;
-            timer1.Interval = 1;
-            // 
-            // MonitorTimer
-            // 
-            MonitorTimer.Interval = 1;
-            // 
-            // FractureTimer
-            // 
-            FractureTimer.Interval = 1;
-            // 
-            // PunctureTimer
-            // 
-            PunctureTimer.Interval = 1;
-            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -1098,9 +1098,7 @@
         private Label DAQDataResponseLabel;
         private Button DAQStopMonitoringButton;
         private Label MotionControllerStatusResponseLabel;
-        private System.Windows.Forms.Timer timer1;
         private Button StartConstantMonitorButton;
-        private System.Windows.Forms.Timer MonitorTimer;
         private Label NewtonsResponseLabel;
         private System.Windows.Forms.DataVisualization.Charting.Chart MonitorResponseChart;
         private TableLayoutPanel tableLayoutPanel8;
@@ -1113,7 +1111,7 @@
         private Button PunctureTestStartButton;
         private TextBox FractureDepthTextBox;
         private TextBox PunctureMaxDepthTextBox;
-        private System.Windows.Forms.Timer FractureTimer;
-        private System.Windows.Forms.Timer PunctureTimer;
+        private Button backgroundWorkerStartButton;
+        private Button stopBackgroundWorkerButton;
     }
 }

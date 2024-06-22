@@ -15,11 +15,14 @@ namespace BMG_MicroTextureAnalyzer_GUI
         public Double monitorNewtons;
         public Stopwatch stopwatch;
         public Double newtonThreshold = 1.5;
+        public double relativeStartTime;
 
 
         public Form1()
         {
             BMG_MicroTextureAnalyzer.Engine engine = new BMG_MicroTextureAnalyzer.Engine();
+            MTAengine = engine;
+            MTAengine.DataChanged += MTAengine_DataChanged;
             board = new MccDaq.MccBoard(1);
 
             MTAengine = engine;
@@ -31,14 +34,72 @@ namespace BMG_MicroTextureAnalyzer_GUI
             InitializeComponent();
             this.MotionControllerSubdivisionComboBox.DataSource = subdivisionList;
             this.MotionControllerSubdivisionComboBox.SelectedIndex = 0;
-            MonitorTimer.Tick += MonitorTimer_Tick;
+           
             DAQDataGridView.Columns.Add("Time", "Time");
             DAQDataGridView.Columns.Add("Voltage", "Voltage");
             DAQDataGridView.Columns.Add("Pounds", "Pounds");
             DAQDataGridView.Columns.Add("Newtons", "Newtons");
 
+            
+
         }
         //Convert this to event driven so that the data is updated when the event is thrown
+
+        private void MTAengine_DataChanged(object? sender, Engine.ProcessedDataChangedEventArgs e)
+        {
+            //Add to dataGrid
+            var pounds = e.Voltage * 2141.878;
+            var newtons = pounds * 4.44822;
+
+            //Update labels in real time
+            
+            if (InvokeRequired)
+            {
+                Invoke(new Action(() =>
+                {
+                    NewtonsResponseLabel.Text = newtons.ToString();
+                    //Check if there is a time value in stored in the first part of the monitorresponsechart, if there is use that as a the start for the relative time
+                    if (MonitorResponseChart.Series[0].Points.Count > 0)
+                    {
+                        var time = e.TimeStamp - this.relativeStartTime;
+                        DAQDataGridView.Rows.Add(time, e.Voltage, pounds, newtons);
+                        MonitorResponseChart.Series[0].Points.AddXY(time, newtons);
+                    }
+                    else
+                    {
+                        this.relativeStartTime = e.TimeStamp;
+                        //Make the MonitorResponseChart a linechart 
+
+                        MonitorResponseChart.Series.Clear();
+                        Series series = new Series
+                        {
+                            ChartType = SeriesChartType.Line
+                        };
+                        MonitorResponseChart.Series.Add(series);
+                        MonitorResponseChart.Series[0].Points.AddXY(0, newtons);
+                        DAQDataGridView.Rows.Add(0, e.Voltage, pounds, newtons);
+                    }
+                    
+                }));
+
+            }
+            else
+            {
+
+                if (MonitorResponseChart.Series[0].Points.Count > 0)
+                {
+                    var time = e.TimeStamp - this.relativeStartTime;
+                    DAQDataGridView.Rows.Add(time, e.Voltage, pounds, newtons);
+                    MonitorResponseChart.Series[0].Points.AddXY(time, newtons);
+                }
+                else
+                {
+                    this.relativeStartTime = e.TimeStamp;
+                    MonitorResponseChart.Series[0].Points.AddXY(0, newtons);
+                    DAQDataGridView.Rows.Add(0, e.Voltage, pounds, newtons);
+                }
+            }
+        }
 
         private void MTAengine_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
@@ -67,6 +128,15 @@ namespace BMG_MicroTextureAnalyzer_GUI
             {
                 MessageBox.Show(MTAengine.Stage.PulseEquivalent.ToString());
                 PulseEquivalentResponseLabel.Text = MTAengine.Stage.PulseEquivalent.ToString();
+            }
+            if (e.PropertyName == nameof(Engine.ThresholdMet))
+            {
+                
+                if (MTAengine.ThresholdMet)
+                {
+                    
+                    //MessageBox.Show("Threshold Met");
+                }
             }
 
         }
@@ -221,7 +291,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
         {
             if (MTAengine.Stage != null)
             {
-               if(short.TryParse(MotionControllerSpeedTextBox.Text, out short outdata))
+                if (short.TryParse(MotionControllerSpeedTextBox.Text, out short outdata))
                 {
                     await Task.Run(() => MTAengine.SetStageSpeed(outdata));
                 }
@@ -241,16 +311,35 @@ namespace BMG_MicroTextureAnalyzer_GUI
             }
         }
 
-    
+
 
         private void DAQStopMonitoringButton_Click(object sender, EventArgs e)
         {
-            MTAengine.StopMotionController();
-            MonitorTimer.Stop();
+            MTAengine.StopAsync();
+            //MTAengine.StopMotionController();
+           
         }
 
         private async void StartConstantMonitorButton_Click(object sender, EventArgs e)
         {
+            //MonitorResponseChart.Series.Clear();
+            //Series series = new Series
+            //{
+            //    ChartType = SeriesChartType.Line
+            //};
+            //MonitorResponseChart.Series.Add(series);
+            //DAQDataGridView.Rows.Clear();
+            //stopwatch = new Stopwatch();
+            //stopwatch.Start();
+            //MonitorTimer.Enabled = true;
+            //MonitorTimer.Start();
+            //MTAengine.SetStageSpeed(5);
+            //Thread.Sleep(10);
+            //MonitorTimer.Interval = 1;
+
+            //MTAengine.TranslateYStage(-100);
+
+            await Task.Run(() => MTAengine.StopAsync());
             MonitorResponseChart.Series.Clear();
             Series series = new Series
             {
@@ -258,15 +347,8 @@ namespace BMG_MicroTextureAnalyzer_GUI
             };
             MonitorResponseChart.Series.Add(series);
             DAQDataGridView.Rows.Clear();
-            stopwatch = new Stopwatch();
-            stopwatch.Start();
-            MonitorTimer.Enabled = true;
-            MonitorTimer.Start();
-            MTAengine.SetStageSpeed(5);
-            Thread.Sleep(10);
-            MonitorTimer.Interval = 1;
             
-            MTAengine.TranslateYStage(-100);
+            MTAengine.FindPlane();
 
         }
 
@@ -287,27 +369,27 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 return;
             }
             //Convert the voltage to pounds using factor of 2141.878 lbs/volt
-                monitorPounds = monitorVoltage * 2141.878;
-                DAQMonitoringStatusResponseLabel.Text = monitorVoltage.ToString();
-                DAQDataResponseLabel.Text = monitorPounds.ToString();
-                monitorNewtons = monitorPounds * 4.44822;
-                NewtonsResponseLabel.Text = monitorNewtons.ToString();
+            monitorPounds = monitorVoltage * 2141.878;
+            DAQMonitoringStatusResponseLabel.Text = monitorVoltage.ToString();
+            DAQDataResponseLabel.Text = monitorPounds.ToString();
+            monitorNewtons = monitorPounds * 4.44822;
+            NewtonsResponseLabel.Text = monitorNewtons.ToString();
 
 
 
-                //Add the value to the datagrid with another colum for the time and another colum for the distance
-                //First add coluns to datagrid
+            //Add the value to the datagrid with another colum for the time and another colum for the distance
+            //First add coluns to datagrid
 
-                
+
             //I want to have a seperate thread run the updatechart, but make sure it's the proper thread using invoke
             //this.
-            Task.Run(()=> 
+            Task.Run(() =>
             {
                 //DAQDataGridView.Rows.Add(stopwatch.Elapsed.TotalSeconds, monitorVoltage, monitorPounds, monitorNewtons);
                 UpdatePortionChartData(stopwatch.Elapsed.TotalSeconds, monitorNewtons);
             });
-                
-            
+
+
             //export datagrid to a file csv format
             //Will do this in a sepearte button or file-dialouge
             //Thread.Sleep(100);
@@ -318,16 +400,16 @@ namespace BMG_MicroTextureAnalyzer_GUI
             {
                 //MessageBox.Show("Threshold reached");
                 MTAengine.StopMotionController();
-                MonitorTimer.Stop();
+               
                 //Take the data from the chart and add it to the datagrid
-                Task.Run(() => Invoke((MethodInvoker) (delegate
+                Task.Run(() => Invoke((MethodInvoker)(delegate
                 {
                     foreach (DataPoint point in MonitorResponseChart.Series[0].Points)
                     {
                         DAQDataGridView.Rows.Add(point.XValue, point.YValues[0], point.YValues[0] * 21, point.YValues[0] * 4.44822);
                     }
                 })));
-               // UpdateChartData();
+                // UpdateChartData();
                 return;
             }
 
@@ -368,6 +450,24 @@ namespace BMG_MicroTextureAnalyzer_GUI
             MTAengine.SetStageSpeed(100);
             Thread.Sleep(100);
             MTAengine.TranslateYStage(10);
+        }
+
+        private void backgroundWorkerStartButton_Click(object sender, EventArgs e)
+        {
+            MonitorResponseChart.Series.Clear();
+            Series series = new Series
+            {
+                ChartType = SeriesChartType.Line
+            };
+            MonitorResponseChart.Series.Add(series);
+            DAQDataGridView.Rows.Clear();
+            MTAengine.StartMonitor();
+
+        }
+
+        private void stopBackgroundWorkerButton_Click(object sender, EventArgs e)
+        {
+            MTAengine.StopAsync();
         }
     }
 }
