@@ -665,6 +665,11 @@ namespace BMG_MicroTextureAnalyzer
             }
 
 
+            public void GetYLocation()
+            {
+                this.GetYPosition();
+            }
+            
             private void GetYPosition()      //Get the current position of Y axis
             {
                 StrReceiver = "";

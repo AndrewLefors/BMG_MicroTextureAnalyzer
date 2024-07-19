@@ -17,6 +17,14 @@ namespace BMG_MicroTextureAnalyzer_GUI
         public Double newtonThreshold = 1.5;
         public double relativeStartTime;
 
+        private double _fractureTestPoundConversion = 2141.878;
+        private double _fractureTestNewtonConversion = 4.44822;
+        private double _punctureTestKilogramConversion = 39.6844;
+        private double _punctureTestNewtonConversion = 9.81;
+
+        private double _voltageConversion = 2141.878;
+        private double _newtonConversion = 4.44822;
+
 
         public Form1()
         {
@@ -39,6 +47,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
             DAQDataGridView.Columns.Add("Voltage", "Voltage");
             DAQDataGridView.Columns.Add("Pounds", "Pounds");
             DAQDataGridView.Columns.Add("Newtons", "Newtons");
+            DAQDataGridView.Columns.Add("Step", "Step");
 
 
 
@@ -48,8 +57,8 @@ namespace BMG_MicroTextureAnalyzer_GUI
         private void MTAengine_DataChanged(object? sender, Engine.ProcessedDataChangedEventArgs e)
         {
             //Add to dataGrid
-            var pounds = e.Voltage * 2141.878;
-            var newtons = pounds * 4.44822;
+            var pounds = ((e.Voltage - MTAengine.VoltageOffset) * this._voltageConversion);
+            var newtons = pounds * this._newtonConversion;
 
             //Update labels in real time
 
@@ -57,13 +66,17 @@ namespace BMG_MicroTextureAnalyzer_GUI
             {
                 Invoke(new Action(() =>
                 {
+
+                    DAQMonitoringStatusResponseLabel.Text = MTAengine.Stage.CurrentYStep.ToString();
                     NewtonsResponseLabel.Text = newtons.ToString();
                     //Check if there is a time value in stored in the first part of the monitorresponsechart, if there is use that as a the start for the relative time
                     if (MonitorResponseChart.Series[0].Points.Count > 0)
                     {
                         var time = e.TimeStamp - this.relativeStartTime;
-                        DAQDataGridView.Rows.Add(time, e.Voltage, pounds, newtons);
+
+                        DAQDataGridView.Rows.Add(time, e.Voltage - MTAengine.VoltageOffset, pounds, newtons, MTAengine.Stage.CurrentYStep);
                         MonitorResponseChart.Series[0].Points.AddXY(time, newtons);
+
                     }
                     else
                     {
@@ -77,7 +90,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
                         };
                         MonitorResponseChart.Series.Add(series);
                         MonitorResponseChart.Series[0].Points.AddXY(0, newtons);
-                        DAQDataGridView.Rows.Add(0, e.Voltage, pounds, newtons);
+                        DAQDataGridView.Rows.Add(0, e.Voltage - MTAengine.VoltageOffset, pounds, newtons, e.Step);
                     }
 
                 }));
@@ -89,20 +102,126 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 if (MonitorResponseChart.Series[0].Points.Count > 0)
                 {
                     var time = e.TimeStamp - this.relativeStartTime;
-                    DAQDataGridView.Rows.Add(time, e.Voltage, pounds, newtons);
+                    DAQDataGridView.Rows.Add(time, e.Voltage - MTAengine.VoltageOffset, pounds, newtons);
                     MonitorResponseChart.Series[0].Points.AddXY(time, newtons);
                 }
                 else
                 {
                     this.relativeStartTime = e.TimeStamp;
                     MonitorResponseChart.Series[0].Points.AddXY(0, newtons);
-                    DAQDataGridView.Rows.Add(0, e.Voltage, pounds, newtons);
+                    DAQDataGridView.Rows.Add(0, e.Voltage - MTAengine.VoltageOffset, pounds, newtons);
                 }
             }
         }
 
         private void MTAengine_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
+
+            if (e.PropertyName == nameof(Engine.FractureTestComplete))
+            {
+                if (MTAengine.FractureTestComplete)
+                {
+                    //Take the data from the chart and add it to the datagrid
+                    Task.Run(() => Invoke((MethodInvoker)(delegate
+                    {
+                        //Prompt a messagebox that asks the user if they want to save the file
+                        SaveFileDialog saveFileDialog = new SaveFileDialog();
+                        saveFileDialog.Filter = "CSV files (*.csv)|*.csv";
+                        saveFileDialog.FilterIndex = 2;
+                        saveFileDialog.RestoreDirectory = true;
+                        //Use data from datagrid to save to a file
+                        if (saveFileDialog.ShowDialog() == DialogResult.OK)
+                        {
+                            using (var writer = new StreamWriter(saveFileDialog.FileName))
+                            {
+                                // Write headers
+                                for (int i = 0; i < DAQDataGridView.Columns.Count; i++)
+                                {
+                                    writer.Write(DAQDataGridView.Columns[i].HeaderText);
+                                    if (i < DAQDataGridView.Columns.Count - 1)
+                                    {
+                                        writer.Write(",");
+                                    }
+                                }
+                                writer.WriteLine();
+
+                                // Write rows
+                                for (int i = 0; i < DAQDataGridView.Rows.Count; i++)
+                                {
+                                    for (int j = 0; j < DAQDataGridView.Columns.Count; j++)
+                                    {
+                                        writer.Write(DAQDataGridView.Rows[i].Cells[j].Value?.ToString());
+                                        if (j < DAQDataGridView.Columns.Count - 1)
+                                        {
+                                            writer.Write(",");
+                                        }
+                                    }
+                                    writer.WriteLine();
+                                }
+                            }
+                            //dataListBox.Items.Add("Results saved.");
+                        }
+                        else
+                        {
+                            // dataListBox.Items.Add("Save canceled.");
+                        }
+
+                    })));
+                }
+            }
+            if (e.PropertyName == nameof(Engine.PunctureTestComplete))
+            {
+                if (MTAengine.PunctureTestComplete)
+                {
+                    //Take the data from the chart and add it to the datagrid
+                    Task.Run(() => Invoke((MethodInvoker)(delegate
+                    {
+                        //Prompt a messagebox that asks the user if they want to save the file
+                        SaveFileDialog saveFileDialog = new SaveFileDialog();
+                        saveFileDialog.Filter = "CSV files (*.csv)|*.csv";
+                        saveFileDialog.FilterIndex = 2;
+                        saveFileDialog.RestoreDirectory = true;
+                        //Use data from datagrid to save to a file
+                        if (saveFileDialog.ShowDialog() == DialogResult.OK)
+                        {
+                            using (var writer = new StreamWriter(saveFileDialog.FileName))
+                            {
+                                // Write headers
+                                for (int i = 0; i < DAQDataGridView.Columns.Count; i++)
+                                {
+                                    writer.Write(DAQDataGridView.Columns[i].HeaderText);
+                                    if (i < DAQDataGridView.Columns.Count - 1)
+                                    {
+                                        writer.Write(",");
+                                    }
+                                }
+                                writer.WriteLine();
+
+                                // Write rows
+                                for (int i = 0; i < DAQDataGridView.Rows.Count; i++)
+                                {
+                                    for (int j = 0; j < DAQDataGridView.Columns.Count; j++)
+                                    {
+                                        writer.Write(DAQDataGridView.Rows[i].Cells[j].Value?.ToString());
+                                        if (j < DAQDataGridView.Columns.Count - 1)
+                                        {
+                                            writer.Write(",");
+                                        }
+                                    }
+                                    writer.WriteLine();
+                                }
+                            }
+                            //dataListBox.Items.Add("Results saved.");
+                        }
+                        else
+                        {
+                            // dataListBox.Items.Add("Save canceled.");
+                        }
+
+                    })));
+                }
+            }
+
             //EHandle Connection event to populate combox with available devices after scan for devies button has been pressed
             if (e.PropertyName == "Connection.AvailableDevices")
             {
@@ -327,8 +446,21 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
         private void DAQStopMonitoringButton_Click(object sender, EventArgs e)
         {
-            MTAengine.StopAsync();
-            //MTAengine.StopMotionController();
+            if (InvokeRequired)
+            {
+                Invoke(new Action(() =>
+                {
+
+                    MTAengine.StopMotionController();
+                    MTAengine.StopAsync();
+                }));
+
+            }
+            else
+            {
+                MTAengine.StopMotionController();
+                MTAengine.StopAsync();
+            }
 
         }
 
@@ -359,8 +491,18 @@ namespace BMG_MicroTextureAnalyzer_GUI
             };
             MonitorResponseChart.Series.Add(series);
             DAQDataGridView.Rows.Clear();
-            //MTAengine.SetStageSpeed(1);
-            MTAengine.FindPlane();
+            MTAengine.SetStageSpeed(1);
+            if (double.TryParse(PlaneDetectionThresholdTextBox.Text, out var planeThresh))
+            {
+                MTAengine.FindPlaneThreshold = planeThresh;
+                Thread.Sleep(10);
+                MTAengine.FindPlane();
+            }
+            else
+            {
+                MessageBox.Show("Please enter a valid threshold value");
+            }
+
 
 
         }
@@ -483,9 +625,125 @@ namespace BMG_MicroTextureAnalyzer_GUI
             MTAengine.StopAsync();
         }
 
-        private void FractureTestStartButton_Click(object sender, EventArgs e)
+        private async void FractureTestStartButton_Click(object sender, EventArgs e)
         {
-            MTAengine.FractureTest();
+            await Task.Run(() => MTAengine.StopAsync());
+            await Task.Run(() => MTAengine.StopMotionController());
+            await Task.Run(() => MTAengine.GetYLocation());
+            MonitorResponseChart.Series.Clear();
+            Series series = new Series
+            {
+                ChartType = SeriesChartType.Line
+            };
+            if (double.TryParse(FractureDepthTextBox.Text, out double depth))
+            {
+
+                MTAengine.FractureDistance = depth;
+                MonitorResponseChart.Series.Add(series);
+                DAQDataGridView.Rows.Clear();
+                MTAengine.SetStageSpeed(1);
+                MTAengine.VoltageConversion = MTAengine.FractureVoltageConversion;
+                MTAengine.NewtonConversion = MTAengine.FractureNewtonConversion;
+                Thread.Sleep(10);
+
+                MTAengine.FractureTest();
+            }
+            else
+            {
+                MessageBox.Show("Please enter a valid depth value");
+            }
+        }
+
+        private void radioButton1_CheckedChanged(object sender, EventArgs e)
+        {
+            //Check if this one is selected, if it is then set the conversion factor to 2141.878
+            // And set the newton conversion factor to 4.44822
+            if (radioButton1.Checked)
+            {
+                if (double.TryParse(FractureDepthTextBox.Text, out double thresh))
+                {
+                    //MTAengine.FractureThreshold = thresh;
+                }
+                else
+                {
+                    //MTAengine.FractureThreshold = 1.5;
+                }
+                this.PunctureTestStartButton.Enabled = false;
+                this.FractureTestStartButton.Enabled = true;
+                MTAengine.VoltageConversion = this.MTAengine.FractureVoltageConversion;
+                MTAengine.NewtonConversion = this.MTAengine.FractureNewtonConversion;
+            }
+        }
+
+        private void radioButton2_CheckedChanged(object sender, EventArgs e)
+        {
+            if (radioButton2.Checked)
+            {
+                if (double.TryParse(PunctureMaxDepthTextBox.Text, out double thresh))
+                {
+                    MTAengine.PunctureThreshold = thresh;
+                }
+                else
+                {
+                    MTAengine.PunctureThreshold = 0.05;
+                }
+                this.PunctureTestStartButton.Enabled = true;
+                this.FractureTestStartButton.Enabled = false;
+                MTAengine.VoltageConversion = MTAengine.PunctureVoltageConversion;
+                MTAengine.NewtonConversion = MTAengine.PunctureNewtonConversion;
+            }
+        }
+
+        private async void PunctureTestStartButton_Click(object sender, EventArgs e)
+        {
+
+            await Task.Run(() => MTAengine.StopAsync());
+            await Task.Run(() => MTAengine.StopMotionController());
+            await Task.Run(() => MTAengine.GetYLocation());
+            MonitorResponseChart.Series.Clear();
+            Series series = new Series
+            {
+                ChartType = SeriesChartType.Line
+            };
+            if (double.TryParse(PunctureMaxDepthTextBox.Text, out double depth))
+            {
+
+                MTAengine.PunctureDistance = depth;
+                MonitorResponseChart.Series.Add(series);
+                DAQDataGridView.Rows.Clear();
+                MTAengine.SetStageSpeed(0);
+                this._voltageConversion = MTAengine.PunctureVoltageConversion;
+                this._newtonConversion = MTAengine.PunctureNewtonConversion;
+                Thread.Sleep(10);
+
+                MTAengine.PunctureTest();
+            }
+            else
+            {
+                MessageBox.Show("Please enter a valid depth value");
+            }
+        }
+
+        private void SetPunctureOffsetButton_Click(object sender, EventArgs e)
+        {
+            //Take the average of the first 1000 data points in the voltage column and set that as the offset
+            double offset = 0;
+            for (int i = 0; i < DAQDataGridView.RowCount; i++)
+            {
+                offset += Convert.ToDouble(DAQDataGridView.Rows[i].Cells[1].Value);
+            }
+            offset = offset / DAQDataGridView.RowCount;
+            MTAengine.VoltageOffset = offset;
+        }
+
+        private void MicroTextureAnalyzerTabPage_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            MTAengine.ContinuousScanTest();
         }
     }
 }

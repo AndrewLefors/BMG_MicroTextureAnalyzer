@@ -28,9 +28,9 @@
         /// </summary>
         private void InitializeComponent()
         {
-            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea1 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
-            System.Windows.Forms.DataVisualization.Charting.Legend legend1 = new System.Windows.Forms.DataVisualization.Charting.Legend();
-            System.Windows.Forms.DataVisualization.Charting.Series series1 = new System.Windows.Forms.DataVisualization.Charting.Series();
+            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea2 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
+            System.Windows.Forms.DataVisualization.Charting.Legend legend2 = new System.Windows.Forms.DataVisualization.Charting.Legend();
+            System.Windows.Forms.DataVisualization.Charting.Series series2 = new System.Windows.Forms.DataVisualization.Charting.Series();
             MMELogoPictureBox = new PictureBox();
             tabControl1 = new TabControl();
             MicroTextureAnalyzerTabPage = new TabPage();
@@ -88,8 +88,15 @@
             ConnectionStatusLabel = new Label();
             ConnectionStatusResponseLabel = new Label();
             DaqDeviceTabPage = new TabPage();
-            stopBackgroundWorkerButton = new Button();
+            label5 = new Label();
+            tableLayoutPanel11 = new TableLayoutPanel();
+            label4 = new Label();
+            PlaneDetectionThresholdTextBox = new TextBox();
+            tableLayoutPanel10 = new TableLayoutPanel();
+            radioButton1 = new RadioButton();
+            radioButton2 = new RadioButton();
             backgroundWorkerStartButton = new Button();
+            SetPunctureOffsetButton = new Button();
             tableLayoutPanel9 = new TableLayoutPanel();
             FractureTestStartButton = new Button();
             PunctureTestStartButton = new Button();
@@ -107,6 +114,7 @@
             ReturnProbeToMaxHeightButton = new Button();
             MonitorResponseChart = new System.Windows.Forms.DataVisualization.Charting.Chart();
             DAQDataGridView = new DataGridView();
+            button1 = new Button();
             ((System.ComponentModel.ISupportInitialize)MMELogoPictureBox).BeginInit();
             tabControl1.SuspendLayout();
             MotionControllerTabPage.SuspendLayout();
@@ -124,6 +132,8 @@
             MotionControllerConnectionSettingsGroupBox.SuspendLayout();
             MotionControllerConnectionTableLayout.SuspendLayout();
             DaqDeviceTabPage.SuspendLayout();
+            tableLayoutPanel11.SuspendLayout();
+            tableLayoutPanel10.SuspendLayout();
             tableLayoutPanel9.SuspendLayout();
             tableLayoutPanel8.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)MonitorResponseChart).BeginInit();
@@ -158,6 +168,7 @@
             MicroTextureAnalyzerTabPage.TabIndex = 2;
             MicroTextureAnalyzerTabPage.Text = "MicroTexture Analyzer";
             MicroTextureAnalyzerTabPage.UseVisualStyleBackColor = true;
+            MicroTextureAnalyzerTabPage.Click += MicroTextureAnalyzerTabPage_Click;
             // 
             // MotionControllerTabPage
             // 
@@ -766,8 +777,12 @@
             // 
             // DaqDeviceTabPage
             // 
-            DaqDeviceTabPage.Controls.Add(stopBackgroundWorkerButton);
+            DaqDeviceTabPage.Controls.Add(button1);
+            DaqDeviceTabPage.Controls.Add(label5);
+            DaqDeviceTabPage.Controls.Add(tableLayoutPanel11);
+            DaqDeviceTabPage.Controls.Add(tableLayoutPanel10);
             DaqDeviceTabPage.Controls.Add(backgroundWorkerStartButton);
+            DaqDeviceTabPage.Controls.Add(SetPunctureOffsetButton);
             DaqDeviceTabPage.Controls.Add(tableLayoutPanel9);
             DaqDeviceTabPage.Controls.Add(tableLayoutPanel8);
             DaqDeviceTabPage.Controls.Add(MonitorResponseChart);
@@ -780,25 +795,108 @@
             DaqDeviceTabPage.Text = "DAQ Device";
             DaqDeviceTabPage.UseVisualStyleBackColor = true;
             // 
-            // stopBackgroundWorkerButton
+            // label5
             // 
-            stopBackgroundWorkerButton.Location = new Point(622, 358);
-            stopBackgroundWorkerButton.Name = "stopBackgroundWorkerButton";
-            stopBackgroundWorkerButton.Size = new Size(75, 23);
-            stopBackgroundWorkerButton.TabIndex = 13;
-            stopBackgroundWorkerButton.Text = "Stop Monitoring";
-            stopBackgroundWorkerButton.UseVisualStyleBackColor = true;
-            stopBackgroundWorkerButton.Click += stopBackgroundWorkerButton_Click;
+            label5.AutoSize = true;
+            label5.Location = new Point(521, 260);
+            label5.Name = "label5";
+            label5.Size = new Size(266, 15);
+            label5.TabIndex = 16;
+            label5.Text = "Loadcell Settings: ONLY USE Fracture with LSB-25";
+            // 
+            // tableLayoutPanel11
+            // 
+            tableLayoutPanel11.ColumnCount = 3;
+            tableLayoutPanel11.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+            tableLayoutPanel11.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+            tableLayoutPanel11.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 61F));
+            tableLayoutPanel11.Controls.Add(label4, 0, 0);
+            tableLayoutPanel11.Controls.Add(PlaneDetectionThresholdTextBox, 1, 0);
+            tableLayoutPanel11.Location = new Point(565, 131);
+            tableLayoutPanel11.Name = "tableLayoutPanel11";
+            tableLayoutPanel11.RowCount = 1;
+            tableLayoutPanel11.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            tableLayoutPanel11.Size = new Size(200, 73);
+            tableLayoutPanel11.TabIndex = 15;
+            // 
+            // label4
+            // 
+            label4.Anchor = AnchorStyles.None;
+            label4.AutoSize = true;
+            label4.Location = new Point(4, 14);
+            label4.Name = "label4";
+            label4.Size = new Size(61, 45);
+            label4.TabIndex = 0;
+            label4.Text = "Plane Detection Threshold";
+            // 
+            // PlaneDetectionThresholdTextBox
+            // 
+            PlaneDetectionThresholdTextBox.Anchor = AnchorStyles.None;
+            PlaneDetectionThresholdTextBox.Location = new Point(72, 25);
+            PlaneDetectionThresholdTextBox.Name = "PlaneDetectionThresholdTextBox";
+            PlaneDetectionThresholdTextBox.Size = new Size(63, 23);
+            PlaneDetectionThresholdTextBox.TabIndex = 1;
+            // 
+            // tableLayoutPanel10
+            // 
+            tableLayoutPanel10.ColumnCount = 2;
+            tableLayoutPanel10.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+            tableLayoutPanel10.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+            tableLayoutPanel10.Controls.Add(radioButton1, 0, 0);
+            tableLayoutPanel10.Controls.Add(radioButton2, 1, 0);
+            tableLayoutPanel10.Location = new Point(562, 278);
+            tableLayoutPanel10.Name = "tableLayoutPanel10";
+            tableLayoutPanel10.RowCount = 1;
+            tableLayoutPanel10.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            tableLayoutPanel10.Size = new Size(200, 100);
+            tableLayoutPanel10.TabIndex = 14;
+            // 
+            // radioButton1
+            // 
+            radioButton1.Anchor = AnchorStyles.None;
+            radioButton1.AutoSize = true;
+            radioButton1.Location = new Point(3, 40);
+            radioButton1.Name = "radioButton1";
+            radioButton1.Size = new Size(94, 19);
+            radioButton1.TabIndex = 0;
+            radioButton1.TabStop = true;
+            radioButton1.Text = "Fracture Settings";
+            radioButton1.UseVisualStyleBackColor = true;
+            radioButton1.CheckedChanged += radioButton1_CheckedChanged;
+            // 
+            // radioButton2
+            // 
+            radioButton2.Anchor = AnchorStyles.None;
+            radioButton2.AutoSize = true;
+            radioButton2.Location = new Point(113, 40);
+            radioButton2.Name = "radioButton2";
+            radioButton2.Size = new Size(73, 19);
+            radioButton2.TabIndex = 1;
+            radioButton2.TabStop = true;
+            radioButton2.Text = "Puncture";
+            radioButton2.UseVisualStyleBackColor = true;
+            radioButton2.CheckedChanged += radioButton2_CheckedChanged;
             // 
             // backgroundWorkerStartButton
             // 
-            backgroundWorkerStartButton.Location = new Point(622, 329);
+            backgroundWorkerStartButton.Location = new Point(484, 145);
             backgroundWorkerStartButton.Name = "backgroundWorkerStartButton";
             backgroundWorkerStartButton.Size = new Size(75, 23);
             backgroundWorkerStartButton.TabIndex = 12;
             backgroundWorkerStartButton.Text = "StartMonitoring";
             backgroundWorkerStartButton.UseVisualStyleBackColor = true;
             backgroundWorkerStartButton.Click += backgroundWorkerStartButton_Click;
+            // 
+            // SetPunctureOffsetButton
+            // 
+            SetPunctureOffsetButton.Anchor = AnchorStyles.None;
+            SetPunctureOffsetButton.Location = new Point(484, 181);
+            SetPunctureOffsetButton.Name = "SetPunctureOffsetButton";
+            SetPunctureOffsetButton.Size = new Size(75, 23);
+            SetPunctureOffsetButton.TabIndex = 2;
+            SetPunctureOffsetButton.Text = "Set Zero Point";
+            SetPunctureOffsetButton.UseVisualStyleBackColor = true;
+            SetPunctureOffsetButton.Click += SetPunctureOffsetButton_Click;
             // 
             // tableLayoutPanel9
             // 
@@ -809,7 +907,7 @@
             tableLayoutPanel9.Controls.Add(PunctureTestStartButton, 1, 1);
             tableLayoutPanel9.Controls.Add(FractureDepthTextBox, 0, 0);
             tableLayoutPanel9.Controls.Add(PunctureMaxDepthTextBox, 1, 0);
-            tableLayoutPanel9.Location = new Point(491, 145);
+            tableLayoutPanel9.Location = new Point(562, 371);
             tableLayoutPanel9.Name = "tableLayoutPanel9";
             tableLayoutPanel9.RowCount = 2;
             tableLayoutPanel9.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
@@ -837,6 +935,7 @@
             PunctureTestStartButton.TabIndex = 0;
             PunctureTestStartButton.Text = "Puncture Test Start";
             PunctureTestStartButton.UseVisualStyleBackColor = true;
+            PunctureTestStartButton.Click += PunctureTestStartButton_Click;
             // 
             // FractureDepthTextBox
             // 
@@ -970,16 +1069,16 @@
             // 
             // MonitorResponseChart
             // 
-            chartArea1.Name = "ChartArea1";
-            MonitorResponseChart.ChartAreas.Add(chartArea1);
-            legend1.Name = "Legend1";
-            MonitorResponseChart.Legends.Add(legend1);
+            chartArea2.Name = "ChartArea1";
+            MonitorResponseChart.ChartAreas.Add(chartArea2);
+            legend2.Name = "Legend1";
+            MonitorResponseChart.Legends.Add(legend2);
             MonitorResponseChart.Location = new Point(8, 3);
             MonitorResponseChart.Name = "MonitorResponseChart";
-            series1.ChartArea = "ChartArea1";
-            series1.Legend = "Legend1";
-            series1.Name = "Series1";
-            MonitorResponseChart.Series.Add(series1);
+            series2.ChartArea = "ChartArea1";
+            series2.Legend = "Legend1";
+            series2.Name = "Series1";
+            MonitorResponseChart.Series.Add(series2);
             MonitorResponseChart.Size = new Size(476, 289);
             MonitorResponseChart.TabIndex = 7;
             MonitorResponseChart.Text = "chart1";
@@ -991,6 +1090,16 @@
             DAQDataGridView.Name = "DAQDataGridView";
             DAQDataGridView.Size = new Size(495, 209);
             DAQDataGridView.TabIndex = 0;
+            // 
+            // button1
+            // 
+            button1.Location = new Point(586, 506);
+            button1.Name = "button1";
+            button1.Size = new Size(179, 23);
+            button1.TabIndex = 17;
+            button1.Text = "Continuous Scan\r\n\r\n";
+            button1.UseVisualStyleBackColor = true;
+            button1.Click += button1_Click;
             // 
             // Form1
             // 
@@ -1027,6 +1136,11 @@
             MotionControllerConnectionTableLayout.ResumeLayout(false);
             MotionControllerConnectionTableLayout.PerformLayout();
             DaqDeviceTabPage.ResumeLayout(false);
+            DaqDeviceTabPage.PerformLayout();
+            tableLayoutPanel11.ResumeLayout(false);
+            tableLayoutPanel11.PerformLayout();
+            tableLayoutPanel10.ResumeLayout(false);
+            tableLayoutPanel10.PerformLayout();
             tableLayoutPanel9.ResumeLayout(false);
             tableLayoutPanel9.PerformLayout();
             tableLayoutPanel8.ResumeLayout(false);
@@ -1113,6 +1227,14 @@
         private TextBox FractureDepthTextBox;
         private TextBox PunctureMaxDepthTextBox;
         private Button backgroundWorkerStartButton;
-        private Button stopBackgroundWorkerButton;
+        private TableLayoutPanel tableLayoutPanel10;
+        private RadioButton radioButton1;
+        private RadioButton radioButton2;
+        private Button SetPunctureOffsetButton;
+        private TableLayoutPanel tableLayoutPanel11;
+        private Label label4;
+        private Label label5;
+        private TextBox PlaneDetectionThresholdTextBox;
+        private Button button1;
     }
 }
