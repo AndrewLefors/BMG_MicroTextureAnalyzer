@@ -741,8 +741,17 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        private async void button1_Click(object sender, EventArgs e)
         {
+
+            Series series = new Series
+            {
+                ChartType = SeriesChartType.Line
+            };
+            MonitorResponseChart.Series.Add(series);
+            DAQDataGridView.Rows.Clear();
+            
+            await Task.Run(() => MTAengine.StopAsync());
             MTAengine.ContinuousScanTest();
         }
     }

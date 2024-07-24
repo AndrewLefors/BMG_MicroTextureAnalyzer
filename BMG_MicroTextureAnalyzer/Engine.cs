@@ -7,6 +7,7 @@ using System.IO.Ports;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 using System.Runtime.InteropServices.Marshalling;
 using System.Runtime.InteropServices;
+using System;
 
 namespace BMG_MicroTextureAnalyzer
 {
@@ -14,6 +15,7 @@ namespace BMG_MicroTextureAnalyzer
     {
         private MccBoard _board;
         private bool _isMonitoring;
+        private MccDaq.Range _range = MccDaq.Range.BipPt078Volts;
         private MotionController _stage;
         private Connection _connection;
         private string _errorString;
@@ -22,6 +24,7 @@ namespace BMG_MicroTextureAnalyzer
         private readonly object _dataLock = new object();
         private BackgroundWorker _dataCollectorWorker;
         private BackgroundWorker _dataProcessorWorker;
+        private BackgroundWorker _dataCollectorWorker2;
         private BackgroundWorker _stageWorker;
         private BackgroundWorker _stageStarter;
         private bool _isRunning;
@@ -238,9 +241,12 @@ namespace BMG_MicroTextureAnalyzer
             _processedDataList.Clear();
 
             _dataCollectorWorker = new BackgroundWorker();
+            _dataCollectorWorker2 = new BackgroundWorker();
             _dataCollectorWorker.DoWork += DataCollectorWorker_ContinuousScan;
-            _dataCollectorWorker.DoWork += DataCollectorWorker_ContinuousScan_ReadMem;
+            _dataCollectorWorker2.DoWork += DataReaderWorker_ContinuousScan;
             _dataCollectorWorker.WorkerSupportsCancellation = true;
+            _dataCollectorWorker2.WorkerSupportsCancellation = true;
+            _dataCollectorWorker2.RunWorkerAsync();
             _dataCollectorWorker.RunWorkerAsync();
 
             _dataProcessorWorker = new BackgroundWorker();
@@ -257,7 +263,15 @@ namespace BMG_MicroTextureAnalyzer
 
                 //PunctureTestComplete = true;
 
-                // this.StopAsync();
+                _dataProcessorWorker.Dispose();
+            };
+            _dataCollectorWorker.RunWorkerCompleted -= (sender, e) =>
+            {
+                _dataCollectorWorker.Dispose();
+            };
+            _dataCollectorWorker2.RunWorkerCompleted -= (sender, e) =>
+            {
+                _dataCollectorWorker2.Dispose();
             };
 
         }
@@ -506,15 +520,19 @@ namespace BMG_MicroTextureAnalyzer
 
             _dataCollectorWorker.CancelAsync();
             _dataProcessorWorker.CancelAsync();
+            _dataCollectorWorker2.CancelAsync();
             //_stageWorker.CancelAsync();
             //_stageWorker.CancelAsync();
 
-            while (_dataCollectorWorker.IsBusy || _dataProcessorWorker.IsBusy)
+            while (_dataCollectorWorker.IsBusy || _dataProcessorWorker.IsBusy || _dataCollectorWorker2.IsBusy)
             {
                 await Task.Delay(100);
             }
             _dataQueue.Clear();
             _isRunning = false;
+            //cancel the continuous scan
+            //check if invoke required
+            _board.StopBackground(FunctionType.AiFunction);
             ThresholdMet = false;
         }
 
@@ -531,6 +549,7 @@ namespace BMG_MicroTextureAnalyzer
             while (_isRunning && !((BackgroundWorker)sender).CancellationPending)
             {
                //Get the current stage location
+               if (this.Stage != null)
                 this.Stage.GetYLocation();
 
                 Thread.Sleep(1);
@@ -569,62 +588,70 @@ namespace BMG_MicroTextureAnalyzer
             }
             int channel = 7;
             int numpoints = 10000;
-            int rate = 1000;
+            int rate = 999;
             short status;
             MccDaq.Range range = MccDaq.Range.BipPt078Volts;
+
+
+           
+            MccDaq.ErrorInfo ulStat = this._board.AInScan(channel, channel, numpoints, ref rate, range, memHandle, ScanOptions.Background);
+            if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
+            {
+                throw new Exception("Error reading analog input: " + ulStat.Message);
+            }
             while (!_dataCollectorWorker.CancellationPending)
             {
-                MccDaq.ErrorInfo ulStat = this._board.AInScan(channel, channel, numpoints, ref rate, range, memHandle, ScanOptions.Background);
-                if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
-                {
-                    throw new Exception("Error reading analog input: " + ulStat.Message);
-                }
-
-                this._board.GetStatus(out status, out int curCount, out int currentIndex, FunctionType.AiFunction);
                 
-                if (status == MccBoard.Running)
+                //Thread.Sleep(1);
+            }
+        }
+
+        private void DataReaderWorker_ContinuousScan(object sender, DoWorkEventArgs e)
+        {
+            int lastIndex = 0;
+            int[] dataBuffer = new int[10000];
+            double[] engUnits = new double[10000];
+            MccDaq.Range range = MccDaq.Range.BipPt078Volts;
+
+            while (!_dataCollectorWorker2.CancellationPending)
+            {
+                this._board.GetStatus(out short status, out int curCount, out int currentIndex, FunctionType.AiFunction);
+
+                if (curCount > lastIndex)
                 {
-                    // Check the current count of data points
-                    if (curCount >= numpoints)
+                    int pointsToRead = curCount - lastIndex;
+
+                    // Read the new data from the buffer
+                    MccDaq.ErrorInfo ulStat = MccDaq.MccService.WinBufToArray32(memHandle, dataBuffer, lastIndex, pointsToRead);
+                    if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
                     {
-                        // Stop the scan if the number of data points is reached
-                        ulStat = this._board.StopBackground(FunctionType.AiFunction);
+                        throw new Exception("Error reading buffer: " + ulStat.Message);
+                    }
+
+                    // Convert raw data to Eng32 units
+                    for (int i = 0; i < pointsToRead; i++)
+                    {
+                        ulStat = this._board.ToEngUnits32(range, dataBuffer[i], out engUnits[i]);
                         if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
                         {
-                            throw new Exception("Error stopping analog input scan: " + ulStat.Message);
+                            throw new Exception("Error converting to EngUnits: " + ulStat.Message);
                         }
-                    }
-                }
-                
-                
-                Thread.Sleep(1); // Adjust sampling rate as necessary
-            }
-        }
-
-        private void DataCollectorWorker_ContinuousScan_ReadMem(object sender, DoWorkEventArgs args)
-        {
-            try
-            {
-                while (!_dataCollectorWorker.CancellationPending)
-                {
-                    short status;
-                    this._board.GetStatus(out status, out int curCount, out int currentIndex, FunctionType.AiFunction);
-                    if (status == MccBoard.Running)
-                    {
-                        //Read one piece of data from the memhandle and update the queue with that data
-                        int rawData = Marshal.ReadInt32(memHandle, currentIndex * sizeof(int));
-
-                        //Send data to queue for processing
-                        RawDataChangedEventArgs dataChangedEventArgs = new RawDataChangedEventArgs(rawData);
+                        //Make datachanged event arg and pass to dataqueue 
+                        RawDataChangedEventArgs dataChangedEventArgs = new RawDataChangedEventArgs(dataBuffer[i]);
                         _dataQueue.Enqueue(dataChangedEventArgs);
                     }
+
+                    
+
+                    lastIndex = curCount;
                 }
-            }
-            catch (Exception ex)
-            {
-                this.ErrorString = ex.Message;
+
+                // Small delay to prevent busy-waiting
+               // Thread.Sleep(1);
             }
         }
+
+ 
         private void DataCollectorWorker_FindPlane(object sender, DoWorkEventArgs e)
         {
             if (this._board == null)
@@ -759,7 +786,7 @@ namespace BMG_MicroTextureAnalyzer
                     }
                     OnDataChanged(processedData);
                 }
-                Thread.Sleep(2);// Adjust processing rate as necessary
+                //Thread.Sleep(2);// Adjust processing rate as necessary
             }   
         }
 
