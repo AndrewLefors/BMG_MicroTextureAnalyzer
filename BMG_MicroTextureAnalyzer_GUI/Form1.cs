@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Windows.Forms;
 using System.Windows.Forms.DataVisualization.Charting;
 using System.Timers;
+using System.ComponentModel;
 namespace BMG_MicroTextureAnalyzer_GUI
 {
     public partial class Form1 : Form
@@ -24,6 +25,10 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
         private double _voltageConversion = 2141.878;
         private double _newtonConversion = 4.44822;
+
+        private BackgroundWorker graphBackgroundWorker = new BackgroundWorker();
+        private BackgroundWorker monitorBackgroundWorker = new BackgroundWorker();
+        private BackgroundWorker datagridBackgroundWorker = new BackgroundWorker();
 
 
         public Form1()
@@ -61,20 +66,23 @@ namespace BMG_MicroTextureAnalyzer_GUI
             var newtons = pounds * this._newtonConversion;
 
             //Update labels in real time
+            //change this to use the appropriate background workers so all happens in real-time
+
+
 
             if (InvokeRequired)
             {
                 Invoke(new Action(() =>
                 {
 
-                    DAQMonitoringStatusResponseLabel.Text = MTAengine.Stage.CurrentYStep.ToString();
+                    //DAQMonitoringStatusResponseLabel.Text = MTAengine.Stage.CurrentYStep.ToString();
                     NewtonsResponseLabel.Text = newtons.ToString();
                     //Check if there is a time value in stored in the first part of the monitorresponsechart, if there is use that as a the start for the relative time
                     if (MonitorResponseChart.Series[0].Points.Count > 0)
                     {
                         var time = e.TimeStamp - this.relativeStartTime;
 
-                        DAQDataGridView.Rows.Add(time, e.Voltage - MTAengine.VoltageOffset, pounds, newtons, MTAengine.Stage.CurrentYStep);
+                        DAQDataGridView.Rows.Add(time, e.Voltage - MTAengine.VoltageOffset, pounds, newtons);
                         MonitorResponseChart.Series[0].Points.AddXY(time, newtons);
 
                     }
@@ -268,6 +276,11 @@ namespace BMG_MicroTextureAnalyzer_GUI
                     //MTAengine.StopMotionController();
                     //MessageBox.Show("Threshold Met");
                 }
+            }
+            //Check if the property is the memhandle, if it is then update the memhandle such that the DAQdatagrid uses that as a source for the data
+            if (e.PropertyName == "MemHandle")
+            {
+               // DAQDataGridView.DataSource = MTAengine.ProcessedDataList;
             }
 
         }
@@ -743,15 +756,16 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
         private async void button1_Click(object sender, EventArgs e)
         {
-
+            MonitorResponseChart.Series.Clear();
             Series series = new Series
             {
                 ChartType = SeriesChartType.Line
             };
             MonitorResponseChart.Series.Add(series);
             DAQDataGridView.Rows.Clear();
+
             
-            await Task.Run(() => MTAengine.StopAsync());
+            
             MTAengine.ContinuousScanTest();
         }
     }

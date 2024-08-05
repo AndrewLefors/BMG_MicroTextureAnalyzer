@@ -54,9 +54,11 @@ namespace BMG_MicroTextureAnalyzer
         private double _newtonConversion;
 
         private double _voltageOffset = 0.0;
+        private int rate = 1000; //Sampling rate in Hz
+        private double timeToCollect = 10; //Time to collect data in seconds
 
-        IntPtr memHandle = // allocate memory for data buffer
-            MccDaq.MccService.WinBufAlloc32Ex(10000); //set for 10000 data points, so 10000/1000 = 10 seconds of data @ 1000Hz
+        IntPtr memHandle = IntPtr.Zero; // allocate memory for data buffer
+            //MccDaq.MccService.WinBufAlloc32Ex(10000); //set for 10000 data points, so 10000/1000 = 10 seconds of data @ 1000Hz
 
         public event EventHandler<ProcessedDataChangedEventArgs> DataChanged;
         public event PropertyChangedEventHandler PropertyChanged = delegate { };
@@ -230,6 +232,28 @@ namespace BMG_MicroTextureAnalyzer
 
         public void ContinuousScanTest()
         {
+            ////Clean up buffer and alter size 
+            //ErrorInfo ulStat = MccDaq.MccService.WinBufFreeEx(memHandle);
+            //if (ulStat.Value == MccDaq.ErrorInfo.ErrorCode.NoErrors)
+            //{
+               
+            //}
+            //else
+            //{
+            //    this.ErrorString = ulStat.Message;
+            //    return;
+            //}
+            
+            
+            
+            int buff_size = (int)(this.Rate * this.TimeToCollect) + this.Rate;
+            IntPtr memBuf = MccDaq.MccService.WinBufAlloc32Ex(buff_size);
+            if (memBuf == IntPtr.Zero)
+            {
+                this.ErrorString = "Error allocating memory buffer";
+                return;
+            }
+            this.memHandle = memBuf; //set for 10000 data points, so 10000/1000 = 10 seconds of data @ 1000Hz
             if (_isRunning)
             {
                 return;
@@ -262,16 +286,18 @@ namespace BMG_MicroTextureAnalyzer
                 //Create a new save file dialoge
 
                 //PunctureTestComplete = true;
-
-                _dataProcessorWorker.Dispose();
+                thresholdMet = true;
+               // _dataProcessorWorker.Dispose();
             };
             _dataCollectorWorker.RunWorkerCompleted -= (sender, e) =>
             {
-                _dataCollectorWorker.Dispose();
+                //_dataCollectorWorker.Dispose();
             };
             _dataCollectorWorker2.RunWorkerCompleted -= (sender, e) =>
             {
-                _dataCollectorWorker2.Dispose();
+                //_dataCollectorWorker2.Dispose();
+                //free the memory buffer
+                MccDaq.MccService.WinBufFreeEx(MemHandle);
             };
 
         }
@@ -489,6 +515,13 @@ namespace BMG_MicroTextureAnalyzer
             }
         }
 
+        //ProcessedDataList readonly
+        public List<ProcessedDataChangedEventArgs> ProcessedDataList
+        {
+            get { return _processedDataList; }
+        }
+
+
         //How do I access the memory location at a IntPtr?
           public IntPtr MemHandle
         {
@@ -502,6 +535,32 @@ namespace BMG_MicroTextureAnalyzer
                  }
                 }
           }
+
+        public int Rate
+        {
+            get { return rate; }
+            set
+            {
+                if (rate != value)
+                {
+                    rate = value;
+                    OnPropertyChanged(nameof(Rate));
+                }
+            }
+        }
+
+        public double TimeToCollect
+        {
+            get { return timeToCollect; }
+            set
+            {
+                if (timeToCollect != value)
+                {
+                    timeToCollect = value;
+                    OnPropertyChanged(nameof(TimeToCollect));
+                }
+            }
+        }
         public double PunctureNewtonConversion
         {
             get { return _punctureTestNewtonConversion; }
@@ -517,14 +576,16 @@ namespace BMG_MicroTextureAnalyzer
         public async Task StopAsync()
         {
             if (!_isRunning) return;
-
-            _dataCollectorWorker.CancelAsync();
-            _dataProcessorWorker.CancelAsync();
-            _dataCollectorWorker2.CancelAsync();
+            if (_dataCollectorWorker != null && _dataCollectorWorker.IsBusy)
+                _dataCollectorWorker.CancelAsync();
+            if (_dataCollectorWorker != null && _dataProcessorWorker.IsBusy)
+                _dataProcessorWorker.CancelAsync();
+            if (_dataCollectorWorker2 != null && _dataCollectorWorker2.IsBusy)
+                _dataCollectorWorker2.CancelAsync();
             //_stageWorker.CancelAsync();
             //_stageWorker.CancelAsync();
 
-            while (_dataCollectorWorker.IsBusy || _dataProcessorWorker.IsBusy || _dataCollectorWorker2.IsBusy)
+            while (_dataCollectorWorker.IsBusy || _dataProcessorWorker.IsBusy  )//|| _dataCollectorWorker2.IsBusy)
             {
                 await Task.Delay(100);
             }
@@ -609,9 +670,9 @@ namespace BMG_MicroTextureAnalyzer
         private void DataReaderWorker_ContinuousScan(object sender, DoWorkEventArgs e)
         {
             int lastIndex = 0;
-            int[] dataBuffer = new int[10000];
-            double[] engUnits = new double[10000];
-            MccDaq.Range range = MccDaq.Range.BipPt078Volts;
+            int[] dataBuffer = new int[(int)(this.rate*this.TimeToCollect)];
+            double[] engUnits = new double[(int)(this.rate * this.TimeToCollect)];
+            
 
             while (!_dataCollectorWorker2.CancellationPending)
             {
@@ -631,11 +692,7 @@ namespace BMG_MicroTextureAnalyzer
                     // Convert raw data to Eng32 units
                     for (int i = 0; i < pointsToRead; i++)
                     {
-                        ulStat = this._board.ToEngUnits32(range, dataBuffer[i], out engUnits[i]);
-                        if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
-                        {
-                            throw new Exception("Error converting to EngUnits: " + ulStat.Message);
-                        }
+                        
                         //Make datachanged event arg and pass to dataqueue 
                         RawDataChangedEventArgs dataChangedEventArgs = new RawDataChangedEventArgs(dataBuffer[i]);
                         _dataQueue.Enqueue(dataChangedEventArgs);
@@ -789,6 +846,9 @@ namespace BMG_MicroTextureAnalyzer
                 //Thread.Sleep(2);// Adjust processing rate as necessary
             }   
         }
+
+
+        //write function to read the data asynch using AInscan
 
         private void DataProcessorWorker_FindPlane(object sender, DoWorkEventArgs e)
         {
@@ -1178,11 +1238,18 @@ namespace BMG_MicroTextureAnalyzer
             public double Voltage { get; }
             public long? Step { get; }
 
+            //add newtons and lbs here to elimate front end need to compute
+           
+            public double Pounds { get; }
+            public double Newtons { get; }
+
+
             public ProcessedDataChangedEventArgs(double voltage, double TimeStamp_seconds, long? step = null)
             {
                 //Get the current time in total seconds
                 TimeStamp = TimeStamp_seconds;
                 Voltage = voltage;
+               // Pounds = voltage *
                 Step = step;
             }
         }
