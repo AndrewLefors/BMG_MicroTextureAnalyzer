@@ -88,6 +88,15 @@
             ConnectionStatusLabel = new Label();
             ConnectionStatusResponseLabel = new Label();
             DaqDeviceTabPage = new TabPage();
+            tableLayoutPanel12 = new TableLayoutPanel();
+            PollingRateLabel = new Label();
+            CollectionTimeLabel = new Label();
+            tableLayoutPanel13 = new TableLayoutPanel();
+            ThousandHertzRadioButton = new RadioButton();
+            TwoThousandHertzRadioButton = new RadioButton();
+            ThreeThousandHertzRadioButton = new RadioButton();
+            CollectionTimeSecondsTextBox = new TextBox();
+            button1 = new Button();
             label5 = new Label();
             tableLayoutPanel11 = new TableLayoutPanel();
             label4 = new Label();
@@ -114,7 +123,6 @@
             ReturnProbeToMaxHeightButton = new Button();
             MonitorResponseChart = new System.Windows.Forms.DataVisualization.Charting.Chart();
             DAQDataGridView = new DataGridView();
-            button1 = new Button();
             ((System.ComponentModel.ISupportInitialize)MMELogoPictureBox).BeginInit();
             tabControl1.SuspendLayout();
             MotionControllerTabPage.SuspendLayout();
@@ -132,6 +140,8 @@
             MotionControllerConnectionSettingsGroupBox.SuspendLayout();
             MotionControllerConnectionTableLayout.SuspendLayout();
             DaqDeviceTabPage.SuspendLayout();
+            tableLayoutPanel12.SuspendLayout();
+            tableLayoutPanel13.SuspendLayout();
             tableLayoutPanel11.SuspendLayout();
             tableLayoutPanel10.SuspendLayout();
             tableLayoutPanel9.SuspendLayout();
@@ -144,7 +154,7 @@
             // 
             MMELogoPictureBox.Location = new Point(0, -1);
             MMELogoPictureBox.Name = "MMELogoPictureBox";
-            MMELogoPictureBox.Size = new Size(801, 68);
+            MMELogoPictureBox.Size = new Size(1119, 68);
             MMELogoPictureBox.TabIndex = 0;
             MMELogoPictureBox.TabStop = false;
             // 
@@ -156,7 +166,7 @@
             tabControl1.Location = new Point(0, 73);
             tabControl1.Name = "tabControl1";
             tabControl1.SelectedIndex = 0;
-            tabControl1.Size = new Size(801, 580);
+            tabControl1.Size = new Size(1119, 580);
             tabControl1.TabIndex = 1;
             // 
             // MicroTextureAnalyzerTabPage
@@ -164,7 +174,7 @@
             MicroTextureAnalyzerTabPage.Location = new Point(4, 24);
             MicroTextureAnalyzerTabPage.Name = "MicroTextureAnalyzerTabPage";
             MicroTextureAnalyzerTabPage.Padding = new Padding(3);
-            MicroTextureAnalyzerTabPage.Size = new Size(793, 552);
+            MicroTextureAnalyzerTabPage.Size = new Size(1111, 552);
             MicroTextureAnalyzerTabPage.TabIndex = 2;
             MicroTextureAnalyzerTabPage.Text = "MicroTexture Analyzer";
             MicroTextureAnalyzerTabPage.UseVisualStyleBackColor = true;
@@ -180,7 +190,7 @@
             MotionControllerTabPage.Location = new Point(4, 24);
             MotionControllerTabPage.Name = "MotionControllerTabPage";
             MotionControllerTabPage.Padding = new Padding(3);
-            MotionControllerTabPage.Size = new Size(793, 552);
+            MotionControllerTabPage.Size = new Size(1111, 552);
             MotionControllerTabPage.TabIndex = 0;
             MotionControllerTabPage.Text = "Motion Controller";
             MotionControllerTabPage.UseVisualStyleBackColor = true;
@@ -777,6 +787,7 @@
             // 
             // DaqDeviceTabPage
             // 
+            DaqDeviceTabPage.Controls.Add(tableLayoutPanel12);
             DaqDeviceTabPage.Controls.Add(button1);
             DaqDeviceTabPage.Controls.Add(label5);
             DaqDeviceTabPage.Controls.Add(tableLayoutPanel11);
@@ -790,10 +801,122 @@
             DaqDeviceTabPage.Location = new Point(4, 24);
             DaqDeviceTabPage.Name = "DaqDeviceTabPage";
             DaqDeviceTabPage.Padding = new Padding(3);
-            DaqDeviceTabPage.Size = new Size(793, 552);
+            DaqDeviceTabPage.Size = new Size(1111, 552);
             DaqDeviceTabPage.TabIndex = 1;
             DaqDeviceTabPage.Text = "DAQ Device";
             DaqDeviceTabPage.UseVisualStyleBackColor = true;
+            // 
+            // tableLayoutPanel12
+            // 
+            tableLayoutPanel12.ColumnCount = 2;
+            tableLayoutPanel12.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+            tableLayoutPanel12.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+            tableLayoutPanel12.Controls.Add(PollingRateLabel, 0, 0);
+            tableLayoutPanel12.Controls.Add(CollectionTimeLabel, 1, 0);
+            tableLayoutPanel12.Controls.Add(tableLayoutPanel13, 0, 1);
+            tableLayoutPanel12.Controls.Add(CollectionTimeSecondsTextBox, 1, 1);
+            tableLayoutPanel12.Location = new Point(771, 6);
+            tableLayoutPanel12.Name = "tableLayoutPanel12";
+            tableLayoutPanel12.RowCount = 3;
+            tableLayoutPanel12.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            tableLayoutPanel12.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            tableLayoutPanel12.RowStyles.Add(new RowStyle(SizeType.Absolute, 32F));
+            tableLayoutPanel12.Size = new Size(344, 173);
+            tableLayoutPanel12.TabIndex = 18;
+            // 
+            // PollingRateLabel
+            // 
+            PollingRateLabel.Anchor = AnchorStyles.None;
+            PollingRateLabel.AutoSize = true;
+            PollingRateLabel.Location = new Point(40, 27);
+            PollingRateLabel.Name = "PollingRateLabel";
+            PollingRateLabel.Size = new Size(92, 15);
+            PollingRateLabel.TabIndex = 0;
+            PollingRateLabel.Text = "Polling Rate(Hz)";
+            // 
+            // CollectionTimeLabel
+            // 
+            CollectionTimeLabel.Anchor = AnchorStyles.None;
+            CollectionTimeLabel.AutoSize = true;
+            CollectionTimeLabel.Location = new Point(205, 27);
+            CollectionTimeLabel.Name = "CollectionTimeLabel";
+            CollectionTimeLabel.Size = new Size(106, 15);
+            CollectionTimeLabel.TabIndex = 1;
+            CollectionTimeLabel.Text = "Collection Time (s)";
+            // 
+            // tableLayoutPanel13
+            // 
+            tableLayoutPanel13.ColumnCount = 3;
+            tableLayoutPanel13.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+            tableLayoutPanel13.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+            tableLayoutPanel13.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 51F));
+            tableLayoutPanel13.Controls.Add(ThousandHertzRadioButton, 0, 0);
+            tableLayoutPanel13.Controls.Add(TwoThousandHertzRadioButton, 1, 0);
+            tableLayoutPanel13.Controls.Add(ThreeThousandHertzRadioButton, 2, 0);
+            tableLayoutPanel13.Location = new Point(3, 73);
+            tableLayoutPanel13.Name = "tableLayoutPanel13";
+            tableLayoutPanel13.RowCount = 1;
+            tableLayoutPanel13.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            tableLayoutPanel13.Size = new Size(166, 64);
+            tableLayoutPanel13.TabIndex = 2;
+            // 
+            // ThousandHertzRadioButton
+            // 
+            ThousandHertzRadioButton.Anchor = AnchorStyles.None;
+            ThousandHertzRadioButton.AutoSize = true;
+            ThousandHertzRadioButton.Location = new Point(4, 22);
+            ThousandHertzRadioButton.Name = "ThousandHertzRadioButton";
+            ThousandHertzRadioButton.Size = new Size(49, 19);
+            ThousandHertzRadioButton.TabIndex = 0;
+            ThousandHertzRadioButton.TabStop = true;
+            ThousandHertzRadioButton.Text = "1000";
+            ThousandHertzRadioButton.UseVisualStyleBackColor = true;
+            ThousandHertzRadioButton.CheckedChanged += ThousandHertzRadioButton_CheckedChanged;
+            // 
+            // TwoThousandHertzRadioButton
+            // 
+            TwoThousandHertzRadioButton.Anchor = AnchorStyles.None;
+            TwoThousandHertzRadioButton.AutoSize = true;
+            TwoThousandHertzRadioButton.Location = new Point(61, 22);
+            TwoThousandHertzRadioButton.Name = "TwoThousandHertzRadioButton";
+            TwoThousandHertzRadioButton.Size = new Size(49, 19);
+            TwoThousandHertzRadioButton.TabIndex = 1;
+            TwoThousandHertzRadioButton.TabStop = true;
+            TwoThousandHertzRadioButton.Text = "2000";
+            TwoThousandHertzRadioButton.UseVisualStyleBackColor = true;
+            TwoThousandHertzRadioButton.CheckedChanged += TwoThousandHertzRadioButton_CheckedChanged;
+            // 
+            // ThreeThousandHertzRadioButton
+            // 
+            ThreeThousandHertzRadioButton.Anchor = AnchorStyles.None;
+            ThreeThousandHertzRadioButton.AutoSize = true;
+            ThreeThousandHertzRadioButton.Location = new Point(117, 22);
+            ThreeThousandHertzRadioButton.Name = "ThreeThousandHertzRadioButton";
+            ThreeThousandHertzRadioButton.Size = new Size(46, 19);
+            ThreeThousandHertzRadioButton.TabIndex = 2;
+            ThreeThousandHertzRadioButton.TabStop = true;
+            ThreeThousandHertzRadioButton.Text = "3000";
+            ThreeThousandHertzRadioButton.TextImageRelation = TextImageRelation.ImageAboveText;
+            ThreeThousandHertzRadioButton.UseVisualStyleBackColor = true;
+            ThreeThousandHertzRadioButton.CheckedChanged += radioButton6_CheckedChanged;
+            // 
+            // CollectionTimeSecondsTextBox
+            // 
+            CollectionTimeSecondsTextBox.Anchor = AnchorStyles.None;
+            CollectionTimeSecondsTextBox.Location = new Point(208, 93);
+            CollectionTimeSecondsTextBox.Name = "CollectionTimeSecondsTextBox";
+            CollectionTimeSecondsTextBox.Size = new Size(100, 23);
+            CollectionTimeSecondsTextBox.TabIndex = 3;
+            // 
+            // button1
+            // 
+            button1.Location = new Point(586, 506);
+            button1.Name = "button1";
+            button1.Size = new Size(179, 23);
+            button1.TabIndex = 17;
+            button1.Text = "Continuous Scan\r\n\r\n";
+            button1.UseVisualStyleBackColor = true;
+            button1.Click += button1_Click;
             // 
             // label5
             // 
@@ -890,7 +1013,7 @@
             // SetPunctureOffsetButton
             // 
             SetPunctureOffsetButton.Anchor = AnchorStyles.None;
-            SetPunctureOffsetButton.Location = new Point(484, 181);
+            SetPunctureOffsetButton.Location = new Point(643, 181);
             SetPunctureOffsetButton.Name = "SetPunctureOffsetButton";
             SetPunctureOffsetButton.Size = new Size(75, 23);
             SetPunctureOffsetButton.TabIndex = 2;
@@ -1091,21 +1214,11 @@
             DAQDataGridView.Size = new Size(495, 209);
             DAQDataGridView.TabIndex = 0;
             // 
-            // button1
-            // 
-            button1.Location = new Point(586, 506);
-            button1.Name = "button1";
-            button1.Size = new Size(179, 23);
-            button1.TabIndex = 17;
-            button1.Text = "Continuous Scan\r\n\r\n";
-            button1.UseVisualStyleBackColor = true;
-            button1.Click += button1_Click;
-            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(800, 647);
+            ClientSize = new Size(1118, 647);
             Controls.Add(tabControl1);
             Controls.Add(MMELogoPictureBox);
             Name = "Form1";
@@ -1137,6 +1250,10 @@
             MotionControllerConnectionTableLayout.PerformLayout();
             DaqDeviceTabPage.ResumeLayout(false);
             DaqDeviceTabPage.PerformLayout();
+            tableLayoutPanel12.ResumeLayout(false);
+            tableLayoutPanel12.PerformLayout();
+            tableLayoutPanel13.ResumeLayout(false);
+            tableLayoutPanel13.PerformLayout();
             tableLayoutPanel11.ResumeLayout(false);
             tableLayoutPanel11.PerformLayout();
             tableLayoutPanel10.ResumeLayout(false);
@@ -1236,5 +1353,13 @@
         private Label label5;
         private TextBox PlaneDetectionThresholdTextBox;
         private Button button1;
+        private TableLayoutPanel tableLayoutPanel12;
+        private Label PollingRateLabel;
+        private Label CollectionTimeLabel;
+        private TableLayoutPanel tableLayoutPanel13;
+        private RadioButton ThousandHertzRadioButton;
+        private RadioButton TwoThousandHertzRadioButton;
+        private RadioButton ThreeThousandHertzRadioButton;
+        private TextBox CollectionTimeSecondsTextBox;
     }
 }

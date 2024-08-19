@@ -8,6 +8,7 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 using System.Runtime.InteropServices.Marshalling;
 using System.Runtime.InteropServices;
 using System;
+using System.Runtime.CompilerServices;
 
 namespace BMG_MicroTextureAnalyzer
 {
@@ -48,12 +49,16 @@ namespace BMG_MicroTextureAnalyzer
         private double _punctureTestKilogramConversion = 3.96844;
         private double _punctureTestNewtonConversion = 9.81;// 1kg = 9.81N
 
-        private double _findPlaneThreshold = 1.1;
+        private double _findPlaneThreshold = 5;
 
         private double _voltageConversion;
         private double _newtonConversion;
 
         private double _voltageOffset = 0.0;
+
+        private int _rate = 1000; //default of 1kHz
+        private double _dataCollectionTime = 10; //default of 10 seconds
+        private int _numPoints = 10000; //default of 10000 points (10 seconds @ 1kHz)
 
         IntPtr memHandle = // allocate memory for data buffer
             MccDaq.MccService.WinBufAlloc32Ex(10000); //set for 10000 data points, so 10000/1000 = 10 seconds of data @ 1000Hz
@@ -234,45 +239,80 @@ namespace BMG_MicroTextureAnalyzer
             {
                 return;
             }
+            if (this._isFractureTest)
+            {
+                _voltageConversion = _fractureTestPoundConversion;
+                _newtonConversion = _fractureTestNewtonConversion;
+            }
+            else if (this._isPunctureTest)
+            {
+                _voltageConversion = _punctureTestKilogramConversion;
+                _newtonConversion = _punctureTestNewtonConversion;
+            }
+
+            // Free the buffer and allocate a new one to Memhandle
+            try
+            {
+              _numPoints = (int)(DataCollectionTime * Rate);
+              MccDaq.MccService.WinBufFreeEx(MemHandle);
+              MemHandle = MccDaq.MccService.WinBufAlloc32Ex(NumPoints);
+            }
+            catch(Exception ex)
+            {
+                this.ErrorString = ex.Message;
+            }
+            
+
+            if (MemHandle == 0)
+            {
+                this.ErrorString = "Error allocating memory for data buffer";
+                return;
+            }
+            _isMonitoring = true;
             _isRunning = true;
             _isFractureTest = false;
             _isPunctureTest = false;
+            ThresholdMet = false;
             _dataQueue.Clear();
             _processedDataList.Clear();
 
+            
+
+            //Worker 1
             _dataCollectorWorker = new BackgroundWorker();
-            _dataCollectorWorker2 = new BackgroundWorker();
             _dataCollectorWorker.DoWork += DataCollectorWorker_ContinuousScan;
-            _dataCollectorWorker2.DoWork += DataReaderWorker_ContinuousScan;
             _dataCollectorWorker.WorkerSupportsCancellation = true;
+            _dataCollectorWorker.RunWorkerAsync();
+            //Worker 2
+            _dataCollectorWorker2 = new BackgroundWorker();
+            _dataCollectorWorker2.DoWork += DataReaderWorker_ContinuousScan;
             _dataCollectorWorker2.WorkerSupportsCancellation = true;
             _dataCollectorWorker2.RunWorkerAsync();
-            _dataCollectorWorker.RunWorkerAsync();
-
+            //Processor1
             _dataProcessorWorker = new BackgroundWorker();
             _dataProcessorWorker.DoWork += DataProcessorWorker_ContinuousScanInput;
             _dataProcessorWorker.WorkerSupportsCancellation = true;
             _dataProcessorWorker.RunWorkerAsync();
             
+
             _dataProcessorWorker.RunWorkerCompleted += (sender, e) =>
             {
-                //Add save file dialoge for saving the data for fracture test to csv. This should pop up a confirmation box asking if they want to save, then go through the save file dialoge
-
-                //Save the data to a csv file
-                //Create a new save file dialoge
-
-                //PunctureTestComplete = true;
-
-                _dataProcessorWorker.Dispose();
+               // _dataProcessorWorker.CancelAsync();
+                //_dataProcessorWorker.Dispose();  
             };
             _dataCollectorWorker.RunWorkerCompleted -= (sender, e) =>
             {
-                _dataCollectorWorker.Dispose();
+                //_dataCollectorWorker.CancelAsync();
+               // _dataCollectorWorker.Dispose();
+
             };
             _dataCollectorWorker2.RunWorkerCompleted -= (sender, e) =>
             {
-                _dataCollectorWorker2.Dispose();
+              //_dataCollectorWorker2.CancelAsync();
+              //_dataCollectorWorker2.Dispose();
+               
             };
+            ThresholdMet = false;
 
         }
 
@@ -303,6 +343,40 @@ namespace BMG_MicroTextureAnalyzer
                 {
                     _findPlaneThreshold = value;
                     OnPropertyChanged(nameof(FindPlaneThreshold));
+                }
+            }
+        }
+
+        public int Rate
+        {
+            get { return _rate; }
+            set
+            {
+                if (_rate != value)
+                {
+                    _rate = value;
+                    _numPoints = (int)(DataCollectionTime * Rate);
+                    OnPropertyChanged(nameof(Rate));
+                }
+            }
+        }
+
+        public int NumPoints
+        {
+            get { return _numPoints; }
+           
+        }
+
+        public double DataCollectionTime
+        {
+            get { return _dataCollectionTime; }
+            set
+            {
+                if (_dataCollectionTime != value)
+                {
+                    _dataCollectionTime = value;
+                    _numPoints = (int)(DataCollectionTime * Rate);
+                    OnPropertyChanged(nameof(DataCollectionTime));
                 }
             }
         }
@@ -450,6 +524,11 @@ namespace BMG_MicroTextureAnalyzer
             }
         }
 
+
+        public bool IsMonitoring
+        {
+            get { return _isMonitoring; }
+        }
         public double NewtonConversion
         {
             get { return _newtonConversion; }
@@ -514,6 +593,11 @@ namespace BMG_MicroTextureAnalyzer
                 }
             }
         }
+
+        public bool IsRunning
+        {
+            get { return _isRunning; }
+        }
         public async Task StopAsync()
         {
             if (!_isRunning) return;
@@ -530,6 +614,7 @@ namespace BMG_MicroTextureAnalyzer
             }
             _dataQueue.Clear();
             _isRunning = false;
+            _isMonitoring = false;
             //cancel the continuous scan
             //check if invoke required
             _board.StopBackground(FunctionType.AiFunction);
@@ -587,39 +672,39 @@ namespace BMG_MicroTextureAnalyzer
                 this._board = new MccBoard(1);
             }
             int channel = 7;
-            int numpoints = 10000;
-            int rate = 999;
+            
             short status;
             MccDaq.Range range = MccDaq.Range.BipPt078Volts;
+            int rate = this.Rate;
 
-
-           
-            MccDaq.ErrorInfo ulStat = this._board.AInScan(channel, channel, numpoints, ref rate, range, memHandle, ScanOptions.Background);
+           // TranslateYStage(-100); // Move the stage 100mm down to get the stage on the sample
+            MccDaq.ErrorInfo ulStat = this._board.AInScan(channel, channel, NumPoints, ref rate, range, MemHandle, ScanOptions.Background);
             if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
             {
                 throw new Exception("Error reading analog input: " + ulStat.Message);
             }
-            while (!_dataCollectorWorker.CancellationPending)
+            while (!_dataCollectorWorker.CancellationPending && !ThresholdMet)
             {
                 
-                //Thread.Sleep(1);
+                
             }
+            //this.Stage.Stop();
         }
 
         private void DataReaderWorker_ContinuousScan(object sender, DoWorkEventArgs e)
         {
             int lastIndex = 0;
-            int[] dataBuffer = new int[10000];
-            double[] engUnits = new double[10000];
+            int[] dataBuffer = new int[this.NumPoints];
+            double[] engUnits = new double[this.NumPoints];
             MccDaq.Range range = MccDaq.Range.BipPt078Volts;
 
-            while (!_dataCollectorWorker2.CancellationPending)
+            while (!_dataCollectorWorker2.CancellationPending && !ThresholdMet)
             {
                 this._board.GetStatus(out short status, out int curCount, out int currentIndex, FunctionType.AiFunction);
 
-                if (curCount > lastIndex)
+                if (currentIndex > lastIndex)
                 {
-                    int pointsToRead = curCount - lastIndex;
+                    int pointsToRead = currentIndex - lastIndex;
 
                     // Read the new data from the buffer
                     MccDaq.ErrorInfo ulStat = MccDaq.MccService.WinBufToArray32(memHandle, dataBuffer, lastIndex, pointsToRead);
@@ -643,12 +728,14 @@ namespace BMG_MicroTextureAnalyzer
 
                     
 
-                    lastIndex = curCount;
+                    lastIndex = currentIndex;
                 }
 
                 // Small delay to prevent busy-waiting
                // Thread.Sleep(1);
             }
+            //Free the two local arrays
+           
         }
 
  
@@ -755,7 +842,7 @@ namespace BMG_MicroTextureAnalyzer
                     {
                         throw new Exception("Error converting raw data to voltage: " + ulStat.Message);
                     }
-                    ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp);
+                    ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion);
                     lock (_dataLock)
                     {
                         _processedDataList.Add(processedData);
@@ -770,7 +857,8 @@ namespace BMG_MicroTextureAnalyzer
 
         private void DataProcessorWorker_ContinuousScanInput(object sender, DoWorkEventArgs e)
         {
-            while (!((BackgroundWorker)sender).CancellationPending)
+            //this.Stage.MoveYAbsolute(100);
+            while (!((BackgroundWorker)sender).CancellationPending && !ThresholdMet)
             {
                 if (_dataQueue.TryDequeue(out RawDataChangedEventArgs args))
                 {
@@ -779,7 +867,16 @@ namespace BMG_MicroTextureAnalyzer
                     {
                         throw new Exception("Error converting raw data to voltage: " + ulStat.Message);
                     }
-                    ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp);
+                    ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion);
+                    //Run an async task to check the data if it meets or exceeds the threshold
+                    Task.Run(() =>
+                    {
+                        if (processedData.Newtons >= this.FindPlaneThreshold)
+                        {
+                            this.ThresholdMet = true;
+                            //this.Stage.Stop();
+                        }
+                    });
                     lock (_dataLock)
                     {
                         _processedDataList.Add(processedData);
@@ -808,7 +905,7 @@ namespace BMG_MicroTextureAnalyzer
                         this.Stage.Stop();
                     }
 
-                    ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp);
+                    ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion);
                     lock (_dataLock)
                     {
                         _processedDataList.Add(processedData);
@@ -843,7 +940,7 @@ namespace BMG_MicroTextureAnalyzer
                         this.Stage.Stop();
                         Task.Run(() => this.StopAsync());
                     }
-                    ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, args.Step);
+                    ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion);
                     lock (_dataLock)
                     {
                         _processedDataList.Add(processedData);
@@ -878,8 +975,8 @@ namespace BMG_MicroTextureAnalyzer
                         ThresholdMet = true;
                         this.Stage.Stop();
                         //Task.Run(() => this.StopAsync());
-                    }
-                    ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, args.Step);
+                    }   
+                    ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion);
                     lock (_dataLock)
                     {
                         _processedDataList.Add(processedData);
@@ -1178,11 +1275,17 @@ namespace BMG_MicroTextureAnalyzer
             public double Voltage { get; }
             public long? Step { get; }
 
-            public ProcessedDataChangedEventArgs(double voltage, double TimeStamp_seconds, long? step = null)
+            public double Pounds { get; }
+
+            public double Newtons { get; }
+
+            public ProcessedDataChangedEventArgs(double voltage, double TimeStamp_seconds, double voltageConversion, double newtonConversion, long? step = null)
             {
                 //Get the current time in total seconds
                 TimeStamp = TimeStamp_seconds;
                 Voltage = voltage;
+                Pounds = voltage * voltageConversion;
+                Newtons = Pounds * newtonConversion;
                 Step = step;
             }
         }

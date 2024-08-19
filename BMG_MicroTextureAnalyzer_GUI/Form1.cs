@@ -3,6 +3,8 @@ using System.Diagnostics;
 using System.Windows.Forms;
 using System.Windows.Forms.DataVisualization.Charting;
 using System.Timers;
+using System.ComponentModel;
+using System.Collections.Concurrent;
 namespace BMG_MicroTextureAnalyzer_GUI
 {
     public partial class Form1 : Form
@@ -25,6 +27,12 @@ namespace BMG_MicroTextureAnalyzer_GUI
         private double _voltageConversion = 2141.878;
         private double _newtonConversion = 4.44822;
 
+        private BackgroundWorker graphUpdaterBackgroundWorker = new BackgroundWorker();
+        private double batchIntervalMs = 50;
+        private ConcurrentQueue<Engine.ProcessedDataChangedEventArgs> dataQueue = new ConcurrentQueue<Engine.ProcessedDataChangedEventArgs>();
+
+        private Thread chartUpdateThread;
+        private bool chartUpdateThreadRunning = false;
 
         public Form1()
         {
@@ -32,6 +40,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
             MTAengine = engine;
             MTAengine.DataChanged += MTAengine_DataChanged;
             board = new MccDaq.MccBoard(1);
+
 
             MTAengine = engine;
             MTAengine.PropertyChanged += MTAengine_PropertyChanged;
@@ -48,70 +57,94 @@ namespace BMG_MicroTextureAnalyzer_GUI
             DAQDataGridView.Columns.Add("Pounds", "Pounds");
             DAQDataGridView.Columns.Add("Newtons", "Newtons");
             DAQDataGridView.Columns.Add("Step", "Step");
+            //MonitorResponseChart = new Chart();
 
-
+            //StartChartUpdateThread();
 
         }
         //Convert this to event driven so that the data is updated when the event is thrown
-
-        private void MTAengine_DataChanged(object? sender, Engine.ProcessedDataChangedEventArgs e)
+        private async void StartChartUpdateThread()
         {
-            //Add to dataGrid
-            var pounds = ((e.Voltage - MTAengine.VoltageOffset) * this._voltageConversion);
-            var newtons = pounds * this._newtonConversion;
-
-            //Update labels in real time
-
-            if (InvokeRequired)
+            if (!MTAengine.IsRunning)
             {
-                Invoke(new Action(() =>
+                return;
+            }
+           // MonitorResponseChart = new Chart();
+
+            await Task.Run(() => MonitorResponseChart.Invoke(() =>
+            {
+                MonitorResponseChart.Series.Clear();
+                Series series = new Series
                 {
+                    ChartType = SeriesChartType.Line
+                };
+                MonitorResponseChart.Series.Add(series);
+                chartUpdateThread = new Thread(ProcessDataQueue);
+                chartUpdateThread.IsBackground = true;
+                chartUpdateThread.Start();
+            }));
+            //chartUpdateThread.Join();
 
-                    DAQMonitoringStatusResponseLabel.Text = MTAengine.Stage.CurrentYStep.ToString();
-                    NewtonsResponseLabel.Text = newtons.ToString();
-                    //Check if there is a time value in stored in the first part of the monitorresponsechart, if there is use that as a the start for the relative time
-                    if (MonitorResponseChart.Series[0].Points.Count > 0)
+            
+
+        }
+        private void ProcessDataQueue()
+        {
+            var stopwatch = new System.Diagnostics.Stopwatch();
+            stopwatch.Start();
+            while (MTAengine.IsRunning)
+            {
+                List<Engine.ProcessedDataChangedEventArgs> batch = new List<Engine.ProcessedDataChangedEventArgs>();
+                while (stopwatch.ElapsedMilliseconds < batchIntervalMs)
+                {
+                    if (dataQueue.TryDequeue(out Engine.ProcessedDataChangedEventArgs data))
                     {
-                        var time = e.TimeStamp - this.relativeStartTime;
-
-                        DAQDataGridView.Rows.Add(time, e.Voltage - MTAengine.VoltageOffset, pounds, newtons, MTAengine.Stage.CurrentYStep);
-                        MonitorResponseChart.Series[0].Points.AddXY(time, newtons);
-
+                        batch.Add(data);
                     }
-                    else
-                    {
-                        this.relativeStartTime = e.TimeStamp;
-                        //Make the MonitorResponseChart a linechart 
+                }
+                if (batch.Count > 0)
+                {
+                    UpdateChart(batch);
+                }
 
-                        MonitorResponseChart.Series.Clear();
-                        Series series = new Series
-                        {
-                            ChartType = SeriesChartType.Line
-                        };
-                        MonitorResponseChart.Series.Add(series);
-                        MonitorResponseChart.Series[0].Points.AddXY(0, newtons);
-                        DAQDataGridView.Rows.Add(0, e.Voltage - MTAengine.VoltageOffset, pounds, newtons, e.Step);
-                    }
+                stopwatch.Restart();
+            }
 
-                }));
+        }
 
+        private void UpdateChart(List<Engine.ProcessedDataChangedEventArgs> data)
+        {
+            if (MonitorResponseChart.InvokeRequired)
+            {
+                MonitorResponseChart.Invoke(new Action<List<Engine.ProcessedDataChangedEventArgs>>(UpdateChart), data);
             }
             else
             {
 
-                if (MonitorResponseChart.Series[0].Points.Count > 0)
+                foreach (var d in data)
                 {
-                    var time = e.TimeStamp - this.relativeStartTime;
-                    DAQDataGridView.Rows.Add(time, e.Voltage - MTAengine.VoltageOffset, pounds, newtons);
-                    MonitorResponseChart.Series[0].Points.AddXY(time, newtons);
-                }
-                else
-                {
-                    this.relativeStartTime = e.TimeStamp;
-                    MonitorResponseChart.Series[0].Points.AddXY(0, newtons);
-                    DAQDataGridView.Rows.Add(0, e.Voltage - MTAengine.VoltageOffset, pounds, newtons);
-                }
+                    if (MonitorResponseChart.Series[0] != null)
+                    {
+                        var time = d.TimeStamp - this.relativeStartTime;
+                        MonitorResponseChart.Series[0].Points.AddXY(time, d.Newtons);
+                    }
+                    else
+                    {
+                        this.relativeStartTime = d.TimeStamp;
+                        Series series = new Series
+                        {
+                            ChartType = SeriesChartType.Line
+                        };
+
+                        MonitorResponseChart.Series[0] = series;
+                        MonitorResponseChart.Series[0].Points.AddXY(0, 0);
+                    }
+                };
             }
+        }
+        private void MTAengine_DataChanged(object? sender, Engine.ProcessedDataChangedEventArgs e)
+        {
+            dataQueue.Enqueue(e);
         }
 
         private void MTAengine_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -466,23 +499,6 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
         private async void StartConstantMonitorButton_Click(object sender, EventArgs e)
         {
-            //MonitorResponseChart.Series.Clear();
-            //Series series = new Series
-            //{
-            //    ChartType = SeriesChartType.Line
-            //};
-            //MonitorResponseChart.Series.Add(series);
-            //DAQDataGridView.Rows.Clear();
-            //stopwatch = new Stopwatch();
-            //stopwatch.Start();
-            //MonitorTimer.Enabled = true;
-            //MonitorTimer.Start();
-            //MTAengine.SetStageSpeed(5);
-            //Thread.Sleep(10);
-            //MonitorTimer.Interval = 1;
-
-            //MTAengine.TranslateYStage(-100);
-
             await Task.Run(() => MTAengine.StopAsync());
             MonitorResponseChart.Series.Clear();
             Series series = new Series
@@ -503,101 +519,6 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 MessageBox.Show("Please enter a valid threshold value");
             }
 
-
-
-        }
-
-        private void MonitorTimer_Tick(object sender, EventArgs e)
-        {
-            MccDaq.ErrorInfo ULStat = this.board.AIn32(7, MccDaq.Range.BipPt078Volts, out monitorData, 1);
-            if (ULStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
-            {
-                Task.Run(() => MessageBox.Show("Error reading data: " + ULStat.Message));
-                MTAengine.StopMotionController();
-                return;
-            }
-            ULStat = this.board.ToEngUnits32(MccDaq.Range.BipPt078Volts, monitorData, out monitorVoltage);
-            if (ULStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
-            {
-                Task.Run(() => MessageBox.Show("Error converting data: " + ULStat.Message));
-                MTAengine.StopMotionController();
-                return;
-            }
-            //Convert the voltage to pounds using factor of 2141.878 lbs/volt
-            monitorPounds = monitorVoltage * 2141.878;
-            DAQMonitoringStatusResponseLabel.Text = monitorVoltage.ToString();
-            DAQDataResponseLabel.Text = monitorPounds.ToString();
-            monitorNewtons = monitorPounds * 4.44822;
-            NewtonsResponseLabel.Text = monitorNewtons.ToString();
-
-
-
-            //Add the value to the datagrid with another colum for the time and another colum for the distance
-            //First add coluns to datagrid
-
-
-            //I want to have a seperate thread run the updatechart, but make sure it's the proper thread using invoke
-            //this.
-            Task.Run(() =>
-            {
-                //DAQDataGridView.Rows.Add(stopwatch.Elapsed.TotalSeconds, monitorVoltage, monitorPounds, monitorNewtons);
-                UpdatePortionChartData(stopwatch.Elapsed.TotalSeconds, monitorNewtons);
-            });
-
-
-            //export datagrid to a file csv format
-            //Will do this in a sepearte button or file-dialouge
-            //Thread.Sleep(100);
-            //Check if Threshold has been reached
-            //How can I completely stop these insteado f just throwing a message box
-
-            if (monitorNewtons > newtonThreshold)
-            {
-                //MessageBox.Show("Threshold reached");
-                MTAengine.StopMotionController();
-
-                //Take the data from the chart and add it to the datagrid
-                Task.Run(() => Invoke((MethodInvoker)(delegate
-                {
-                    foreach (DataPoint point in MonitorResponseChart.Series[0].Points)
-                    {
-                        DAQDataGridView.Rows.Add(point.XValue, point.YValues[0], point.YValues[0] * 21, point.YValues[0] * 4.44822);
-                    }
-                })));
-                // UpdateChartData();
-                return;
-            }
-
-        }
-
-        private void UpdateChartData()
-        {
-            MonitorResponseChart.Series.Clear();
-            Series series = new Series
-            {
-                ChartType = SeriesChartType.Line
-            };
-            MonitorResponseChart.Series.Add(series);
-
-            foreach (DataGridViewRow row in DAQDataGridView.Rows)
-            {
-                if (row.Cells[0].Value != null && row.Cells[1].Value != null)
-                {
-                    //Convert the datetime to relative time in seconds
-
-                    double xValue = Convert.ToDouble(row.Cells[0].Value);
-                    double yValue = Convert.ToDouble(row.Cells[3].Value);
-                    series.Points.AddXY(xValue, yValue);
-                }
-            }
-        }
-
-        //Make updateportionchartdata function that takes the new time value, new voltage, new pound and new newton values and addits it to the chart
-        //This will be called in the monitor timer tick event
-        private void UpdatePortionChartData(double time, double newtons)
-        {
-
-            MonitorResponseChart.Series[0].Points.AddXY(time, newtons);
         }
 
         private void ReturnProbeToMaxHeightButton_Click(object sender, EventArgs e)
@@ -622,7 +543,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
         private void stopBackgroundWorkerButton_Click(object sender, EventArgs e)
         {
-            MTAengine.StopAsync();
+            Task.Run(() => MTAengine.StopAsync());
         }
 
         private async void FractureTestStartButton_Click(object sender, EventArgs e)
@@ -743,16 +664,66 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
         private async void button1_Click(object sender, EventArgs e)
         {
-
+            await Task.Run(() => MTAengine.StopAsync());
+            MonitorResponseChart.Series.Clear();
             Series series = new Series
             {
                 ChartType = SeriesChartType.Line
             };
             MonitorResponseChart.Series.Add(series);
-            DAQDataGridView.Rows.Clear();
-            
-            await Task.Run(() => MTAengine.StopAsync());
+            MTAengine.SetStageSpeed(1);
+            if (PlaneDetectionThresholdTextBox.Text != "")
+            {
+                MTAengine.FindPlaneThreshold = double.Parse(PlaneDetectionThresholdTextBox.Text);
+            }
+            double.TryParse(CollectionTimeSecondsTextBox.Text, out double result);
+            if (result == 0)
+            {
+                MessageBox.Show("Please enter a valid collection time");
+                return;
+            }
+            MTAengine.DataCollectionTime = result;
+        
             MTAengine.ContinuousScanTest();
+            StartChartUpdateThread();
+            
+
+
+        }
+
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            if (MTAengine.IsMonitoring)
+            {
+                MTAengine.StopAsync();
+            }
+            chartUpdateThread.Join();
+            base.OnFormClosing(e);
+        }
+
+        private void ThousandHertzRadioButton_CheckedChanged(object sender, EventArgs e)
+        {
+            if (ThousandHertzRadioButton.Checked)
+            {
+                MTAengine.Rate = 1000;
+            }
+        }
+
+        private void TwoThousandHertzRadioButton_CheckedChanged(object sender, EventArgs e)
+        {
+            if (TwoThousandHertzRadioButton.Checked)
+            {
+                MTAengine.Rate = 1500;
+            }
+        }
+
+        private void radioButton6_CheckedChanged(object sender, EventArgs e)
+        {
+            if (ThreeThousandHertzRadioButton.Checked)
+            {
+                MTAengine.Rate = 2999;
+            }
         }
     }
 }
+
