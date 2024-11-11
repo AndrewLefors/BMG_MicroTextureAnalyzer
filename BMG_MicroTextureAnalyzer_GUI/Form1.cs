@@ -69,7 +69,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
             {
                 return;
             }
-           // MonitorResponseChart = new Chart();
+            // MonitorResponseChart = new Chart();
 
             await Task.Run(() => MonitorResponseChart.Invoke(() =>
             {
@@ -85,7 +85,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
             }));
             //chartUpdateThread.Join();
 
-            
+
 
         }
         private void ProcessDataQueue()
@@ -105,6 +105,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 if (batch.Count > 0)
                 {
                     UpdateChart(batch);
+
                 }
 
                 stopwatch.Restart();
@@ -123,7 +124,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
                 foreach (var d in data)
                 {
-                    if (MonitorResponseChart.Series[0] != null)
+                    if (this.relativeStartTime != -1)
                     {
                         var time = d.TimeStamp - this.relativeStartTime;
                         MonitorResponseChart.Series[0].Points.AddXY(time, d.Newtons);
@@ -139,6 +140,8 @@ namespace BMG_MicroTextureAnalyzer_GUI
                         MonitorResponseChart.Series[0] = series;
                         MonitorResponseChart.Series[0].Points.AddXY(0, 0);
                     }
+
+
                 };
             }
         }
@@ -146,7 +149,30 @@ namespace BMG_MicroTextureAnalyzer_GUI
         {
             dataQueue.Enqueue(e);
         }
+        private void PromptUserToSave()
+        {
+            SaveFileDialog saveFileDialog = new SaveFileDialog
+            {
+                Filter = "CSV files (*.csv)|*.csv",
+                FilterIndex = 2,
+                RestoreDirectory = true
+            };
 
+            if (saveFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                using (var writer = new StreamWriter(saveFileDialog.FileName))
+                {
+                    // Write headers
+                    writer.WriteLine("Time,Newtons");
+
+                    // Write data entries
+                    foreach (var entry in MonitorResponseChart.Series[0].Points)
+                    {
+                        writer.WriteLine($"{entry.XValue},{entry.YValues[0]}");
+                    }
+                }
+            }
+        }
         private void MTAengine_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
 
@@ -666,6 +692,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
         {
             await Task.Run(() => MTAengine.StopAsync());
             MonitorResponseChart.Series.Clear();
+            this.relativeStartTime = -1;
             Series series = new Series
             {
                 ChartType = SeriesChartType.Line
@@ -683,10 +710,10 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 return;
             }
             MTAengine.DataCollectionTime = result;
-        
+
             MTAengine.ContinuousScanTest();
             StartChartUpdateThread();
-            
+
 
 
         }
@@ -723,6 +750,11 @@ namespace BMG_MicroTextureAnalyzer_GUI
             {
                 MTAengine.Rate = 2999;
             }
+        }
+
+        private void saveFileButton_Click(object sender, EventArgs e)
+        {
+            PromptUserToSave();
         }
     }
 }

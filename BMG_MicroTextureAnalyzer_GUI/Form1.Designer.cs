@@ -28,9 +28,9 @@
         /// </summary>
         private void InitializeComponent()
         {
-            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea2 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
-            System.Windows.Forms.DataVisualization.Charting.Legend legend2 = new System.Windows.Forms.DataVisualization.Charting.Legend();
-            System.Windows.Forms.DataVisualization.Charting.Series series2 = new System.Windows.Forms.DataVisualization.Charting.Series();
+            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea1 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
+            System.Windows.Forms.DataVisualization.Charting.Legend legend1 = new System.Windows.Forms.DataVisualization.Charting.Legend();
+            System.Windows.Forms.DataVisualization.Charting.Series series1 = new System.Windows.Forms.DataVisualization.Charting.Series();
             MMELogoPictureBox = new PictureBox();
             tabControl1 = new TabControl();
             MicroTextureAnalyzerTabPage = new TabPage();
@@ -123,6 +123,7 @@
             ReturnProbeToMaxHeightButton = new Button();
             MonitorResponseChart = new System.Windows.Forms.DataVisualization.Charting.Chart();
             DAQDataGridView = new DataGridView();
+            button2 = new Button();
             ((System.ComponentModel.ISupportInitialize)MMELogoPictureBox).BeginInit();
             tabControl1.SuspendLayout();
             MotionControllerTabPage.SuspendLayout();
@@ -606,7 +607,7 @@
             XAxisDisplacementLabel.AutoSize = true;
             XAxisDisplacementLabel.Location = new Point(3, 18);
             XAxisDisplacementLabel.Name = "XAxisDisplacementLabel";
-            XAxisDisplacementLabel.Size = new Size(116, 15);
+            XAxisDisplacementLabel.Size = new Size(115, 15);
             XAxisDisplacementLabel.TabIndex = 0;
             XAxisDisplacementLabel.Text = "X-Axis Displacement";
             // 
@@ -616,7 +617,7 @@
             YAxisDisplacementLabel.AutoSize = true;
             YAxisDisplacementLabel.Location = new Point(3, 70);
             YAxisDisplacementLabel.Name = "YAxisDisplacementLabel";
-            YAxisDisplacementLabel.Size = new Size(116, 15);
+            YAxisDisplacementLabel.Size = new Size(115, 15);
             YAxisDisplacementLabel.TabIndex = 1;
             YAxisDisplacementLabel.Text = "Y-Axis Displacement";
             // 
@@ -787,6 +788,7 @@
             // 
             // DaqDeviceTabPage
             // 
+            DaqDeviceTabPage.Controls.Add(button2);
             DaqDeviceTabPage.Controls.Add(tableLayoutPanel12);
             DaqDeviceTabPage.Controls.Add(button1);
             DaqDeviceTabPage.Controls.Add(label5);
@@ -838,9 +840,9 @@
             // 
             CollectionTimeLabel.Anchor = AnchorStyles.None;
             CollectionTimeLabel.AutoSize = true;
-            CollectionTimeLabel.Location = new Point(205, 27);
+            CollectionTimeLabel.Location = new Point(204, 27);
             CollectionTimeLabel.Name = "CollectionTimeLabel";
-            CollectionTimeLabel.Size = new Size(106, 15);
+            CollectionTimeLabel.Size = new Size(107, 15);
             CollectionTimeLabel.TabIndex = 1;
             CollectionTimeLabel.Text = "Collection Time (s)";
             // 
@@ -1192,16 +1194,16 @@
             // 
             // MonitorResponseChart
             // 
-            chartArea2.Name = "ChartArea1";
-            MonitorResponseChart.ChartAreas.Add(chartArea2);
-            legend2.Name = "Legend1";
-            MonitorResponseChart.Legends.Add(legend2);
+            chartArea1.Name = "ChartArea1";
+            MonitorResponseChart.ChartAreas.Add(chartArea1);
+            legend1.Name = "Legend1";
+            MonitorResponseChart.Legends.Add(legend1);
             MonitorResponseChart.Location = new Point(8, 3);
             MonitorResponseChart.Name = "MonitorResponseChart";
-            series2.ChartArea = "ChartArea1";
-            series2.Legend = "Legend1";
-            series2.Name = "Series1";
-            MonitorResponseChart.Series.Add(series2);
+            series1.ChartArea = "ChartArea1";
+            series1.Legend = "Legend1";
+            series1.Name = "Series1";
+            MonitorResponseChart.Series.Add(series1);
             MonitorResponseChart.Size = new Size(476, 289);
             MonitorResponseChart.TabIndex = 7;
             MonitorResponseChart.Text = "chart1";
@@ -1213,6 +1215,16 @@
             DAQDataGridView.Name = "DAQDataGridView";
             DAQDataGridView.Size = new Size(495, 209);
             DAQDataGridView.TabIndex = 0;
+            // 
+            // button2
+            // 
+            button2.Location = new Point(891, 355);
+            button2.Name = "button2";
+            button2.Size = new Size(75, 23);
+            button2.TabIndex = 19;
+            button2.Text = "Save Data";
+            button2.UseVisualStyleBackColor = true;
+            button2.Click += saveFileButton_Click;
             // 
             // Form1
             // 
@@ -1361,5 +1373,6 @@
         private RadioButton TwoThousandHertzRadioButton;
         private RadioButton ThreeThousandHertzRadioButton;
         private TextBox CollectionTimeSecondsTextBox;
+        private Button button2;
     }
 }
