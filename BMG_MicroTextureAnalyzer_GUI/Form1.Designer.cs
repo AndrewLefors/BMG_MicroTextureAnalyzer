@@ -88,6 +88,7 @@
             ConnectionStatusLabel = new Label();
             ConnectionStatusResponseLabel = new Label();
             DaqDeviceTabPage = new TabPage();
+            button2 = new Button();
             tableLayoutPanel12 = new TableLayoutPanel();
             PollingRateLabel = new Label();
             CollectionTimeLabel = new Label();
@@ -123,7 +124,7 @@
             ReturnProbeToMaxHeightButton = new Button();
             MonitorResponseChart = new System.Windows.Forms.DataVisualization.Charting.Chart();
             DAQDataGridView = new DataGridView();
-            button2 = new Button();
+            zero_voltage_button = new Button();
             ((System.ComponentModel.ISupportInitialize)MMELogoPictureBox).BeginInit();
             tabControl1.SuspendLayout();
             MotionControllerTabPage.SuspendLayout();
@@ -788,6 +789,7 @@
             // 
             // DaqDeviceTabPage
             // 
+            DaqDeviceTabPage.Controls.Add(zero_voltage_button);
             DaqDeviceTabPage.Controls.Add(button2);
             DaqDeviceTabPage.Controls.Add(tableLayoutPanel12);
             DaqDeviceTabPage.Controls.Add(button1);
@@ -807,6 +809,16 @@
             DaqDeviceTabPage.TabIndex = 1;
             DaqDeviceTabPage.Text = "DAQ Device";
             DaqDeviceTabPage.UseVisualStyleBackColor = true;
+            // 
+            // button2
+            // 
+            button2.Location = new Point(891, 355);
+            button2.Name = "button2";
+            button2.Size = new Size(75, 23);
+            button2.TabIndex = 19;
+            button2.Text = "Save Data";
+            button2.UseVisualStyleBackColor = true;
+            button2.Click += saveFileButton_Click;
             // 
             // tableLayoutPanel12
             // 
@@ -1216,15 +1228,15 @@
             DAQDataGridView.Size = new Size(495, 209);
             DAQDataGridView.TabIndex = 0;
             // 
-            // button2
+            // zero_voltage_button
             // 
-            button2.Location = new Point(891, 355);
-            button2.Name = "button2";
-            button2.Size = new Size(75, 23);
-            button2.TabIndex = 19;
-            button2.Text = "Save Data";
-            button2.UseVisualStyleBackColor = true;
-            button2.Click += saveFileButton_Click;
+            zero_voltage_button.Location = new Point(484, 209);
+            zero_voltage_button.Name = "zero_voltage_button";
+            zero_voltage_button.Size = new Size(75, 23);
+            zero_voltage_button.TabIndex = 20;
+            zero_voltage_button.Text = "Set Zero";
+            zero_voltage_button.UseVisualStyleBackColor = true;
+            zero_voltage_button.Click += zero_voltage_button_Click;
             // 
             // Form1
             // 
@@ -1374,5 +1386,6 @@
         private RadioButton ThreeThousandHertzRadioButton;
         private TextBox CollectionTimeSecondsTextBox;
         private Button button2;
+        private Button zero_voltage_button;
     }
 }

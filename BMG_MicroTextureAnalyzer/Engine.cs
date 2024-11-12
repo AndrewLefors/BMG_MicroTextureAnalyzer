@@ -688,7 +688,8 @@ namespace BMG_MicroTextureAnalyzer
                 
                 
             }
-            //this.Stage.Stop();
+            //cancel the background worker
+            _dataCollectorWorker.CancelAsync();
         }
 
         private void DataReaderWorker_ContinuousScan(object sender, DoWorkEventArgs e)
@@ -734,6 +735,8 @@ namespace BMG_MicroTextureAnalyzer
                 // Small delay to prevent busy-waiting
                // Thread.Sleep(1);
             }
+            //cancel the background worker
+            _dataCollectorWorker2.CancelAsync();
             //Free the two local arrays
            
         }
@@ -762,7 +765,7 @@ namespace BMG_MicroTextureAnalyzer
                 //Create new datachangedevent args to store the timestamp and voltage
                 RawDataChangedEventArgs dataChangedEventArgs = new RawDataChangedEventArgs(rawData);
                 _dataQueue.Enqueue(dataChangedEventArgs);
-                Thread.Sleep(2); // Adjust sampling rate as necessary
+                Thread.Sleep(1); // Adjust sampling rate as necessary
 
             }
             
@@ -778,27 +781,22 @@ namespace BMG_MicroTextureAnalyzer
             }
             //sender.
             int channel = 7;
+            int rate = 1000;
             MccDaq.Range range = MccDaq.Range.BipPt078Volts;
             TranslateYStage(this.FractureDistance); // Move the stage 100mm down to get the stage on the sample
 
-            while (!((BackgroundWorker)sender).CancellationPending && !ThresholdMet)
+            MccDaq.ErrorInfo ulStat = this._board.AInScan(channel, channel, NumPoints, ref rate, range, MemHandle, ScanOptions.Background);
+            if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
             {
-                MccDaq.ErrorInfo ulStat = this._board.AIn32(channel, range, out int rawData, 0);
-                if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
-                {
-                    throw new Exception("Error reading analog input: " + ulStat.Message);
-                }
-                //ulStat = daqBoard.ToEngUnits32(range, rawData, out double voltage);
-                //Create new datachangedevent args to store the timestamp and voltage
+                throw new Exception("Error reading analog input: " + ulStat.Message);
+            }
+            while (!_dataCollectorWorker.CancellationPending && !ThresholdMet)
+            {
 
-                //Get stage position
-                //this.Stage.GetYLocation();
-                
-                RawDataChangedEventArgs dataChangedEventArgs = new RawDataChangedEventArgs(rawData, this.Stage.CurrentYStep);
-                _dataQueue.Enqueue(dataChangedEventArgs);
-                Thread.Sleep(2); // Adjust sampling rate as necessary
 
             }
+            //cancel the background worker
+            _dataCollectorWorker.CancelAsync();
 
 
             e.Cancel = true;
@@ -865,7 +863,7 @@ namespace BMG_MicroTextureAnalyzer
                     MccDaq.ErrorInfo ulStat = _board.ToEngUnits32(MccDaq.Range.BipPt078Volts, args.RawData, out double voltage);
                     if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
                     {
-                        throw new Exception("Error converting raw data to voltage: " + ulStat.Message);
+                        throw new Exception("Error converting raw data to : " + ulStat.Message);
                     }
                     ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion);
                     //Run an async task to check the data if it meets or exceeds the threshold
@@ -874,7 +872,7 @@ namespace BMG_MicroTextureAnalyzer
                         if (processedData.Newtons >= this.FindPlaneThreshold)
                         {
                             this.ThresholdMet = true;
-                            //this.Stage.Stop();
+                            this.Stage.Stop();
                         }
                     });
                     lock (_dataLock)
@@ -885,6 +883,8 @@ namespace BMG_MicroTextureAnalyzer
                 }
                 //Thread.Sleep(2);// Adjust processing rate as necessary
             }   
+            e.Cancel = true;
+
         }
 
         private void DataProcessorWorker_FindPlane(object sender, DoWorkEventArgs e)
@@ -918,7 +918,7 @@ namespace BMG_MicroTextureAnalyzer
             TranslateYStage(0.25);
             e.Cancel = true;
             
-            //((BackgroundWorker)sender).CancelAsync();
+            ((BackgroundWorker)sender).CancelAsync();
 
         }
 
@@ -1277,7 +1277,7 @@ namespace BMG_MicroTextureAnalyzer
 
             public double Pounds { get; }
 
-            public double Newtons { get; }
+            public double Newtons { get; set; }
 
             public ProcessedDataChangedEventArgs(double voltage, double TimeStamp_seconds, double voltageConversion, double newtonConversion, long? step = null)
             {

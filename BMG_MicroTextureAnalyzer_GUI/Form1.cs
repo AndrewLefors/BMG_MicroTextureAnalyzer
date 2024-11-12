@@ -34,6 +34,8 @@ namespace BMG_MicroTextureAnalyzer_GUI
         private Thread chartUpdateThread;
         private bool chartUpdateThreadRunning = false;
 
+        private double voltageOffset = 0;
+
         public Form1()
         {
             BMG_MicroTextureAnalyzer.Engine engine = new BMG_MicroTextureAnalyzer.Engine();
@@ -69,7 +71,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
             {
                 return;
             }
-            // MonitorResponseChart = new Chart();
+            //MonitorResponseChart = new Chart();
 
             await Task.Run(() => MonitorResponseChart.Invoke(() =>
             {
@@ -99,6 +101,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 {
                     if (dataQueue.TryDequeue(out Engine.ProcessedDataChangedEventArgs data))
                     {
+                        data.Newtons = data.Newtons - voltageOffset;
                         batch.Add(data);
                     }
                 }
@@ -527,25 +530,45 @@ namespace BMG_MicroTextureAnalyzer_GUI
         {
             await Task.Run(() => MTAengine.StopAsync());
             MonitorResponseChart.Series.Clear();
+            this.relativeStartTime = -1;
             Series series = new Series
             {
                 ChartType = SeriesChartType.Line
             };
             MonitorResponseChart.Series.Add(series);
-            DAQDataGridView.Rows.Clear();
+           // DAQDataGridView.Rows.Clear();
             MTAengine.SetStageSpeed(1);
+            double.TryParse(CollectionTimeSecondsTextBox.Text, out double result);
+            if (result == 0)
+            {
+                MessageBox.Show("Please enter a valid collection time");
+                return;
+            }
+            MTAengine.DataCollectionTime = result;
             if (double.TryParse(PlaneDetectionThresholdTextBox.Text, out var planeThresh))
             {
-                MTAengine.FindPlaneThreshold = planeThresh;
-                Thread.Sleep(10);
+                MTAengine.FindPlaneThreshold = planeThresh +voltageOffset;
+                Thread.Sleep(1);
                 MTAengine.FindPlane();
+                StartChartUpdateThread();
             }
             else
             {
                 MessageBox.Show("Please enter a valid threshold value");
             }
+           
+            
 
         }
+
+        private void ZeroVoltageButton_Click(object sender, EventArgs e)
+        {
+            if (MonitorResponseChart.Series[0].Points.Count > 0)
+            {
+                voltageOffset = MonitorResponseChart.Series[0].Points.Average(point => point.YValues[0]);
+            }
+        }
+
 
         private void ReturnProbeToMaxHeightButton_Click(object sender, EventArgs e)
         {
@@ -575,9 +598,9 @@ namespace BMG_MicroTextureAnalyzer_GUI
         private async void FractureTestStartButton_Click(object sender, EventArgs e)
         {
             await Task.Run(() => MTAengine.StopAsync());
-            await Task.Run(() => MTAengine.StopMotionController());
-            await Task.Run(() => MTAengine.GetYLocation());
             MonitorResponseChart.Series.Clear();
+            this.relativeStartTime = -1;
+            MTAengine.FractureDistance = 0;
             Series series = new Series
             {
                 ChartType = SeriesChartType.Line
@@ -586,14 +609,12 @@ namespace BMG_MicroTextureAnalyzer_GUI
             {
 
                 MTAengine.FractureDistance = depth;
-                MonitorResponseChart.Series.Add(series);
-                DAQDataGridView.Rows.Clear();
                 MTAengine.SetStageSpeed(1);
                 MTAengine.VoltageConversion = MTAengine.FractureVoltageConversion;
                 MTAengine.NewtonConversion = MTAengine.FractureNewtonConversion;
-                Thread.Sleep(10);
 
                 MTAengine.FractureTest();
+                StartChartUpdateThread();
             }
             else
             {
@@ -755,6 +776,14 @@ namespace BMG_MicroTextureAnalyzer_GUI
         private void saveFileButton_Click(object sender, EventArgs e)
         {
             PromptUserToSave();
+        }
+
+        private void zero_voltage_button_Click(object sender, EventArgs e)
+        {
+            if (MonitorResponseChart.Series[0].Points.Count > 0)
+            {
+                voltageOffset = MonitorResponseChart.Series[0].Points.Average(point => point.YValues[0]);
+            }
         }
     }
 }
