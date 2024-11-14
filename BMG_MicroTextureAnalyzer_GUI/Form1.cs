@@ -184,51 +184,10 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 if (MTAengine.FractureTestComplete)
                 {
                     //Take the data from the chart and add it to the datagrid
-                    Task.Run(() => Invoke((MethodInvoker)(delegate
-                    {
-                        //Prompt a messagebox that asks the user if they want to save the file
-                        SaveFileDialog saveFileDialog = new SaveFileDialog();
-                        saveFileDialog.Filter = "CSV files (*.csv)|*.csv";
-                        saveFileDialog.FilterIndex = 2;
-                        saveFileDialog.RestoreDirectory = true;
-                        //Use data from datagrid to save to a file
-                        if (saveFileDialog.ShowDialog() == DialogResult.OK)
-                        {
-                            using (var writer = new StreamWriter(saveFileDialog.FileName))
-                            {
-                                // Write headers
-                                for (int i = 0; i < DAQDataGridView.Columns.Count; i++)
-                                {
-                                    writer.Write(DAQDataGridView.Columns[i].HeaderText);
-                                    if (i < DAQDataGridView.Columns.Count - 1)
-                                    {
-                                        writer.Write(",");
-                                    }
-                                }
-                                writer.WriteLine();
+                    
+                 
 
-                                // Write rows
-                                for (int i = 0; i < DAQDataGridView.Rows.Count; i++)
-                                {
-                                    for (int j = 0; j < DAQDataGridView.Columns.Count; j++)
-                                    {
-                                        writer.Write(DAQDataGridView.Rows[i].Cells[j].Value?.ToString());
-                                        if (j < DAQDataGridView.Columns.Count - 1)
-                                        {
-                                            writer.Write(",");
-                                        }
-                                    }
-                                    writer.WriteLine();
-                                }
-                            }
-                            //dataListBox.Items.Add("Results saved.");
-                        }
-                        else
-                        {
-                            // dataListBox.Items.Add("Save canceled.");
-                        }
-
-                    })));
+                 
                 }
             }
             if (e.PropertyName == nameof(Engine.PunctureTestComplete))
@@ -452,13 +411,25 @@ namespace BMG_MicroTextureAnalyzer_GUI
             {
                 if (MTAengine.Stage != null)
                 {
+                    //TODO: Figure out what the hell is going on with pulse equivalent calculation. Seems like a division where there should be a multiplication
                     Task.Run(() => MTAengine.CalculatePulseEquivalent());
+
+                    MessageBox.Show("Pulse Equivalent Calculated", "Pulse Equivalent", MessageBoxButtons.OK);
+                    DialogResult result = MessageBox.Show("Would you like to set the pulse equivalent to standard for the motion controller?", "Set Pulse Equivalent to 1600", MessageBoxButtons.YesNo);
+                    if (result == DialogResult.Yes)
+                    {
+                        MTAengine.Stage.PulseEquivalent = 1600;
+                    }
+
+                    
                 }
             }
             catch (Exception ex)
             {
                 //TODO: Add a log label or text box for visual log of errors during operation
-                MessageBox.Show(ex.Message);
+                MessageBox.Show("An error occurred while calculating the pulse equivalent: " + ex.Message);
+
+                
             }
         }
 
@@ -536,19 +507,19 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 ChartType = SeriesChartType.Line
             };
             MonitorResponseChart.Series.Add(series);
-           // DAQDataGridView.Rows.Clear();
-            MTAengine.SetStageSpeed(1);
-            double.TryParse(CollectionTimeSecondsTextBox.Text, out double result);
-            if (result == 0)
-            {
-                MessageBox.Show("Please enter a valid collection time");
-                return;
-            }
-            MTAengine.DataCollectionTime = result;
+            DAQDataGridView.Rows.Clear();
+            MTAengine.SetStageSpeed(0);
+            //double.TryParse(CollectionTimeSecondsTextBox.Text, out double result);
+            //if (result == 0)
+            //{
+            //    MessageBox.Show("Please enter a valid collection time");
+            //    return;
+            //}
+            MTAengine.DataCollectionTime = 600;
             if (double.TryParse(PlaneDetectionThresholdTextBox.Text, out var planeThresh))
             {
-                MTAengine.FindPlaneThreshold = planeThresh +voltageOffset;
-                Thread.Sleep(1);
+                MTAengine.FindPlaneThreshold = planeThresh + voltageOffset;
+                MTAengine.TranslateYStage(-1000);
                 MTAengine.FindPlane();
                 StartChartUpdateThread();
             }
@@ -556,8 +527,8 @@ namespace BMG_MicroTextureAnalyzer_GUI
             {
                 MessageBox.Show("Please enter a valid threshold value");
             }
-           
-            
+
+
 
         }
 
@@ -598,28 +569,51 @@ namespace BMG_MicroTextureAnalyzer_GUI
         private async void FractureTestStartButton_Click(object sender, EventArgs e)
         {
             await Task.Run(() => MTAengine.StopAsync());
+           // Thread.Sleep(10);
+            //await Task.Run(() => MTAengine.Stage.Stop());
+            //Thread.Sleep(10);
             MonitorResponseChart.Series.Clear();
             this.relativeStartTime = -1;
-            MTAengine.FractureDistance = 0;
             Series series = new Series
             {
                 ChartType = SeriesChartType.Line
             };
-            if (double.TryParse(FractureDepthTextBox.Text, out double depth))
+            MonitorResponseChart.Series.Add(series);
+            MTAengine.SetStageSpeed(0);
+            double.TryParse(CollectionTimeSecondsTextBox.Text, out double result);
+            if (result == 0)
             {
-
+                await Task.Run(() => MessageBox.Show("Please enter a valid collection time"));
+                
+                return;
+            }
+            else if ( result < 60)
+            {
+                result = 60;
+                Task.Run(() => MessageBox.Show("Minimum Fracture Collection Time is 60 seconds, setting to minumum"));
+            }
+            MTAengine.DataCollectionTime = result;
+            MTAengine.FindPlaneThreshold = 100 + voltageOffset; 
+            if (double.TryParse(FractureDepthTextBox.Text, out var depth))
+            {
                 MTAengine.FractureDistance = depth;
-                MTAengine.SetStageSpeed(1);
-                MTAengine.VoltageConversion = MTAengine.FractureVoltageConversion;
-                MTAengine.NewtonConversion = MTAengine.FractureNewtonConversion;
-
+                DialogResult dresult = MessageBox.Show("Current Fracture Depth:" + MTAengine.FractureDistance);
+                //MTAengine.SetStageSpeed(1);
+                MTAengine.TranslateYStage(MTAengine.FractureDistance);
                 MTAengine.FractureTest();
                 StartChartUpdateThread();
+
             }
             else
             {
+                MTAengine.FractureDistance = 0;
                 MessageBox.Show("Please enter a valid depth value");
             }
+
+
+
+
+
         }
 
         private void radioButton1_CheckedChanged(object sender, EventArgs e)
@@ -679,7 +673,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 MTAengine.PunctureDistance = depth;
                 MonitorResponseChart.Series.Add(series);
                 DAQDataGridView.Rows.Clear();
-                MTAengine.SetStageSpeed(0);
+                MTAengine.SetStageSpeed(1);
                 this._voltageConversion = MTAengine.PunctureVoltageConversion;
                 this._newtonConversion = MTAengine.PunctureNewtonConversion;
                 Thread.Sleep(10);
@@ -712,6 +706,8 @@ namespace BMG_MicroTextureAnalyzer_GUI
         private async void button1_Click(object sender, EventArgs e)
         {
             await Task.Run(() => MTAengine.StopAsync());
+            Thread.Sleep(10);
+            //await Task.Run(() => MTAengine.Stage.Stop());
             MonitorResponseChart.Series.Clear();
             this.relativeStartTime = -1;
             Series series = new Series
@@ -730,6 +726,18 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 MessageBox.Show("Please enter a valid collection time");
                 return;
             }
+
+            if (double.TryParse(FractureDepthTextBox.Text, out var depth))
+            {
+                MTAengine.FractureDistance = depth;
+
+
+            }
+            else
+            {
+                MTAengine.FractureDistance = 0;
+            }
+
             MTAengine.DataCollectionTime = result;
 
             MTAengine.ContinuousScanTest();
@@ -784,6 +792,11 @@ namespace BMG_MicroTextureAnalyzer_GUI
             {
                 voltageOffset = MonitorResponseChart.Series[0].Points.Average(point => point.YValues[0]);
             }
+        }
+
+        private void clear_zero_button_Click(object sender, EventArgs e)
+        {
+            voltageOffset = 0;
         }
     }
 }

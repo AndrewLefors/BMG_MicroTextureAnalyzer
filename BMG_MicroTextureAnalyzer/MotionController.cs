@@ -385,6 +385,7 @@ namespace BMG_MicroTextureAnalyzer
                 {
                     ErrorMessage = ex.Message;
                 }
+          
         }
 
         internal void SCPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
@@ -542,15 +543,17 @@ namespace BMG_MicroTextureAnalyzer
                     this.WarningMessage = "Subdivision is 0";
                     return;
                 }
-                double stepsPerRevolution = 360 / this.MotorDegree;
-                double microsteppedSteps = stepsPerRevolution * this.Subdivision;
-                this.PulseEquivalent = microsteppedSteps / this.LeadScrewPitch; //Should provide steps per mm
-                //this.PulseEquiv = 0.005;
+                double stepsPerRevolution = 360 / MotorDegree; //should be 200 steps
+                double microsteppedSteps = stepsPerRevolution * Subdivision; //should be 200 * 8 = 1600 steps (microsteps
+                this.PulseEquivalent = microsteppedSteps / LeadScrewPitch; //Should provide pulse equivalent for 1mm of travel  1600 / 1 = 1600 pulse equiv
+                //HARD CODING
+                //this.PulseEquivalent = 1600;
+                this.DblPulseEqui = this.PulseEquivalent;
                 this.WarningMessage = "Pulse Equivalent:" + this.PulseEquivalent.ToString();
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message.ToString());
+                Console.WriteLine(ex.Message.ToString() + "THIS SHIT IS BRICKED");
 
             }
 

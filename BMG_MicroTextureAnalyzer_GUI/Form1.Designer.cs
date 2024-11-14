@@ -88,6 +88,7 @@
             ConnectionStatusLabel = new Label();
             ConnectionStatusResponseLabel = new Label();
             DaqDeviceTabPage = new TabPage();
+            zero_voltage_button = new Button();
             button2 = new Button();
             tableLayoutPanel12 = new TableLayoutPanel();
             PollingRateLabel = new Label();
@@ -124,7 +125,7 @@
             ReturnProbeToMaxHeightButton = new Button();
             MonitorResponseChart = new System.Windows.Forms.DataVisualization.Charting.Chart();
             DAQDataGridView = new DataGridView();
-            zero_voltage_button = new Button();
+            clear_zero_button = new Button();
             ((System.ComponentModel.ISupportInitialize)MMELogoPictureBox).BeginInit();
             tabControl1.SuspendLayout();
             MotionControllerTabPage.SuspendLayout();
@@ -789,6 +790,7 @@
             // 
             // DaqDeviceTabPage
             // 
+            DaqDeviceTabPage.Controls.Add(clear_zero_button);
             DaqDeviceTabPage.Controls.Add(zero_voltage_button);
             DaqDeviceTabPage.Controls.Add(button2);
             DaqDeviceTabPage.Controls.Add(tableLayoutPanel12);
@@ -809,6 +811,16 @@
             DaqDeviceTabPage.TabIndex = 1;
             DaqDeviceTabPage.Text = "DAQ Device";
             DaqDeviceTabPage.UseVisualStyleBackColor = true;
+            // 
+            // zero_voltage_button
+            // 
+            zero_voltage_button.Location = new Point(484, 209);
+            zero_voltage_button.Name = "zero_voltage_button";
+            zero_voltage_button.Size = new Size(75, 23);
+            zero_voltage_button.TabIndex = 20;
+            zero_voltage_button.Text = "Set Zero";
+            zero_voltage_button.UseVisualStyleBackColor = true;
+            zero_voltage_button.Click += zero_voltage_button_Click;
             // 
             // button2
             // 
@@ -1228,15 +1240,15 @@
             DAQDataGridView.Size = new Size(495, 209);
             DAQDataGridView.TabIndex = 0;
             // 
-            // zero_voltage_button
+            // clear_zero_button
             // 
-            zero_voltage_button.Location = new Point(484, 209);
-            zero_voltage_button.Name = "zero_voltage_button";
-            zero_voltage_button.Size = new Size(75, 23);
-            zero_voltage_button.TabIndex = 20;
-            zero_voltage_button.Text = "Set Zero";
-            zero_voltage_button.UseVisualStyleBackColor = true;
-            zero_voltage_button.Click += zero_voltage_button_Click;
+            clear_zero_button.Location = new Point(562, 209);
+            clear_zero_button.Name = "clear_zero_button";
+            clear_zero_button.Size = new Size(75, 23);
+            clear_zero_button.TabIndex = 21;
+            clear_zero_button.Text = "Clear Zero";
+            clear_zero_button.UseVisualStyleBackColor = true;
+            clear_zero_button.Click += clear_zero_button_Click;
             // 
             // Form1
             // 
@@ -1387,5 +1399,6 @@
         private TextBox CollectionTimeSecondsTextBox;
         private Button button2;
         private Button zero_voltage_button;
+        private Button clear_zero_button;
     }
 }
