@@ -643,16 +643,16 @@ namespace BMG_MicroTextureAnalyzer_GUI
             {
                 if (double.TryParse(PunctureMaxDepthTextBox.Text, out double thresh))
                 {
-                    MTAengine.PunctureThreshold = thresh;
+                    //MTAengine.PunctureThreshold = thresh;
                 }
                 else
                 {
-                    MTAengine.PunctureThreshold = 0.05;
+                   // MTAengine.PunctureThreshold = 0.05;
                 }
-                this.PunctureTestStartButton.Enabled = true;
-                this.FractureTestStartButton.Enabled = false;
-                MTAengine.VoltageConversion = MTAengine.PunctureVoltageConversion;
-                MTAengine.NewtonConversion = MTAengine.PunctureNewtonConversion;
+                this.PunctureTestStartButton.Enabled = false;
+                this.FractureTestStartButton.Enabled = true;
+                MTAengine.VoltageConversion = this.MTAengine.PunctureVoltageConversion;
+                MTAengine.NewtonConversion = this.MTAengine.PunctureNewtonConversion;
             }
         }
 
@@ -796,7 +796,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
         private void clear_zero_button_Click(object sender, EventArgs e)
         {
-            voltageOffset = 0;
+            voltageOffset = 0.0;
         }
     }
 }

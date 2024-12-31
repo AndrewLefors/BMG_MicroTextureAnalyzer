@@ -204,12 +204,14 @@ namespace BMG_MicroTextureAnalyzer
 
                 //Save the data to a csv file
                 //Create a new save file dialoge
-                
+
                 //FractureTestComplete = true;
+
+
+                //Re-enabled on 12/31/2024
+                //IF AN ERROR OCCURS, COMMENT THIS OUT
+                this.StopAsync();
                 
-
-
-                //this.StopAsync();
             };
             //_stageWorker = new BackgroundWorker();
             //_stageWorker.DoWork += StageWorker_ReportStageLocation;

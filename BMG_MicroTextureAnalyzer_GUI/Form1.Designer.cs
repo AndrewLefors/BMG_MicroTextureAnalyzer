@@ -88,6 +88,7 @@
             ConnectionStatusLabel = new Label();
             ConnectionStatusResponseLabel = new Label();
             DaqDeviceTabPage = new TabPage();
+            clear_zero_button = new Button();
             zero_voltage_button = new Button();
             button2 = new Button();
             tableLayoutPanel12 = new TableLayoutPanel();
@@ -125,7 +126,6 @@
             ReturnProbeToMaxHeightButton = new Button();
             MonitorResponseChart = new System.Windows.Forms.DataVisualization.Charting.Chart();
             DAQDataGridView = new DataGridView();
-            clear_zero_button = new Button();
             ((System.ComponentModel.ISupportInitialize)MMELogoPictureBox).BeginInit();
             tabControl1.SuspendLayout();
             MotionControllerTabPage.SuspendLayout();
@@ -812,6 +812,16 @@
             DaqDeviceTabPage.Text = "DAQ Device";
             DaqDeviceTabPage.UseVisualStyleBackColor = true;
             // 
+            // clear_zero_button
+            // 
+            clear_zero_button.Location = new Point(562, 209);
+            clear_zero_button.Name = "clear_zero_button";
+            clear_zero_button.Size = new Size(75, 23);
+            clear_zero_button.TabIndex = 21;
+            clear_zero_button.Text = "Clear Zero";
+            clear_zero_button.UseVisualStyleBackColor = true;
+            clear_zero_button.Click += clear_zero_button_Click;
+            // 
             // zero_voltage_button
             // 
             zero_voltage_button.Location = new Point(484, 209);
@@ -949,9 +959,9 @@
             label5.AutoSize = true;
             label5.Location = new Point(521, 260);
             label5.Name = "label5";
-            label5.Size = new Size(266, 15);
+            label5.Size = new Size(301, 15);
             label5.TabIndex = 16;
-            label5.Text = "Loadcell Settings: ONLY USE Fracture with LSB-25";
+            label5.Text = "Loadcell Settings: 25lb for Arrays, 10g for Single Needles";
             // 
             // tableLayoutPanel11
             // 
@@ -1004,12 +1014,12 @@
             // 
             radioButton1.Anchor = AnchorStyles.None;
             radioButton1.AutoSize = true;
-            radioButton1.Location = new Point(3, 40);
+            radioButton1.Location = new Point(5, 40);
             radioButton1.Name = "radioButton1";
-            radioButton1.Size = new Size(94, 19);
+            radioButton1.Size = new Size(89, 19);
             radioButton1.TabIndex = 0;
             radioButton1.TabStop = true;
-            radioButton1.Text = "Fracture Settings";
+            radioButton1.Text = "LSB200-25lb";
             radioButton1.UseVisualStyleBackColor = true;
             radioButton1.CheckedChanged += radioButton1_CheckedChanged;
             // 
@@ -1017,12 +1027,12 @@
             // 
             radioButton2.Anchor = AnchorStyles.None;
             radioButton2.AutoSize = true;
-            radioButton2.Location = new Point(113, 40);
+            radioButton2.Location = new Point(107, 40);
             radioButton2.Name = "radioButton2";
-            radioButton2.Size = new Size(73, 19);
+            radioButton2.Size = new Size(86, 19);
             radioButton2.TabIndex = 1;
             radioButton2.TabStop = true;
-            radioButton2.Text = "Puncture";
+            radioButton2.Text = "LSB200-10g";
             radioButton2.UseVisualStyleBackColor = true;
             radioButton2.CheckedChanged += radioButton2_CheckedChanged;
             // 
@@ -1239,16 +1249,6 @@
             DAQDataGridView.Name = "DAQDataGridView";
             DAQDataGridView.Size = new Size(495, 209);
             DAQDataGridView.TabIndex = 0;
-            // 
-            // clear_zero_button
-            // 
-            clear_zero_button.Location = new Point(562, 209);
-            clear_zero_button.Name = "clear_zero_button";
-            clear_zero_button.Size = new Size(75, 23);
-            clear_zero_button.TabIndex = 21;
-            clear_zero_button.Text = "Clear Zero";
-            clear_zero_button.UseVisualStyleBackColor = true;
-            clear_zero_button.Click += clear_zero_button_Click;
             // 
             // Form1
             // 
