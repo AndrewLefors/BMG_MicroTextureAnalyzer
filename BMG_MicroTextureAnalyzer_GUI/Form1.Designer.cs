@@ -28,9 +28,9 @@
         /// </summary>
         private void InitializeComponent()
         {
-            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea1 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
-            System.Windows.Forms.DataVisualization.Charting.Legend legend1 = new System.Windows.Forms.DataVisualization.Charting.Legend();
-            System.Windows.Forms.DataVisualization.Charting.Series series1 = new System.Windows.Forms.DataVisualization.Charting.Series();
+            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea5 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
+            System.Windows.Forms.DataVisualization.Charting.Legend legend5 = new System.Windows.Forms.DataVisualization.Charting.Legend();
+            System.Windows.Forms.DataVisualization.Charting.Series series5 = new System.Windows.Forms.DataVisualization.Charting.Series();
             MMELogoPictureBox = new PictureBox();
             tabControl1 = new TabControl();
             MicroTextureAnalyzerTabPage = new TabPage();
@@ -115,17 +115,14 @@
             FractureDepthTextBox = new TextBox();
             PunctureMaxDepthTextBox = new TextBox();
             tableLayoutPanel8 = new TableLayoutPanel();
-            label3 = new Label();
-            DAQMonitoringStatusResponseLabel = new Label();
             StartConstantMonitorButton = new Button();
-            label1 = new Label();
             DAQStopMonitoringButton = new Button();
-            NewtonsResponseLabel = new Label();
-            label2 = new Label();
-            DAQDataResponseLabel = new Label();
             ReturnProbeToMaxHeightButton = new Button();
             MonitorResponseChart = new System.Windows.Forms.DataVisualization.Charting.Chart();
             DAQDataGridView = new DataGridView();
+            label6 = new Label();
+            label7 = new Label();
+            label1 = new Label();
             ((System.ComponentModel.ISupportInitialize)MMELogoPictureBox).BeginInit();
             tabControl1.SuspendLayout();
             MotionControllerTabPage.SuspendLayout();
@@ -971,6 +968,7 @@
             tableLayoutPanel11.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 61F));
             tableLayoutPanel11.Controls.Add(label4, 0, 0);
             tableLayoutPanel11.Controls.Add(PlaneDetectionThresholdTextBox, 1, 0);
+            tableLayoutPanel11.Controls.Add(label7, 2, 0);
             tableLayoutPanel11.Location = new Point(565, 131);
             tableLayoutPanel11.Name = "tableLayoutPanel11";
             tableLayoutPanel11.RowCount = 1;
@@ -999,22 +997,22 @@
             // tableLayoutPanel10
             // 
             tableLayoutPanel10.ColumnCount = 2;
-            tableLayoutPanel10.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-            tableLayoutPanel10.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+            tableLayoutPanel10.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50.5618F));
+            tableLayoutPanel10.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 49.4382F));
             tableLayoutPanel10.Controls.Add(radioButton1, 0, 0);
             tableLayoutPanel10.Controls.Add(radioButton2, 1, 0);
             tableLayoutPanel10.Location = new Point(562, 278);
             tableLayoutPanel10.Name = "tableLayoutPanel10";
             tableLayoutPanel10.RowCount = 1;
             tableLayoutPanel10.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-            tableLayoutPanel10.Size = new Size(200, 100);
+            tableLayoutPanel10.Size = new Size(267, 100);
             tableLayoutPanel10.TabIndex = 14;
             // 
             // radioButton1
             // 
             radioButton1.Anchor = AnchorStyles.None;
             radioButton1.AutoSize = true;
-            radioButton1.Location = new Point(5, 40);
+            radioButton1.Location = new Point(23, 40);
             radioButton1.Name = "radioButton1";
             radioButton1.Size = new Size(89, 19);
             radioButton1.TabIndex = 0;
@@ -1027,7 +1025,7 @@
             // 
             radioButton2.Anchor = AnchorStyles.None;
             radioButton2.AutoSize = true;
-            radioButton2.Location = new Point(107, 40);
+            radioButton2.Location = new Point(158, 40);
             radioButton2.Name = "radioButton2";
             radioButton2.Size = new Size(86, 19);
             radioButton2.TabIndex = 1;
@@ -1059,19 +1057,23 @@
             // 
             // tableLayoutPanel9
             // 
-            tableLayoutPanel9.ColumnCount = 2;
-            tableLayoutPanel9.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-            tableLayoutPanel9.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-            tableLayoutPanel9.Controls.Add(FractureTestStartButton, 0, 1);
-            tableLayoutPanel9.Controls.Add(PunctureTestStartButton, 1, 1);
+            tableLayoutPanel9.ColumnCount = 4;
+            tableLayoutPanel9.ColumnStyles.Add(new ColumnStyle());
+            tableLayoutPanel9.ColumnStyles.Add(new ColumnStyle());
+            tableLayoutPanel9.ColumnStyles.Add(new ColumnStyle());
+            tableLayoutPanel9.ColumnStyles.Add(new ColumnStyle());
+            tableLayoutPanel9.Controls.Add(label1, 3, 0);
+            tableLayoutPanel9.Controls.Add(label6, 1, 0);
             tableLayoutPanel9.Controls.Add(FractureDepthTextBox, 0, 0);
-            tableLayoutPanel9.Controls.Add(PunctureMaxDepthTextBox, 1, 0);
+            tableLayoutPanel9.Controls.Add(FractureTestStartButton, 0, 1);
+            tableLayoutPanel9.Controls.Add(PunctureMaxDepthTextBox, 2, 0);
+            tableLayoutPanel9.Controls.Add(PunctureTestStartButton, 2, 1);
             tableLayoutPanel9.Location = new Point(562, 371);
             tableLayoutPanel9.Name = "tableLayoutPanel9";
             tableLayoutPanel9.RowCount = 2;
             tableLayoutPanel9.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
             tableLayoutPanel9.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-            tableLayoutPanel9.Size = new Size(200, 100);
+            tableLayoutPanel9.Size = new Size(265, 100);
             tableLayoutPanel9.TabIndex = 11;
             // 
             // FractureTestStartButton
@@ -1088,7 +1090,7 @@
             // PunctureTestStartButton
             // 
             PunctureTestStartButton.Anchor = AnchorStyles.None;
-            PunctureTestStartButton.Location = new Point(112, 63);
+            PunctureTestStartButton.Location = new Point(147, 63);
             PunctureTestStartButton.Name = "PunctureTestStartButton";
             PunctureTestStartButton.Size = new Size(75, 23);
             PunctureTestStartButton.TabIndex = 0;
@@ -1107,7 +1109,7 @@
             // PunctureMaxDepthTextBox
             // 
             PunctureMaxDepthTextBox.Anchor = AnchorStyles.None;
-            PunctureMaxDepthTextBox.Location = new Point(103, 13);
+            PunctureMaxDepthTextBox.Location = new Point(138, 13);
             PunctureMaxDepthTextBox.Name = "PunctureMaxDepthTextBox";
             PunctureMaxDepthTextBox.Size = new Size(94, 23);
             PunctureMaxDepthTextBox.TabIndex = 3;
@@ -1117,15 +1119,9 @@
             tableLayoutPanel8.ColumnCount = 3;
             tableLayoutPanel8.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 83.425415F));
             tableLayoutPanel8.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 16.574585F));
-            tableLayoutPanel8.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 66F));
-            tableLayoutPanel8.Controls.Add(label3, 1, 2);
-            tableLayoutPanel8.Controls.Add(DAQMonitoringStatusResponseLabel, 0, 0);
+            tableLayoutPanel8.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 104F));
             tableLayoutPanel8.Controls.Add(StartConstantMonitorButton, 2, 0);
-            tableLayoutPanel8.Controls.Add(label1, 1, 0);
             tableLayoutPanel8.Controls.Add(DAQStopMonitoringButton, 2, 1);
-            tableLayoutPanel8.Controls.Add(NewtonsResponseLabel, 0, 2);
-            tableLayoutPanel8.Controls.Add(label2, 1, 1);
-            tableLayoutPanel8.Controls.Add(DAQDataResponseLabel, 0, 1);
             tableLayoutPanel8.Controls.Add(ReturnProbeToMaxHeightButton, 2, 2);
             tableLayoutPanel8.Location = new Point(490, 3);
             tableLayoutPanel8.Name = "tableLayoutPanel8";
@@ -1136,91 +1132,31 @@
             tableLayoutPanel8.Size = new Size(275, 122);
             tableLayoutPanel8.TabIndex = 10;
             // 
-            // label3
-            // 
-            label3.Anchor = AnchorStyles.Left;
-            label3.AutoSize = true;
-            label3.Location = new Point(177, 96);
-            label3.Name = "label3";
-            label3.Size = new Size(16, 15);
-            label3.TabIndex = 11;
-            label3.Text = "N";
-            // 
-            // DAQMonitoringStatusResponseLabel
-            // 
-            DAQMonitoringStatusResponseLabel.Anchor = AnchorStyles.Right;
-            DAQMonitoringStatusResponseLabel.AutoSize = true;
-            DAQMonitoringStatusResponseLabel.Location = new Point(125, 14);
-            DAQMonitoringStatusResponseLabel.Name = "DAQMonitoringStatusResponseLabel";
-            DAQMonitoringStatusResponseLabel.Size = new Size(46, 15);
-            DAQMonitoringStatusResponseLabel.TabIndex = 2;
-            DAQMonitoringStatusResponseLabel.Text = "Voltage";
-            // 
             // StartConstantMonitorButton
             // 
-            StartConstantMonitorButton.Location = new Point(211, 3);
+            StartConstantMonitorButton.Location = new Point(173, 3);
             StartConstantMonitorButton.Name = "StartConstantMonitorButton";
-            StartConstantMonitorButton.Size = new Size(61, 37);
+            StartConstantMonitorButton.Size = new Size(99, 37);
             StartConstantMonitorButton.TabIndex = 5;
             StartConstantMonitorButton.Text = "Find Surface";
             StartConstantMonitorButton.UseVisualStyleBackColor = true;
             StartConstantMonitorButton.Click += StartConstantMonitorButton_Click;
             // 
-            // label1
-            // 
-            label1.Anchor = AnchorStyles.Left;
-            label1.AutoSize = true;
-            label1.Location = new Point(177, 14);
-            label1.Name = "label1";
-            label1.Size = new Size(14, 15);
-            label1.TabIndex = 8;
-            label1.Text = "V";
-            // 
             // DAQStopMonitoringButton
             // 
-            DAQStopMonitoringButton.Location = new Point(211, 46);
+            DAQStopMonitoringButton.Location = new Point(173, 46);
             DAQStopMonitoringButton.Name = "DAQStopMonitoringButton";
-            DAQStopMonitoringButton.Size = new Size(61, 23);
+            DAQStopMonitoringButton.Size = new Size(99, 37);
             DAQStopMonitoringButton.TabIndex = 4;
             DAQStopMonitoringButton.Text = "Stop Monitoring";
             DAQStopMonitoringButton.UseVisualStyleBackColor = true;
             DAQStopMonitoringButton.Click += DAQStopMonitoringButton_Click;
             // 
-            // NewtonsResponseLabel
-            // 
-            NewtonsResponseLabel.Anchor = AnchorStyles.Right;
-            NewtonsResponseLabel.AutoSize = true;
-            NewtonsResponseLabel.Location = new Point(117, 96);
-            NewtonsResponseLabel.Name = "NewtonsResponseLabel";
-            NewtonsResponseLabel.Size = new Size(54, 15);
-            NewtonsResponseLabel.TabIndex = 6;
-            NewtonsResponseLabel.Text = "Newtons";
-            // 
-            // label2
-            // 
-            label2.Anchor = AnchorStyles.Left;
-            label2.AutoSize = true;
-            label2.Location = new Point(177, 57);
-            label2.Name = "label2";
-            label2.Size = new Size(22, 15);
-            label2.TabIndex = 9;
-            label2.Text = "lbs";
-            // 
-            // DAQDataResponseLabel
-            // 
-            DAQDataResponseLabel.Anchor = AnchorStyles.Right;
-            DAQDataResponseLabel.AutoSize = true;
-            DAQDataResponseLabel.Location = new Point(124, 57);
-            DAQDataResponseLabel.Name = "DAQDataResponseLabel";
-            DAQDataResponseLabel.Size = new Size(47, 15);
-            DAQDataResponseLabel.TabIndex = 3;
-            DAQDataResponseLabel.Text = "Pounds";
-            // 
             // ReturnProbeToMaxHeightButton
             // 
-            ReturnProbeToMaxHeightButton.Location = new Point(211, 89);
+            ReturnProbeToMaxHeightButton.Location = new Point(173, 89);
             ReturnProbeToMaxHeightButton.Name = "ReturnProbeToMaxHeightButton";
-            ReturnProbeToMaxHeightButton.Size = new Size(61, 23);
+            ReturnProbeToMaxHeightButton.Size = new Size(99, 28);
             ReturnProbeToMaxHeightButton.TabIndex = 12;
             ReturnProbeToMaxHeightButton.Text = "Return Probe to Top";
             ReturnProbeToMaxHeightButton.UseVisualStyleBackColor = true;
@@ -1228,16 +1164,16 @@
             // 
             // MonitorResponseChart
             // 
-            chartArea1.Name = "ChartArea1";
-            MonitorResponseChart.ChartAreas.Add(chartArea1);
-            legend1.Name = "Legend1";
-            MonitorResponseChart.Legends.Add(legend1);
+            chartArea5.Name = "ChartArea1";
+            MonitorResponseChart.ChartAreas.Add(chartArea5);
+            legend5.Name = "Legend1";
+            MonitorResponseChart.Legends.Add(legend5);
             MonitorResponseChart.Location = new Point(8, 3);
             MonitorResponseChart.Name = "MonitorResponseChart";
-            series1.ChartArea = "ChartArea1";
-            series1.Legend = "Legend1";
-            series1.Name = "Series1";
-            MonitorResponseChart.Series.Add(series1);
+            series5.ChartArea = "ChartArea1";
+            series5.Legend = "Legend1";
+            series5.Name = "Series1";
+            MonitorResponseChart.Series.Add(series5);
             MonitorResponseChart.Size = new Size(476, 289);
             MonitorResponseChart.TabIndex = 7;
             MonitorResponseChart.Text = "chart1";
@@ -1249,6 +1185,38 @@
             DAQDataGridView.Name = "DAQDataGridView";
             DAQDataGridView.Size = new Size(495, 209);
             DAQDataGridView.TabIndex = 0;
+            // 
+            // label6
+            // 
+            label6.Anchor = AnchorStyles.Left;
+            label6.AutoSize = true;
+            label6.Location = new Point(103, 17);
+            label6.Name = "label6";
+            label6.Size = new Size(29, 15);
+            label6.TabIndex = 22;
+            label6.Text = "mm";
+            label6.Click += label6_Click;
+            // 
+            // label7
+            // 
+            label7.Anchor = AnchorStyles.Left;
+            label7.AutoSize = true;
+            label7.Location = new Point(141, 29);
+            label7.Name = "label7";
+            label7.Size = new Size(16, 15);
+            label7.TabIndex = 23;
+            label7.Text = "N";
+            label7.Click += label7_Click;
+            // 
+            // label1
+            // 
+            label1.Anchor = AnchorStyles.Left;
+            label1.AutoSize = true;
+            label1.Location = new Point(238, 17);
+            label1.Name = "label1";
+            label1.Size = new Size(29, 15);
+            label1.TabIndex = 23;
+            label1.Text = "mm";
             // 
             // Form1
             // 
@@ -1297,7 +1265,6 @@
             tableLayoutPanel9.ResumeLayout(false);
             tableLayoutPanel9.PerformLayout();
             tableLayoutPanel8.ResumeLayout(false);
-            tableLayoutPanel8.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)MonitorResponseChart).EndInit();
             ((System.ComponentModel.ISupportInitialize)DAQDataGridView).EndInit();
             ResumeLayout(false);
@@ -1362,17 +1329,11 @@
         private Button SendYToHomeButton;
         private Button StopMotionControllerButton;
         private DataGridView DAQDataGridView;
-        private Label DAQMonitoringStatusResponseLabel;
-        private Label DAQDataResponseLabel;
         private Button DAQStopMonitoringButton;
         private Label MotionControllerStatusResponseLabel;
         private Button StartConstantMonitorButton;
-        private Label NewtonsResponseLabel;
         private System.Windows.Forms.DataVisualization.Charting.Chart MonitorResponseChart;
         private TableLayoutPanel tableLayoutPanel8;
-        private Label label2;
-        private Label label1;
-        private Label label3;
         private Button ReturnProbeToMaxHeightButton;
         private TableLayoutPanel tableLayoutPanel9;
         private Button FractureTestStartButton;
@@ -1400,5 +1361,8 @@
         private Button button2;
         private Button zero_voltage_button;
         private Button clear_zero_button;
+        private Label label6;
+        private Label label7;
+        private Label label1;
     }
 }

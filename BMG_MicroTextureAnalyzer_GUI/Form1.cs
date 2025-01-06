@@ -184,10 +184,10 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 if (MTAengine.FractureTestComplete)
                 {
                     //Take the data from the chart and add it to the datagrid
-                    
-                 
 
-                 
+
+
+
                 }
             }
             if (e.PropertyName == nameof(Engine.PunctureTestComplete))
@@ -421,7 +421,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
                         MTAengine.Stage.PulseEquivalent = 1600;
                     }
 
-                    
+
                 }
             }
             catch (Exception ex)
@@ -429,7 +429,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 //TODO: Add a log label or text box for visual log of errors during operation
                 MessageBox.Show("An error occurred while calculating the pulse equivalent: " + ex.Message);
 
-                
+
             }
         }
 
@@ -569,7 +569,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
         private async void FractureTestStartButton_Click(object sender, EventArgs e)
         {
             await Task.Run(() => MTAengine.StopAsync());
-           // Thread.Sleep(10);
+            // Thread.Sleep(10);
             //await Task.Run(() => MTAengine.Stage.Stop());
             //Thread.Sleep(10);
             MonitorResponseChart.Series.Clear();
@@ -584,16 +584,16 @@ namespace BMG_MicroTextureAnalyzer_GUI
             if (result == 0)
             {
                 await Task.Run(() => MessageBox.Show("Please enter a valid collection time"));
-                
+
                 return;
             }
-            else if ( result < 60)
+            else if (result < 60)
             {
                 result = 60;
                 Task.Run(() => MessageBox.Show("Minimum Fracture Collection Time is 60 seconds, setting to minumum"));
             }
             MTAengine.DataCollectionTime = result;
-            MTAengine.FindPlaneThreshold = 100 + voltageOffset; 
+            MTAengine.FindPlaneThreshold = 100 + voltageOffset;
             if (double.TryParse(FractureDepthTextBox.Text, out var depth))
             {
                 MTAengine.FractureDistance = depth;
@@ -647,7 +647,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 }
                 else
                 {
-                   // MTAengine.PunctureThreshold = 0.05;
+                    // MTAengine.PunctureThreshold = 0.05;
                 }
                 this.PunctureTestStartButton.Enabled = false;
                 this.FractureTestStartButton.Enabled = true;
@@ -797,6 +797,16 @@ namespace BMG_MicroTextureAnalyzer_GUI
         private void clear_zero_button_Click(object sender, EventArgs e)
         {
             voltageOffset = 0.0;
+        }
+
+        private void label6_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void label7_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }
