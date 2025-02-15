@@ -483,16 +483,33 @@ namespace BMG_MicroTextureAnalyzer_GUI
             {
                 Invoke(new Action(() =>
                 {
-
-                    MTAengine.StopMotionController();
-                    MTAengine.StopAsync();
+                    if (MTAengine.IsStageRunning)
+                    {
+                        MTAengine.StopMotionController();
+                        MTAengine.IsStageRunning = false;
+                    }
+                    if (MTAengine.IsMonitoring)
+                    {
+                        MTAengine.StopBackgroundCollection();
+                        MTAengine.IsMonitoring = false;
+                    }
+                    
                 }));
 
             }
             else
             {
-                MTAengine.StopMotionController();
-                MTAengine.StopAsync();
+                if (MTAengine.Stage.ConnectionStatus)
+                {
+                    MTAengine.StopMotionController();
+                    MTAengine.IsStageRunning = false;
+                }
+                if (MTAengine.IsMonitoring)
+                {
+                    MTAengine.StopBackgroundCollection();
+                    MTAengine.IsMonitoring = false;
+                }
+               
             }
 
         }
@@ -749,13 +766,31 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
+            
+            if (MTAengine.Stage.ConnectionStatus)
+            {
+                MTAengine.StopMotionController();
+            }
+            //Stop the engine and wait for it to finish if it's running.
             if (MTAengine.IsMonitoring)
             {
-                MTAengine.StopAsync();
+                // If StopAsync returns a Task, wait for its completion.
+                MTAengine.StopBackgroundCollection();
             }
-            chartUpdateThread.Join();
+
+
+            //// Ensure chartUpdateThread exists and is alive before joining.
+            //if (chartUpdateThread != null && chartUpdateThread.IsAlive)
+            //{
+            //    chartUpdateThread.Join();
+            //}
+
             base.OnFormClosing(e);
+            Environment.Exit(0);
+            // Optionally force exit if necessary.
+            // Environment.Exit(0);
         }
+
 
         private void ThousandHertzRadioButton_CheckedChanged(object sender, EventArgs e)
         {
@@ -805,6 +840,11 @@ namespace BMG_MicroTextureAnalyzer_GUI
         }
 
         private void label7_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
         {
 
         }

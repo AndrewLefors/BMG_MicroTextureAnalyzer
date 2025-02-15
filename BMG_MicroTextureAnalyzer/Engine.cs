@@ -126,7 +126,8 @@ namespace BMG_MicroTextureAnalyzer
             }
             ThresholdMet = false;
             _isRunning = true;
-            _isStageMoving = false;
+            _isMonitoring = true;
+            _isStageMoving = true;
             _dataQueue.Clear();
             _processedDataList.Clear();
 
@@ -153,6 +154,14 @@ namespace BMG_MicroTextureAnalyzer
 
                 //this.StopAsync();
             };
+            _dataCollectorWorker.RunWorkerCompleted += (sender, e) =>
+            {
+                //_dataCollectorWorker.CancelAsync();
+                //_dataCollectorWorker.Dispose();
+                //this.IsMonitoring = false;
+                //this._isStageMoving = false;
+            };
+
 
 
 
@@ -167,6 +176,8 @@ namespace BMG_MicroTextureAnalyzer
             _fractureTestComplete = false;
             ThresholdMet = false;
             _isRunning = true;
+            _isMonitoring = true;
+            _isStageMoving = true;
             _isFractureTest = true;
             _isPunctureTest = false;
             _dataQueue.Clear();
@@ -210,8 +221,8 @@ namespace BMG_MicroTextureAnalyzer
 
                 //Re-enabled on 12/31/2024
                 //IF AN ERROR OCCURS, COMMENT THIS OUT
-                this.StopAsync();
-                
+                // this.StopAsync();
+
             };
             //_stageWorker = new BackgroundWorker();
             //_stageWorker.DoWork += StageWorker_ReportStageLocation;
@@ -302,6 +313,7 @@ namespace BMG_MicroTextureAnalyzer
             }
             _isMonitoring = true;
             _isRunning = true;
+            _isStageMoving = false;
             _isFractureTest = false;
             _isPunctureTest = false;
             ThresholdMet = false;
@@ -336,6 +348,8 @@ namespace BMG_MicroTextureAnalyzer
             {
                 //_dataCollectorWorker.CancelAsync();
                // _dataCollectorWorker.Dispose();
+               //this.IsMonitoring = false;
+               //this._isStageMoving = false;
 
             };
             _dataCollectorWorker2.RunWorkerCompleted -= (sender, e) =>
@@ -413,6 +427,18 @@ namespace BMG_MicroTextureAnalyzer
             }
         }
 
+        public bool IsStageRunning
+        {         
+            get { return _isStageMoving; }
+                   set
+            {
+                if (_isStageMoving != value)
+                {
+                    _isStageMoving = value;
+                    OnPropertyChanged(nameof(IsStageRunning));
+                }
+            }
+        }
         public double Voltage
         {
             get { return _voltage; }
@@ -560,6 +586,14 @@ namespace BMG_MicroTextureAnalyzer
         public bool IsMonitoring
         {
             get { return _isMonitoring; }
+            set
+            {
+                if (_isMonitoring != value)
+                {
+                    _isMonitoring = value;
+                    OnPropertyChanged(nameof(IsMonitoring));
+                }
+            }
         }
         public double NewtonConversion
         {
@@ -652,7 +686,28 @@ namespace BMG_MicroTextureAnalyzer
             _board.StopBackground(FunctionType.AiFunction);
             ThresholdMet = false;
         }
+        public void StopBackgroundCollection()
+        {
+            if (!_isRunning) return;
+            if (this.IsMonitoring)
+            {
+                this._board.StopBackground(FunctionType.AiFunction);
+                this.IsMonitoring = false;
+                if (_dataCollectorWorker != null && _dataCollectorWorker.IsBusy)
+                {
+                    _dataCollectorWorker.CancelAsync();
+                }
+                if (_dataProcessorWorker != null && _dataProcessorWorker.IsBusy)
+                {
+                    _dataProcessorWorker.CancelAsync();
+                }
+                if (_dataCollectorWorker2 != null && _dataCollectorWorker2.IsBusy)
+                {
+                    _dataCollectorWorker2.CancelAsync();
+                }
+            }
 
+        }
         public List<ProcessedDataChangedEventArgs> GetProcessedData()
         {
             lock (_dataLock)
@@ -669,7 +724,6 @@ namespace BMG_MicroTextureAnalyzer
                if (this.Stage != null)
                 this.GetYLocation();
 
-                Thread.Sleep(1);
             }
 
             e.Cancel = true;
@@ -718,7 +772,7 @@ namespace BMG_MicroTextureAnalyzer
             MccDaq.ErrorInfo ulStat = this._board.AInScan(channel, channel, NumPoints, ref rate, range, MemHandle, ScanOptions.Background);
             if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
             {
-                throw new Exception("Error reading analog input: " + ulStat.Message);
+                   throw new Exception("Error reading analog input: " + ulStat.Message);
             }
             while (!_dataCollectorWorker.CancellationPending && !ThresholdMet)
             {
@@ -1300,6 +1354,7 @@ namespace BMG_MicroTextureAnalyzer
                 if (this.Stage != null)
                 {
                     this.Stage.Stop();
+                    this._isStageMoving = false;
                 }
             }
             catch (Exception ex)

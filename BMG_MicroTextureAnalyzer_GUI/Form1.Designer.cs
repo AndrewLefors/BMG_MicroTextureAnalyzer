@@ -28,9 +28,9 @@
         /// </summary>
         private void InitializeComponent()
         {
-            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea5 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
-            System.Windows.Forms.DataVisualization.Charting.Legend legend5 = new System.Windows.Forms.DataVisualization.Charting.Legend();
-            System.Windows.Forms.DataVisualization.Charting.Series series5 = new System.Windows.Forms.DataVisualization.Charting.Series();
+            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea1 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
+            System.Windows.Forms.DataVisualization.Charting.Legend legend1 = new System.Windows.Forms.DataVisualization.Charting.Legend();
+            System.Windows.Forms.DataVisualization.Charting.Series series1 = new System.Windows.Forms.DataVisualization.Charting.Series();
             MMELogoPictureBox = new PictureBox();
             tabControl1 = new TabControl();
             MicroTextureAnalyzerTabPage = new TabPage();
@@ -104,25 +104,25 @@
             tableLayoutPanel11 = new TableLayoutPanel();
             label4 = new Label();
             PlaneDetectionThresholdTextBox = new TextBox();
+            label7 = new Label();
             tableLayoutPanel10 = new TableLayoutPanel();
             radioButton1 = new RadioButton();
             radioButton2 = new RadioButton();
             backgroundWorkerStartButton = new Button();
             SetPunctureOffsetButton = new Button();
             tableLayoutPanel9 = new TableLayoutPanel();
-            FractureTestStartButton = new Button();
-            PunctureTestStartButton = new Button();
+            label1 = new Label();
+            label6 = new Label();
             FractureDepthTextBox = new TextBox();
+            FractureTestStartButton = new Button();
             PunctureMaxDepthTextBox = new TextBox();
+            PunctureTestStartButton = new Button();
             tableLayoutPanel8 = new TableLayoutPanel();
             StartConstantMonitorButton = new Button();
             DAQStopMonitoringButton = new Button();
             ReturnProbeToMaxHeightButton = new Button();
             MonitorResponseChart = new System.Windows.Forms.DataVisualization.Charting.Chart();
             DAQDataGridView = new DataGridView();
-            label6 = new Label();
-            label7 = new Label();
-            label1 = new Label();
             ((System.ComponentModel.ISupportInitialize)MMELogoPictureBox).BeginInit();
             tabControl1.SuspendLayout();
             MotionControllerTabPage.SuspendLayout();
@@ -994,6 +994,17 @@
             PlaneDetectionThresholdTextBox.Size = new Size(63, 23);
             PlaneDetectionThresholdTextBox.TabIndex = 1;
             // 
+            // label7
+            // 
+            label7.Anchor = AnchorStyles.Left;
+            label7.AutoSize = true;
+            label7.Location = new Point(141, 29);
+            label7.Name = "label7";
+            label7.Size = new Size(16, 15);
+            label7.TabIndex = 23;
+            label7.Text = "N";
+            label7.Click += label7_Click;
+            // 
             // tableLayoutPanel10
             // 
             tableLayoutPanel10.ColumnCount = 2;
@@ -1076,6 +1087,35 @@
             tableLayoutPanel9.Size = new Size(265, 100);
             tableLayoutPanel9.TabIndex = 11;
             // 
+            // label1
+            // 
+            label1.Anchor = AnchorStyles.Left;
+            label1.AutoSize = true;
+            label1.Location = new Point(238, 17);
+            label1.Name = "label1";
+            label1.Size = new Size(29, 15);
+            label1.TabIndex = 23;
+            label1.Text = "mm";
+            // 
+            // label6
+            // 
+            label6.Anchor = AnchorStyles.Left;
+            label6.AutoSize = true;
+            label6.Location = new Point(103, 17);
+            label6.Name = "label6";
+            label6.Size = new Size(29, 15);
+            label6.TabIndex = 22;
+            label6.Text = "mm";
+            label6.Click += label6_Click;
+            // 
+            // FractureDepthTextBox
+            // 
+            FractureDepthTextBox.Anchor = AnchorStyles.None;
+            FractureDepthTextBox.Location = new Point(3, 13);
+            FractureDepthTextBox.Name = "FractureDepthTextBox";
+            FractureDepthTextBox.Size = new Size(94, 23);
+            FractureDepthTextBox.TabIndex = 2;
+            // 
             // FractureTestStartButton
             // 
             FractureTestStartButton.Anchor = AnchorStyles.None;
@@ -1087,6 +1127,14 @@
             FractureTestStartButton.UseVisualStyleBackColor = true;
             FractureTestStartButton.Click += FractureTestStartButton_Click;
             // 
+            // PunctureMaxDepthTextBox
+            // 
+            PunctureMaxDepthTextBox.Anchor = AnchorStyles.None;
+            PunctureMaxDepthTextBox.Location = new Point(138, 13);
+            PunctureMaxDepthTextBox.Name = "PunctureMaxDepthTextBox";
+            PunctureMaxDepthTextBox.Size = new Size(94, 23);
+            PunctureMaxDepthTextBox.TabIndex = 3;
+            // 
             // PunctureTestStartButton
             // 
             PunctureTestStartButton.Anchor = AnchorStyles.None;
@@ -1097,22 +1145,6 @@
             PunctureTestStartButton.Text = "Puncture Test Start";
             PunctureTestStartButton.UseVisualStyleBackColor = true;
             PunctureTestStartButton.Click += PunctureTestStartButton_Click;
-            // 
-            // FractureDepthTextBox
-            // 
-            FractureDepthTextBox.Anchor = AnchorStyles.None;
-            FractureDepthTextBox.Location = new Point(3, 13);
-            FractureDepthTextBox.Name = "FractureDepthTextBox";
-            FractureDepthTextBox.Size = new Size(94, 23);
-            FractureDepthTextBox.TabIndex = 2;
-            // 
-            // PunctureMaxDepthTextBox
-            // 
-            PunctureMaxDepthTextBox.Anchor = AnchorStyles.None;
-            PunctureMaxDepthTextBox.Location = new Point(138, 13);
-            PunctureMaxDepthTextBox.Name = "PunctureMaxDepthTextBox";
-            PunctureMaxDepthTextBox.Size = new Size(94, 23);
-            PunctureMaxDepthTextBox.TabIndex = 3;
             // 
             // tableLayoutPanel8
             // 
@@ -1164,16 +1196,16 @@
             // 
             // MonitorResponseChart
             // 
-            chartArea5.Name = "ChartArea1";
-            MonitorResponseChart.ChartAreas.Add(chartArea5);
-            legend5.Name = "Legend1";
-            MonitorResponseChart.Legends.Add(legend5);
+            chartArea1.Name = "ChartArea1";
+            MonitorResponseChart.ChartAreas.Add(chartArea1);
+            legend1.Name = "Legend1";
+            MonitorResponseChart.Legends.Add(legend1);
             MonitorResponseChart.Location = new Point(8, 3);
             MonitorResponseChart.Name = "MonitorResponseChart";
-            series5.ChartArea = "ChartArea1";
-            series5.Legend = "Legend1";
-            series5.Name = "Series1";
-            MonitorResponseChart.Series.Add(series5);
+            series1.ChartArea = "ChartArea1";
+            series1.Legend = "Legend1";
+            series1.Name = "Series1";
+            MonitorResponseChart.Series.Add(series1);
             MonitorResponseChart.Size = new Size(476, 289);
             MonitorResponseChart.TabIndex = 7;
             MonitorResponseChart.Text = "chart1";
@@ -1186,38 +1218,6 @@
             DAQDataGridView.Size = new Size(495, 209);
             DAQDataGridView.TabIndex = 0;
             // 
-            // label6
-            // 
-            label6.Anchor = AnchorStyles.Left;
-            label6.AutoSize = true;
-            label6.Location = new Point(103, 17);
-            label6.Name = "label6";
-            label6.Size = new Size(29, 15);
-            label6.TabIndex = 22;
-            label6.Text = "mm";
-            label6.Click += label6_Click;
-            // 
-            // label7
-            // 
-            label7.Anchor = AnchorStyles.Left;
-            label7.AutoSize = true;
-            label7.Location = new Point(141, 29);
-            label7.Name = "label7";
-            label7.Size = new Size(16, 15);
-            label7.TabIndex = 23;
-            label7.Text = "N";
-            label7.Click += label7_Click;
-            // 
-            // label1
-            // 
-            label1.Anchor = AnchorStyles.Left;
-            label1.AutoSize = true;
-            label1.Location = new Point(238, 17);
-            label1.Name = "label1";
-            label1.Size = new Size(29, 15);
-            label1.TabIndex = 23;
-            label1.Text = "mm";
-            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -1227,6 +1227,7 @@
             Controls.Add(MMELogoPictureBox);
             Name = "Form1";
             Text = "Form1";
+            Load += Form1_Load;
             ((System.ComponentModel.ISupportInitialize)MMELogoPictureBox).EndInit();
             tabControl1.ResumeLayout(false);
             MotionControllerTabPage.ResumeLayout(false);

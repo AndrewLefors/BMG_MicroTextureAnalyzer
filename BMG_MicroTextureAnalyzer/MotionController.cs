@@ -679,8 +679,8 @@ namespace BMG_MicroTextureAnalyzer
                 Busy = true;
                 SetCommand = false;
                 SendCommand("?Y\r");            //Inquiry the current position of Y axis
-                Delay(100000);
-                Busy = false;
+                //Delay(100000);
+            Busy = false;
 
                 if (StrReceiver != "")
                 {
