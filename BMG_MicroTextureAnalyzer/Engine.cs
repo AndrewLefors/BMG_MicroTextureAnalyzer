@@ -18,6 +18,7 @@ namespace BMG_MicroTextureAnalyzer
         private bool _isMonitoring;
         private MccDaq.Range _range = MccDaq.Range.BipPt078Volts;
         private MotionController _stage;
+        private double _yStagePosition;
         private Connection _connection;
         private string _errorString;
         private readonly ConcurrentQueue<RawDataChangedEventArgs> _dataQueue = new ConcurrentQueue<RawDataChangedEventArgs>();
@@ -28,6 +29,7 @@ namespace BMG_MicroTextureAnalyzer
         private BackgroundWorker _dataCollectorWorker2;
         private BackgroundWorker _stageWorker;
         private BackgroundWorker _stageStarter;
+        private Thread _stagePositionThread;
         private bool _isRunning;
 
         private bool _fractureTestComplete;
@@ -98,6 +100,7 @@ namespace BMG_MicroTextureAnalyzer
 
         public void FindPlane()
         {
+            this.GetYLocation();
             if (_isRunning)
             {
                 return;
@@ -123,6 +126,7 @@ namespace BMG_MicroTextureAnalyzer
             catch (Exception ex)
             {
                 this.ErrorString = ex.Message;
+                System.Diagnostics.Debug.WriteLine("Error: " + this.ErrorString);
             }
             ThresholdMet = false;
             _isRunning = true;
@@ -146,6 +150,12 @@ namespace BMG_MicroTextureAnalyzer
             _dataProcessorWorker.DoWork += DataProcessorWorker_FindPlane;
             _dataProcessorWorker.WorkerSupportsCancellation = true;
             _dataProcessorWorker.RunWorkerAsync();
+
+            ////Adding stage worker for y stage location
+            //_stageWorker = new BackgroundWorker();
+            //_stageWorker.DoWork += StageWorker_GetStagePosition;
+            //_stageWorker.WorkerSupportsCancellation = true;
+            //_stageWorker.RunWorkerAsync();
 
             _dataProcessorWorker.RunWorkerCompleted += (sender, e) =>
             {
@@ -191,6 +201,7 @@ namespace BMG_MicroTextureAnalyzer
             catch (Exception ex)
             {
                 this.ErrorString = ex.Message;
+                System.Diagnostics.Debug.WriteLine(this.ErrorString);
             }
 
             _dataCollectorWorker = new BackgroundWorker();
@@ -339,6 +350,7 @@ namespace BMG_MicroTextureAnalyzer
             _dataProcessorWorker.RunWorkerAsync();
             
 
+
             _dataProcessorWorker.RunWorkerCompleted += (sender, e) =>
             {
                // _dataProcessorWorker.CancelAsync();
@@ -376,6 +388,19 @@ namespace BMG_MicroTextureAnalyzer
                 {
                     thresholdMet = value;
                     OnPropertyChanged(nameof(ThresholdMet));
+                }
+            }
+        }
+
+        public double YStagePosition
+        {
+            get { return _yStagePosition; }
+            set
+            {
+                if (_yStagePosition != value)
+                {
+                    _yStagePosition = value;
+                    OnPropertyChanged(nameof(YStagePosition));
                 }
             }
         }
@@ -439,6 +464,7 @@ namespace BMG_MicroTextureAnalyzer
                 }
             }
         }
+
         public double Voltage
         {
             get { return _voltage; }
@@ -668,23 +694,41 @@ namespace BMG_MicroTextureAnalyzer
         {
             if (!_isRunning) return;
 
-            _dataCollectorWorker.CancelAsync();
-            _dataProcessorWorker.CancelAsync();
-            _dataCollectorWorker2.CancelAsync();
-            //_stageWorker.CancelAsync();
-            //_stageWorker.CancelAsync();
-
-            while (_dataCollectorWorker.IsBusy || _dataProcessorWorker.IsBusy || _dataCollectorWorker2.IsBusy)
+            if (IsStageRunning)
             {
-                await Task.Delay(100);
+                _stage.Stop();
+                _isStageMoving = false;
             }
+            if (IsMonitoring)
+            {
+                _board.StopBackground(FunctionType.AiFunction);
+                _isMonitoring = false;
+            }
+            if (_dataCollectorWorker != null && _dataCollectorWorker.IsBusy)
+            {
+                _dataCollectorWorker.CancelAsync();
+            }
+            if (_dataProcessorWorker != null && _dataProcessorWorker.IsBusy)
+            {
+                _dataProcessorWorker.CancelAsync();
+            }
+            if (_dataCollectorWorker2 != null && _dataCollectorWorker2.IsBusy)
+            {
+                _dataCollectorWorker2.CancelAsync();
+            }
+            if (_stageWorker != null && _stageWorker.IsBusy)
+            {
+                _stageWorker.CancelAsync();
+            }
+
             _dataQueue.Clear();
             _isRunning = false;
             _isMonitoring = false;
+            _isStageMoving = false;
             //cancel the continuous scan
             //check if invoke required
-            _board.StopBackground(FunctionType.AiFunction);
             ThresholdMet = false;
+
         }
         public void StopBackgroundCollection()
         {
@@ -705,6 +749,10 @@ namespace BMG_MicroTextureAnalyzer
                 {
                     _dataCollectorWorker2.CancelAsync();
                 }
+                if (_stageWorker != null && _stageWorker.IsBusy)
+                {
+                    _stageWorker.CancelAsync();
+                }
             }
 
         }
@@ -716,13 +764,21 @@ namespace BMG_MicroTextureAnalyzer
             }
         }
 
-        private async void StageWorker_ReportStageLocation(object sender, DoWorkEventArgs e)
+        private void StageWorker_ReportStageLocation(object sender, DoWorkEventArgs e)
         {
-            while (_isRunning && !((BackgroundWorker)sender).CancellationPending)
+            while (IsStageRunning && !((BackgroundWorker)sender).CancellationPending)
             {
-               //Get the current stage location
-               if (this.Stage != null)
-                this.GetYLocation();
+                //Get the current stage location
+                if (this.IsStageRunning)
+                {
+                    this.GetYLocation();
+                    Thread.Sleep(1);
+                }
+                else
+                {
+                    _stageWorker.CancelAsync();
+                    //Thread.Sleep(1);
+                }
 
             }
 
@@ -760,7 +816,9 @@ namespace BMG_MicroTextureAnalyzer
             int channel = 7;
             
             short status;
+            //Need to shorten the range to accommodate the 5V input from the load cell to get more accurate results (currently using 78mV when maxiumum range is 7.5mV)
             MccDaq.Range range = MccDaq.Range.BipPt078Volts;
+            MccDaq.Range altRange = MccDaq.Range.BipPt005Volts; //Use this for puncture tests, this should provide highest resolution for the load cell below 100mN
             int rate = this.Rate;
             //Deallocate memhandle then re-allocate
 
@@ -769,14 +827,14 @@ namespace BMG_MicroTextureAnalyzer
             
             //MemHandle = MccDaq.MccService.WinBufAlloc32Ex(NumPoints);
             
-            MccDaq.ErrorInfo ulStat = this._board.AInScan(channel, channel, NumPoints, ref rate, range, MemHandle, ScanOptions.Background);
+            MccDaq.ErrorInfo ulStat = this._board.AInScan(channel, channel, NumPoints, ref rate, range, MemHandle, ScanOptions.Background); //Modified to use alt range on Feb 17 2025
             if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
             {
                    throw new Exception("Error reading analog input: " + ulStat.Message);
             }
             while (!_dataCollectorWorker.CancellationPending && !ThresholdMet)
             {
-
+                //Thread.Sleep(1);
                 continue;
             }
             //cancel the background worker
@@ -790,11 +848,14 @@ namespace BMG_MicroTextureAnalyzer
             int[] dataBuffer = new int[this.NumPoints];
             double[] engUnits = new double[this.NumPoints];
             MccDaq.Range range = MccDaq.Range.BipPt078Volts;
+            MccDaq.Range altRange = MccDaq.Range.BipPt005Volts;
 
             while (!_dataCollectorWorker2.CancellationPending && !ThresholdMet)
             {
                 this._board.GetStatus(out short status, out int curCount, out int currentIndex, FunctionType.AiFunction);
 
+                //Added Feb15 2025 for position tracking
+             
                 if (currentIndex > lastIndex)
                 {
                     int pointsToRead = currentIndex - lastIndex;
@@ -1032,14 +1093,24 @@ namespace BMG_MicroTextureAnalyzer
             //this.Stage.MoveYAbsolute(100);
             while (!((BackgroundWorker)sender).CancellationPending && !ThresholdMet)
             {
+               // this.GetYLocation();
                 if (_dataQueue.TryDequeue(out RawDataChangedEventArgs args))
                 {
-                    MccDaq.ErrorInfo ulStat = _board.ToEngUnits32(MccDaq.Range.BipPt078Volts, args.RawData, out double voltage);
+                    MccDaq.ErrorInfo ulStat = _board.ToEngUnits32(MccDaq.Range.BipPt078Volts, args.RawData, out double voltage); //Changed from bipPt078Volts to bipPt005Volts on Feb 17 2025
                     if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
                     {
                         throw new Exception("Error converting raw data to : " + ulStat.Message);
                     }
-                    ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion);
+                    ProcessedDataChangedEventArgs processedData = null;
+                    //if (this.Stage.ConnectionStatus && this.IsStageRunning)
+                    //{
+                        //this.GetYLocation();
+                    processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion, this.YStagePosition);
+                    //}
+                    //else
+                    //{
+                    //    processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion);
+                    //}
                     //Run an async task to check the data if it meets or exceeds the threshold
                     Task.Run(() =>
                     {
@@ -1048,7 +1119,10 @@ namespace BMG_MicroTextureAnalyzer
                             this.ThresholdMet = true;
                             //this.Stage.Stop();
                             this.StopMotionController();
+                            this.IsStageRunning = false;
                             this._board.StopBackground(FunctionType.AiFunction);
+                            this.IsMonitoring = false;
+                            //this._stageWorker.CancelAsync();
                         }
                     });
                     lock (_dataLock)
@@ -1080,9 +1154,13 @@ namespace BMG_MicroTextureAnalyzer
                         ThresholdMet = true;
                         this.Stage.Stop();
                         this._board.StopBackground(FunctionType.AiFunction);
-                    }
+                        this.IsMonitoring = false;
+                        this.IsStageRunning = false;
 
-                    ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion);
+                        //this._stageWorker.CancelAsync();
+                    }
+                    //Task.Run(() =>this.GetYLocation());
+                    ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion, this.YStagePosition);
                     lock (_dataLock)
                     {
                         _processedDataList.Add(processedData);
@@ -1091,8 +1169,10 @@ namespace BMG_MicroTextureAnalyzer
                 }
                 //Thread.Sleep(1);// Adjust processing rate as necessary
             }
-           
-            Thread.Sleep(1000);
+
+            //Thread.Sleep(1000);
+            this.GetYLocation();
+            this.Stage.Delay();
             TranslateYStage(0.1);
             e.Cancel = true;
             
@@ -1177,6 +1257,16 @@ namespace BMG_MicroTextureAnalyzer
             _isStageMoving = true;
             // Start stage movement
             TranslateYStage(100);
+        }
+
+        public void StageWorker_GetStagePosition(object sender, DoWorkEventArgs e)
+        {
+            // Get the current stage position
+            while (this.IsStageRunning)
+            {
+                this.GetYLocation();
+                this.Stage.Delay();
+            }
         }
 
         private void StageWorker_FindPlane(object sender, DoWorkEventArgs e)
@@ -1272,6 +1362,8 @@ namespace BMG_MicroTextureAnalyzer
             _dataQueue = new ConcurrentQueue<RawDataChangedEventArgs>();
             _processedDataList = new List<ProcessedDataChangedEventArgs>();
             _isRunning = false;
+            _isMonitoring = false;
+            _isStageMoving = false;
             _dataLock = new object();
             this._board = new MccBoard(1);
 
@@ -1303,6 +1395,8 @@ namespace BMG_MicroTextureAnalyzer
                 }
                 MotionController newStage = new MotionController();
                 this.Stage = newStage;
+                //Trying out async method -> causes stage to not respond to stop call GOING TO STOP TRYING TO FIX CONNECTION LABEL FOR NOW
+                //this.Stage.ConnectAsync(port);
                 this.Stage.ConnectPort(port);
                 this.Stage.PropertyChanged += Engine_PropertyChanged;
 
@@ -1339,6 +1433,7 @@ namespace BMG_MicroTextureAnalyzer
                 if (this.Stage != null)
                 {
                     this.Stage.MoveYAbsolute(distance);
+
                 }
             }
             catch (Exception ex)
@@ -1439,6 +1534,8 @@ namespace BMG_MicroTextureAnalyzer
                 if (this.Stage != null)
                 {
                     this.Stage.GetYLocation();
+                    //this.YStagePosition = this.Stage.CurrentYStep;
+                   // Console.WriteLine(this.Stage.CurrentYPosition.ToString());
                 }
             }
             catch (Exception ex)
@@ -1452,13 +1549,13 @@ namespace BMG_MicroTextureAnalyzer
         {
             public double TimeStamp { get; }
             public double Voltage { get; }
-            public long? Step { get; }
+            public double? Step { get; }
 
             public double Pounds { get; }
 
             public double Newtons { get; set; }
 
-            public ProcessedDataChangedEventArgs(double voltage, double TimeStamp_seconds, double voltageConversion, double newtonConversion, long? step = null)
+            public ProcessedDataChangedEventArgs(double voltage, double TimeStamp_seconds, double voltageConversion, double newtonConversion, double? step = null)
             {
                 //Get the current time in total seconds
                 TimeStamp = TimeStamp_seconds;
@@ -1474,9 +1571,9 @@ namespace BMG_MicroTextureAnalyzer
             public double TimeStamp { get; }
             public int RawData { get; }
 
-            public long? Step { get; }
+            public double? Step { get; }
 
-            public RawDataChangedEventArgs(int rawData, long? step = null)
+            public RawDataChangedEventArgs(int rawData, double? step = null)
             {
                 TimeStamp = DateTime.Now.TimeOfDay.TotalSeconds;
                 RawData = rawData;

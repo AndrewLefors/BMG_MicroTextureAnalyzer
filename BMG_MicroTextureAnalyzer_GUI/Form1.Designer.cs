@@ -123,6 +123,7 @@
             ReturnProbeToMaxHeightButton = new Button();
             MonitorResponseChart = new System.Windows.Forms.DataVisualization.Charting.Chart();
             DAQDataGridView = new DataGridView();
+            YPosLabel = new Label();
             ((System.ComponentModel.ISupportInitialize)MMELogoPictureBox).BeginInit();
             tabControl1.SuspendLayout();
             MotionControllerTabPage.SuspendLayout();
@@ -787,6 +788,7 @@
             // 
             // DaqDeviceTabPage
             // 
+            DaqDeviceTabPage.Controls.Add(YPosLabel);
             DaqDeviceTabPage.Controls.Add(clear_zero_button);
             DaqDeviceTabPage.Controls.Add(zero_voltage_button);
             DaqDeviceTabPage.Controls.Add(button2);
@@ -1218,6 +1220,15 @@
             DAQDataGridView.Size = new Size(495, 209);
             DAQDataGridView.TabIndex = 0;
             // 
+            // YPosLabel
+            // 
+            YPosLabel.Anchor = AnchorStyles.None;
+            YPosLabel.AutoSize = true;
+            YPosLabel.Location = new Point(880, 249);
+            YPosLabel.Name = "YPosLabel";
+            YPosLabel.Size = new Size(0, 15);
+            YPosLabel.TabIndex = 22;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -1365,5 +1376,6 @@
         private Label label6;
         private Label label7;
         private Label label1;
+        private Label YPosLabel;
     }
 }

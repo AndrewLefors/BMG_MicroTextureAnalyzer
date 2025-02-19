@@ -33,6 +33,8 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
         private Thread chartUpdateThread;
         private bool chartUpdateThreadRunning = false;
+        private Thread positionUpdateThread;
+        private bool positionUpdateThreadRunning = false;
 
         private double voltageOffset = 0;
 
@@ -85,9 +87,35 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 chartUpdateThread.IsBackground = true;
                 chartUpdateThread.Start();
             }));
+            //Get YPosition
             //chartUpdateThread.Join();
 
 
+
+        }
+
+        //This function is under-cooked and should not be used until heavy revisions
+        private async void StartPositionUpdateThread()
+        {
+            if (!MTAengine.IsStageRunning)
+            {
+                return;
+            }
+            await Task.Run(() => YPosLabel.Invoke(() =>
+            {
+                YPosLabel.Text = MTAengine.YStagePosition.ToString();
+                positionUpdateThread = new Thread(() =>
+                {
+                while (MTAengine.IsStageRunning)
+                    {
+                        YPosLabel.Invoke(new Action(() =>
+                        {
+                            MTAengine.GetYLocation();
+                            YPosLabel.Text = MTAengine.YStagePosition.ToString();
+                        }));
+                    }
+                });
+            }));
 
         }
         private void ProcessDataQueue()
@@ -131,6 +159,9 @@ namespace BMG_MicroTextureAnalyzer_GUI
                     {
                         var time = d.TimeStamp - this.relativeStartTime;
                         MonitorResponseChart.Series[0].Points.AddXY(time, d.Newtons);
+                       // YPosLabel.Text = MTAengine.YStagePosition.ToString();
+                        //YPosLabel.ForeColor = Color.Green;
+
                     }
                     else
                     {
@@ -142,6 +173,8 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
                         MonitorResponseChart.Series[0] = series;
                         MonitorResponseChart.Series[0].Points.AddXY(0, 0);
+                        //YPosLabel.Text = MTAengine.Stage.CurrentYPosition.ToString();
+                        //DAQDataGridView.Rows.Add(0, 0, d.Step);
                     }
 
 
@@ -248,12 +281,29 @@ namespace BMG_MicroTextureAnalyzer_GUI
             {
                 AvailableDevicesComboBox.DataSource = MTAengine.Connection.AvailableDevices;
             }
+            //Check if the stage position has changed and update the label
+
+            if (e.PropertyName == nameof(MTAengine.Stage.WarningMessage))
+            {
+                MessageBox.Show(MTAengine.Stage.WarningMessage);
+            }
             //Handle event when connection is successful to change connection status label text to connect in green text
             //Why is this not working? 
             if (e.PropertyName == "MotionController.ConnectionStatus")
             {
-                ConnectionStatusLabel.Text = MTAengine.Stage.ConnectionStatus ? "Connected" : "Not Connected";
-                ConnectionStatusLabel.ForeColor = MTAengine.Stage.ConnectionStatus ? Color.Green : Color.Red;
+                if (InvokeRequired)
+                {
+                    Invoke(new Action(() =>
+                    {
+                        ConnectionStatusResponseLabel.Text = MTAengine.Stage.ConnectionStatus ? "Connected" : "Not Connected";
+                        ConnectionStatusResponseLabel.ForeColor = MTAengine.Stage.ConnectionStatus ? Color.Green : Color.Red;
+                    }));
+                }
+                else
+                {
+                    ConnectionStatusResponseLabel.Text = MTAengine.Stage.ConnectionStatus ? "Connected" : "Not Connected";
+                    ConnectionStatusResponseLabel.ForeColor = MTAengine.Stage.ConnectionStatus ? Color.Green : Color.Red;
+                }
             }
             if (e.PropertyName == "MotionController.Busy")
             {
@@ -759,6 +809,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
             MTAengine.ContinuousScanTest();
             StartChartUpdateThread();
+            //StartPositionUpdateThread();
 
 
 

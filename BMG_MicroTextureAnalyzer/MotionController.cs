@@ -7,6 +7,8 @@ using System.Text;
 using System.Threading.Tasks;
 using static System.Net.Mime.MediaTypeNames;
 using System.IO.Ports;
+using System.Drawing;
+using System.Text.RegularExpressions;
 
 namespace BMG_MicroTextureAnalyzer
 {
@@ -44,6 +46,7 @@ namespace BMG_MicroTextureAnalyzer
             SCPort = new SerialPort();
             
             sSpeed = 200;
+            //GetYLocation();
         }
 
         protected virtual void OnPropertyChanged(string propertyName = null)
@@ -97,6 +100,22 @@ namespace BMG_MicroTextureAnalyzer
                 }
             }
         }
+
+        public bool BlnConnected
+        {
+            get
+            {
+                return BlnConnect;
+            }
+            private set
+            {
+                if (BlnConnect != value)
+                {
+                    BlnConnect = value;
+                    OnPropertyChanged(nameof(BlnConnected));
+                }
+            }
+        }
         public bool SetCommand
         {
             get
@@ -141,6 +160,7 @@ namespace BMG_MicroTextureAnalyzer
                 {
                     _currentYPosition = value;
                     OnPropertyChanged(nameof(CurrentYPosition));
+                    //Console.WriteLine(CurrentYStep.ToString());
                 }
             }
         }
@@ -370,6 +390,7 @@ namespace BMG_MicroTextureAnalyzer
                         {
                             ConnectionStatus = true;  //Connected successfully
                             ShrPort = sPort;                          //Serial port number
+                            //GetYLocation();                           //Get the current position of Y axis
                             
                         }
                         else
@@ -388,6 +409,61 @@ namespace BMG_MicroTextureAnalyzer
           
         }
 
+        // In your engine class
+        public async Task ConnectAsync(short sPort)
+        {
+
+            if (SCPort.IsOpen == true) SCPort.Close();
+            SCPort.PortName = "COM" + sPort.ToString();            //Set the serial port number
+            SCPort.BaudRate = 9600;                                //Set the bit rate
+            SCPort.DataBits = 8;                                   //Set the data bits
+            SCPort.StopBits = StopBits.One;                        //Set the stop bit
+            SCPort.Parity = Parity.None;                           //Set the Parity
+            SCPort.ReadBufferSize = 2048;
+            SCPort.WriteBufferSize = 1024;
+            SCPort.DtrEnable = true;
+            SCPort.Handshake = Handshake.None;
+            SCPort.ReceivedBytesThreshold = 1;
+            SCPort.RtsEnable = false;
+
+            //This delegate should be a trigger event for fetching data asynchronously, it will be triggered when there is data passed from serial port.
+            SCPort.DataReceived += new SerialDataReceivedEventHandler(SCPort_DataReceived);
+            try
+            {
+                SCPort.Open();  // Assuming Open() is non-blocking or fast
+                if (SCPort.IsOpen)
+                {
+                    StrReceiver = "";
+                    Busy = true;
+                    SetCommand = false;
+                    SendCommand("?R\r");  // Send the command
+
+                    // Instead of blocking, await an asynchronous delay
+                    await Task.Delay(10000);
+                    Busy = false;
+
+                    if (StrReceiver == "?R\rOK\n")
+                    {
+                        ConnectionStatus = true;
+                        ShrPort = sPort;
+                    }
+                    else
+                    {
+                        Busy = false;
+                        ConnectionStatus = false;
+                        WarningMessage = "Failed to connect";
+                        return;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Handle exceptions as needed
+                ConnectionStatus = false;
+                WarningMessage = ex.Message;
+            }
+        }
+
         internal void SCPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
         {
             //****************************************************************
@@ -400,6 +476,7 @@ namespace BMG_MicroTextureAnalyzer
             {
                 string sCurString = "";
                 sCurString = SCPort.ReadExisting();
+                System.Diagnostics.Debug.WriteLine(sCurString);
                 if (sCurString != "")
                     StrReceiver = StrReceiver + sCurString;
                 if (SetCommand == true)
@@ -549,6 +626,8 @@ namespace BMG_MicroTextureAnalyzer
                 //HARD CODING
                 //this.PulseEquivalent = 1600;
                 this.DblPulseEqui = this.PulseEquivalent;
+                System.Diagnostics.Debug.WriteLine("Pulse Equivalent: " + this.PulseEquivalent.ToString());
+                System.Diagnostics.Debug.WriteLine(WarningMessage);
                 this.WarningMessage = "Pulse Equivalent:" + this.PulseEquivalent.ToString();
             }
             catch (Exception ex)
@@ -672,28 +751,38 @@ namespace BMG_MicroTextureAnalyzer
             {
                 this.GetYPosition();
             }
-            
+
             private void GetYPosition()      //Get the current position of Y axis
             {
                 StrReceiver = "";
                 Busy = true;
                 SetCommand = false;
                 SendCommand("?Y\r");            //Inquiry the current position of Y axis
-                //Delay(100000);
-            Busy = false;
+                Delay(500);
+                Busy = false;
 
                 if (StrReceiver != "")
                 {
                     if (StrReceiver.Substring(5, 1) == "-")
-                        CurrentStep = -Convert.ToInt64(System.Text.RegularExpressions.Regex.Replace(StrReceiver, @"[^0-9]+", ""));
+                        CurrentYStep = -Convert.ToInt64(System.Text.RegularExpressions.Regex.Replace(StrReceiver, @"[^0-9]+", ""));
                     else
-                        CurrentStep = Convert.ToInt64(System.Text.RegularExpressions.Regex.Replace(StrReceiver, @"[^0-9]+", ""));
+                        CurrentYStep = Convert.ToInt64(System.Text.RegularExpressions.Regex.Replace(StrReceiver, @"[^0-9]+", ""));
+                    //PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CurrentYStep)));
+                    System.Diagnostics.Debug.WriteLine(CurrentYStep.ToString());
                 }
                 else
+                {
+                    WarningMessage = "Failed to get Y position";
+                    System.Diagnostics.Debug.WriteLine(WarningMessage);
+                    //CurrentYStep = -99999;
                     return;
-                CurrentPosition = CurrentStep * PulseEquivalent;
-                //textBox7.Text = dCurrPosi.ToString();
-            }
+                }
+                CurrentYPosition = CurrentYStep / PulseEquivalent;
+                System.Diagnostics.Debug.WriteLine(WarningMessage);
+                System.Diagnostics.Debug.WriteLine(CurrentYPosition.ToString());
+                //PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CurrentYPosition)));
+            //textBox7.Text = dCurrPosi.ToString();
+        }
 
             internal void ReturnYToOrigin()      //Return Y to origin
             {
