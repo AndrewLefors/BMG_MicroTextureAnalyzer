@@ -48,7 +48,7 @@ namespace BMG_MicroTextureAnalyzer
 
         private double _fractureTestPoundConversion = 2141.878;
         private double _fractureTestNewtonConversion = 4.44822;
-        private double _punctureTestKilogramConversion = 3.96844;
+        private double _punctureTestKilogramConversion = 1e-3;//7.93688e-4;//7.93688;//3.893e-4;//3.96844;
         private double _punctureTestNewtonConversion = 9.81;// 1kg = 9.81N
 
         private double _findPlaneThreshold = 5;
@@ -370,6 +370,7 @@ namespace BMG_MicroTextureAnalyzer
               //_dataCollectorWorker2.Dispose();
                
             };
+          
             ThresholdMet = false;
 
         }
@@ -733,26 +734,31 @@ namespace BMG_MicroTextureAnalyzer
         public void StopBackgroundCollection()
         {
             if (!_isRunning) return;
+            if (IsStageRunning)
+            {
+                this.StopMotionController();
+                _isStageMoving = false;
+            }
             if (this.IsMonitoring)
             {
                 this._board.StopBackground(FunctionType.AiFunction);
                 this.IsMonitoring = false;
-                if (_dataCollectorWorker != null && _dataCollectorWorker.IsBusy)
-                {
-                    _dataCollectorWorker.CancelAsync();
-                }
-                if (_dataProcessorWorker != null && _dataProcessorWorker.IsBusy)
-                {
-                    _dataProcessorWorker.CancelAsync();
-                }
-                if (_dataCollectorWorker2 != null && _dataCollectorWorker2.IsBusy)
-                {
-                    _dataCollectorWorker2.CancelAsync();
-                }
-                if (_stageWorker != null && _stageWorker.IsBusy)
-                {
-                    _stageWorker.CancelAsync();
-                }
+                //if (_dataCollectorWorker != null && _dataCollectorWorker.IsBusy)
+                //{
+                //    _dataCollectorWorker.CancelAsync();
+                //}
+                //if (_dataProcessorWorker != null && _dataProcessorWorker.IsBusy)
+                //{
+                //    _dataProcessorWorker.CancelAsync();
+                //}
+                //if (_dataCollectorWorker2 != null && _dataCollectorWorker2.IsBusy)
+                //{
+                //    _dataCollectorWorker2.CancelAsync();
+                //}
+                //if (_stageWorker != null && _stageWorker.IsBusy)
+                //{
+                //    _stageWorker.CancelAsync();
+                //}
             }
 
         }
@@ -818,7 +824,8 @@ namespace BMG_MicroTextureAnalyzer
             short status;
             //Need to shorten the range to accommodate the 5V input from the load cell to get more accurate results (currently using 78mV when maxiumum range is 7.5mV)
             MccDaq.Range range = MccDaq.Range.BipPt078Volts;
-            MccDaq.Range altRange = MccDaq.Range.BipPt005Volts; //Use this for puncture tests, this should provide highest resolution for the load cell below 100mN
+            MccDaq.Range altRange = MccDaq.Range.Bip10Volts; //Use this for puncture tests, this should provide highest resolution for the load cell below 100mN
+            MccDaq.Range iaa300 = MccDaq.Range.Bip10Volts; //Use this for the fracture test, this should provide highest resolution for the load cell below 500mN
             int rate = this.Rate;
             //Deallocate memhandle then re-allocate
 
@@ -827,7 +834,7 @@ namespace BMG_MicroTextureAnalyzer
             
             //MemHandle = MccDaq.MccService.WinBufAlloc32Ex(NumPoints);
             
-            MccDaq.ErrorInfo ulStat = this._board.AInScan(channel, channel, NumPoints, ref rate, range, MemHandle, ScanOptions.Background); //Modified to use alt range on Feb 17 2025
+            MccDaq.ErrorInfo ulStat = this._board.AInScan(channel, channel, NumPoints, ref rate, iaa300, MemHandle, ScanOptions.Background); //Modified to use alt range on Feb 17 2025
             if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
             {
                    throw new Exception("Error reading analog input: " + ulStat.Message);
@@ -849,6 +856,7 @@ namespace BMG_MicroTextureAnalyzer
             double[] engUnits = new double[this.NumPoints];
             MccDaq.Range range = MccDaq.Range.BipPt078Volts;
             MccDaq.Range altRange = MccDaq.Range.BipPt005Volts;
+            MccDaq.Range iaa300 = MccDaq.Range.Bip10Volts;
 
             while (!_dataCollectorWorker2.CancellationPending && !ThresholdMet)
             {
@@ -870,11 +878,11 @@ namespace BMG_MicroTextureAnalyzer
                     // Convert raw data to Eng32 units
                     for (int i = 0; i < pointsToRead; i++)
                     {
-                        ulStat = this._board.ToEngUnits32(range, dataBuffer[i], out engUnits[i]);
-                        if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
-                        {
-                            throw new Exception("Error converting to EngUnits: " + ulStat.Message);
-                        }
+                        //ulStat = this._board.ToEngUnits32(range, dataBuffer[i], out engUnits[i]);
+                        //if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
+                        //{
+                        //    throw new Exception("Error converting to EngUnits: " + ulStat.Message);
+                        //}
                         //Make datachanged event arg and pass to dataqueue 
                         RawDataChangedEventArgs dataChangedEventArgs = new RawDataChangedEventArgs(dataBuffer[i]);
                         _dataQueue.Enqueue(dataChangedEventArgs);
@@ -937,7 +945,7 @@ namespace BMG_MicroTextureAnalyzer
             int channel = 7;
 
             short status;
-            MccDaq.Range range = MccDaq.Range.BipPt078Volts;
+            MccDaq.Range range = MccDaq.Range.Bip10Volts;
             int rate = this.Rate;
             //TranslateYStage(this.FractureDistance); // Move the stage 100mm down to get the stage on the sample
             MccDaq.ErrorInfo ulStat = this._board.AInScan(channel, channel, NumPoints, ref rate, range, MemHandle, ScanOptions.Background);
@@ -959,7 +967,7 @@ namespace BMG_MicroTextureAnalyzer
             int lastIndex = 0;
             int[] dataBuffer = new int[this.NumPoints];
             double[] engUnits = new double[this.NumPoints];
-            MccDaq.Range range = MccDaq.Range.BipPt078Volts;
+            MccDaq.Range range = MccDaq.Range.Bip10Volts;
 
             while (!_dataCollectorWorker2.CancellationPending && !ThresholdMet)
             {
@@ -979,11 +987,11 @@ namespace BMG_MicroTextureAnalyzer
                     // Convert raw data to Eng32 units
                     for (int i = 0; i < pointsToRead; i++)
                     {
-                        ulStat = this._board.ToEngUnits32(range, dataBuffer[i], out engUnits[i]);
-                        if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
-                        {
-                            throw new Exception("Error converting to EngUnits: " + ulStat.Message);
-                        }
+                        //ulStat = this._board.ToEngUnits32(range, dataBuffer[i], out engUnits[i]);
+                        //if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
+                        //{
+                        //    throw new Exception("Error converting to EngUnits: " + ulStat.Message);
+                        //}
                         //Make datachanged event arg and pass to dataqueue 
                         RawDataChangedEventArgs dataChangedEventArgs = new RawDataChangedEventArgs(dataBuffer[i]);
                         _dataQueue.Enqueue(dataChangedEventArgs);
@@ -1006,25 +1014,25 @@ namespace BMG_MicroTextureAnalyzer
         private void DataProcessorWorker_FractureTest(object sender, DoWorkEventArgs e)
         {
             //this.Stage.MoveYAbsolute(100);
+            MccDaq.Range range = MccDaq.Range.Bip10Volts;
             while (!((BackgroundWorker)sender).CancellationPending && !ThresholdMet)
             {
                 if (_dataQueue.TryDequeue(out RawDataChangedEventArgs args))
                 {
-                    MccDaq.ErrorInfo ulStat = _board.ToEngUnits32(MccDaq.Range.BipPt078Volts, args.RawData, out double voltage);
+                    MccDaq.ErrorInfo ulStat = _board.ToEngUnits32(range, args.RawData, out double voltage);
                     if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
                     {
                         throw new Exception("Error converting raw data to : " + ulStat.Message);
                     }
                     ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion);
                     //Run an async task to check the data if it meets or exceeds the threshold
-                    Task.Run(() =>
+                 
+                    if (processedData.Newtons >= this.FindPlaneThreshold)
                     {
-                        if (processedData.Newtons >= this.FindPlaneThreshold)
-                        {
-                            this.ThresholdMet = true;
-                            this.Stage.Stop();
-                        }
-                    });
+                        this.ThresholdMet = true;
+                        this.StopBackgroundCollection();
+                    }
+                    
                     lock (_dataLock)
                     {
                         _processedDataList.Add(processedData);
@@ -1091,12 +1099,14 @@ namespace BMG_MicroTextureAnalyzer
         private void DataProcessorWorker_ContinuousScanInput(object sender, DoWorkEventArgs e)
         {
             //this.Stage.MoveYAbsolute(100);
+            MccDaq.Range iaa300 = MccDaq.Range.Bip10Volts;
+            MccDaq.Range range = MccDaq.Range.BipPt078Volts;
             while (!((BackgroundWorker)sender).CancellationPending && !ThresholdMet)
             {
                // this.GetYLocation();
                 if (_dataQueue.TryDequeue(out RawDataChangedEventArgs args))
                 {
-                    MccDaq.ErrorInfo ulStat = _board.ToEngUnits32(MccDaq.Range.BipPt078Volts, args.RawData, out double voltage); //Changed from bipPt078Volts to bipPt005Volts on Feb 17 2025
+                    MccDaq.ErrorInfo ulStat = _board.ToEngUnits32(iaa300, args.RawData, out double voltage); //Changed from bipPt078Volts to bipPt005Volts on Feb 17 2025
                     if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
                     {
                         throw new Exception("Error converting raw data to : " + ulStat.Message);
@@ -1139,12 +1149,13 @@ namespace BMG_MicroTextureAnalyzer
         //This method needs to be refactored or else it rematurely stops the stage from reaching the desired plane
         private void DataProcessorWorker_FindPlane(object sender, DoWorkEventArgs e)
         {
-            
+            MccDaq.Range range = MccDaq.Range.Bip10Volts;
+
             while (!((BackgroundWorker)sender).CancellationPending && !ThresholdMet)
             {
                 if (_dataQueue.TryDequeue(out RawDataChangedEventArgs args))
                 {
-                    MccDaq.ErrorInfo ulStat = _board.ToEngUnits32(MccDaq.Range.BipPt078Volts, args.RawData, out double voltage);
+                    MccDaq.ErrorInfo ulStat = _board.ToEngUnits32(range, args.RawData, out double voltage);
                     if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
                     {
                         throw new Exception("Error converting raw data to voltage: " + ulStat.Message);
@@ -1152,8 +1163,9 @@ namespace BMG_MicroTextureAnalyzer
                     if (((voltage - this.VoltageOffset) * this.VoltageConversion * this.NewtonConversion) > this.FindPlaneThreshold)
                     {
                         ThresholdMet = true;
-                        this.Stage.Stop();
-                        this._board.StopBackground(FunctionType.AiFunction);
+                        //this.Stage.Stop();
+                        //this._board.StopBackground(FunctionType.AiFunction);
+                        this.StopBackgroundCollection();
                         this.IsMonitoring = false;
                         this.IsStageRunning = false;
 

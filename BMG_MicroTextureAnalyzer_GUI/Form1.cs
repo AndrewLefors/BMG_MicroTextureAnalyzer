@@ -23,7 +23,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
         private double _fractureTestNewtonConversion = 4.44822;
         private double _punctureTestKilogramConversion = 39.6844;
         private double _punctureTestNewtonConversion = 9.81;
-
+        
         private double _voltageConversion = 2141.878;
         private double _newtonConversion = 4.44822;
 
