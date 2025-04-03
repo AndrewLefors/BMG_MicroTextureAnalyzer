@@ -88,6 +88,10 @@
             ConnectionStatusLabel = new Label();
             ConnectionStatusResponseLabel = new Label();
             DaqDeviceTabPage = new TabPage();
+            tableLayoutPanel14 = new TableLayoutPanel();
+            DAQ_StageSpeedComboBox = new ComboBox();
+            label2 = new Label();
+            YPosLabel = new Label();
             clear_zero_button = new Button();
             zero_voltage_button = new Button();
             button2 = new Button();
@@ -123,7 +127,6 @@
             ReturnProbeToMaxHeightButton = new Button();
             MonitorResponseChart = new System.Windows.Forms.DataVisualization.Charting.Chart();
             DAQDataGridView = new DataGridView();
-            YPosLabel = new Label();
             ((System.ComponentModel.ISupportInitialize)MMELogoPictureBox).BeginInit();
             tabControl1.SuspendLayout();
             MotionControllerTabPage.SuspendLayout();
@@ -141,6 +144,7 @@
             MotionControllerConnectionSettingsGroupBox.SuspendLayout();
             MotionControllerConnectionTableLayout.SuspendLayout();
             DaqDeviceTabPage.SuspendLayout();
+            tableLayoutPanel14.SuspendLayout();
             tableLayoutPanel12.SuspendLayout();
             tableLayoutPanel13.SuspendLayout();
             tableLayoutPanel11.SuspendLayout();
@@ -788,6 +792,7 @@
             // 
             // DaqDeviceTabPage
             // 
+            DaqDeviceTabPage.Controls.Add(tableLayoutPanel14);
             DaqDeviceTabPage.Controls.Add(YPosLabel);
             DaqDeviceTabPage.Controls.Add(clear_zero_button);
             DaqDeviceTabPage.Controls.Add(zero_voltage_button);
@@ -810,6 +815,50 @@
             DaqDeviceTabPage.TabIndex = 1;
             DaqDeviceTabPage.Text = "DAQ Device";
             DaqDeviceTabPage.UseVisualStyleBackColor = true;
+            // 
+            // tableLayoutPanel14
+            // 
+            tableLayoutPanel14.ColumnCount = 1;
+            tableLayoutPanel14.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+            tableLayoutPanel14.Controls.Add(DAQ_StageSpeedComboBox, 0, 1);
+            tableLayoutPanel14.Controls.Add(label2, 0, 0);
+            tableLayoutPanel14.Location = new Point(771, 180);
+            tableLayoutPanel14.Name = "tableLayoutPanel14";
+            tableLayoutPanel14.RowCount = 2;
+            tableLayoutPanel14.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            tableLayoutPanel14.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            tableLayoutPanel14.Size = new Size(169, 77);
+            tableLayoutPanel14.TabIndex = 23;
+            // 
+            // DAQ_StageSpeedComboBox
+            // 
+            DAQ_StageSpeedComboBox.Anchor = AnchorStyles.None;
+            DAQ_StageSpeedComboBox.FormattingEnabled = true;
+            DAQ_StageSpeedComboBox.Location = new Point(24, 46);
+            DAQ_StageSpeedComboBox.Name = "DAQ_StageSpeedComboBox";
+            DAQ_StageSpeedComboBox.Size = new Size(121, 23);
+            DAQ_StageSpeedComboBox.TabIndex = 0;
+            DAQ_StageSpeedComboBox.SelectedIndexChanged += DAQ_StageSpeedComboBox_SelectedIndexChanged;
+            // 
+            // label2
+            // 
+            label2.Anchor = AnchorStyles.None;
+            label2.AutoSize = true;
+            label2.Location = new Point(29, 11);
+            label2.Name = "label2";
+            label2.Size = new Size(110, 15);
+            label2.TabIndex = 1;
+            label2.Text = "Stage Speed (um/s)";
+            label2.Click += label2_Click;
+            // 
+            // YPosLabel
+            // 
+            YPosLabel.Anchor = AnchorStyles.None;
+            YPosLabel.AutoSize = true;
+            YPosLabel.Location = new Point(880, 249);
+            YPosLabel.Name = "YPosLabel";
+            YPosLabel.Size = new Size(0, 15);
+            YPosLabel.TabIndex = 22;
             // 
             // clear_zero_button
             // 
@@ -1220,15 +1269,6 @@
             DAQDataGridView.Size = new Size(495, 209);
             DAQDataGridView.TabIndex = 0;
             // 
-            // YPosLabel
-            // 
-            YPosLabel.Anchor = AnchorStyles.None;
-            YPosLabel.AutoSize = true;
-            YPosLabel.Location = new Point(880, 249);
-            YPosLabel.Name = "YPosLabel";
-            YPosLabel.Size = new Size(0, 15);
-            YPosLabel.TabIndex = 22;
-            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -1266,6 +1306,8 @@
             MotionControllerConnectionTableLayout.PerformLayout();
             DaqDeviceTabPage.ResumeLayout(false);
             DaqDeviceTabPage.PerformLayout();
+            tableLayoutPanel14.ResumeLayout(false);
+            tableLayoutPanel14.PerformLayout();
             tableLayoutPanel12.ResumeLayout(false);
             tableLayoutPanel12.PerformLayout();
             tableLayoutPanel13.ResumeLayout(false);
@@ -1377,5 +1419,8 @@
         private Label label7;
         private Label label1;
         private Label YPosLabel;
+        private TableLayoutPanel tableLayoutPanel14;
+        private ComboBox DAQ_StageSpeedComboBox;
+        private Label label2;
     }
 }

@@ -23,7 +23,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
         private double _fractureTestNewtonConversion = 4.44822;
         private double _punctureTestKilogramConversion = 39.6844;
         private double _punctureTestNewtonConversion = 9.81;
-        
+
         private double _voltageConversion = 2141.878;
         private double _newtonConversion = 4.44822;
 
@@ -35,6 +35,8 @@ namespace BMG_MicroTextureAnalyzer_GUI
         private bool chartUpdateThreadRunning = false;
         private Thread positionUpdateThread;
         private bool positionUpdateThreadRunning = false;
+
+        private List<int> stageSpeedConversionSpeedList = [0, 4, 7, 9, 12, 15, 20, 25]; //default of 19.1um/s
 
         private double voltageOffset = 0;
 
@@ -49,13 +51,16 @@ namespace BMG_MicroTextureAnalyzer_GUI
             MTAengine = engine;
             MTAengine.PropertyChanged += MTAengine_PropertyChanged;
             var subdivisionList = new List<int> { 1, 2, 4, 8 };
+            var stageSpeedList = new List<double> { 19.1, 95.5, 152.8, 190.1, 248.3, 305.6, 401.0, 496.5 }; //unts in um/s
+
+
 
 
 
             InitializeComponent();
             this.MotionControllerSubdivisionComboBox.DataSource = subdivisionList;
             this.MotionControllerSubdivisionComboBox.SelectedIndex = 0;
-
+            this.DAQ_StageSpeedComboBox.DataSource = stageSpeedList;
             DAQDataGridView.Columns.Add("Time", "Time");
             DAQDataGridView.Columns.Add("Voltage", "Voltage");
             DAQDataGridView.Columns.Add("Pounds", "Pounds");
@@ -106,7 +111,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 YPosLabel.Text = MTAengine.YStagePosition.ToString();
                 positionUpdateThread = new Thread(() =>
                 {
-                while (MTAengine.IsStageRunning)
+                    while (MTAengine.IsStageRunning)
                     {
                         YPosLabel.Invoke(new Action(() =>
                         {
@@ -159,7 +164,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
                     {
                         var time = d.TimeStamp - this.relativeStartTime;
                         MonitorResponseChart.Series[0].Points.AddXY(time, d.Newtons);
-                       // YPosLabel.Text = MTAengine.YStagePosition.ToString();
+                        // YPosLabel.Text = MTAengine.YStagePosition.ToString();
                         //YPosLabel.ForeColor = Color.Green;
 
                     }
@@ -211,6 +216,19 @@ namespace BMG_MicroTextureAnalyzer_GUI
         }
         private void MTAengine_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
+
+            if (e.PropertyName == nameof(DAQ_StageSpeedComboBox.SelectedIndex))
+            {
+                int selectedIndex = DAQ_StageSpeedComboBox.SelectedIndex;
+
+                // Validate the index is within bounds
+                if (selectedIndex >= 0 && selectedIndex < stageSpeedConversionSpeedList.Count)
+                {
+                    short controllerSpeedValue = (short)stageSpeedConversionSpeedList[selectedIndex];
+                    MTAengine.SetStageSpeed(controllerSpeedValue);
+                    MessageBox.Show("Stage Speed Set to: " + controllerSpeedValue.ToString());
+                }
+            }
 
             if (e.PropertyName == nameof(Engine.FractureTestComplete))
             {
@@ -282,7 +300,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 AvailableDevicesComboBox.DataSource = MTAengine.Connection.AvailableDevices;
             }
             //Check if the stage position has changed and update the label
-
+            //  if (e.PropertyName = )
             if (e.PropertyName == nameof(MTAengine.Stage.WarningMessage))
             {
                 MessageBox.Show(MTAengine.Stage.WarningMessage);
@@ -543,7 +561,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
                         MTAengine.StopBackgroundCollection();
                         MTAengine.IsMonitoring = false;
                     }
-                    
+
                 }));
 
             }
@@ -559,7 +577,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
                     MTAengine.StopBackgroundCollection();
                     MTAengine.IsMonitoring = false;
                 }
-               
+
             }
 
         }
@@ -575,7 +593,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
             };
             MonitorResponseChart.Series.Add(series);
             DAQDataGridView.Rows.Clear();
-            MTAengine.SetStageSpeed(0);
+            //MTAengine.SetStageSpeed(0);
             //double.TryParse(CollectionTimeSecondsTextBox.Text, out double result);
             //if (result == 0)
             //{
@@ -603,6 +621,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
         {
             if (MonitorResponseChart.Series[0].Points.Count > 0)
             {
+
                 voltageOffset = MonitorResponseChart.Series[0].Points.Average(point => point.YValues[0]);
             }
         }
@@ -646,7 +665,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 ChartType = SeriesChartType.Line
             };
             MonitorResponseChart.Series.Add(series);
-            MTAengine.SetStageSpeed(0);
+            //MTAengine.SetStageSpeed(0);
             double.TryParse(CollectionTimeSecondsTextBox.Text, out double result);
             if (result == 0)
             {
@@ -740,7 +759,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 MTAengine.PunctureDistance = depth;
                 MonitorResponseChart.Series.Add(series);
                 DAQDataGridView.Rows.Clear();
-                MTAengine.SetStageSpeed(1);
+                //MTAengine.SetStageSpeed(1);
                 this._voltageConversion = MTAengine.PunctureVoltageConversion;
                 this._newtonConversion = MTAengine.PunctureNewtonConversion;
                 Thread.Sleep(10);
@@ -782,7 +801,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 ChartType = SeriesChartType.Line
             };
             MonitorResponseChart.Series.Add(series);
-            MTAengine.SetStageSpeed(1);
+           // MTAengine.SetStageSpeed(1);
             if (PlaneDetectionThresholdTextBox.Text != "")
             {
                 MTAengine.FindPlaneThreshold = double.Parse(PlaneDetectionThresholdTextBox.Text);
@@ -817,7 +836,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
-            
+
             if (MTAengine.Stage.ConnectionStatus)
             {
                 MTAengine.StopMotionController();
@@ -898,6 +917,24 @@ namespace BMG_MicroTextureAnalyzer_GUI
         private void Form1_Load(object sender, EventArgs e)
         {
 
+        }
+
+        private void label2_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void DAQ_StageSpeedComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            //change the selected index of the combo box to the selected index of the list
+            int selectedIndex = DAQ_StageSpeedComboBox.SelectedIndex;
+            // Validate the index is within bounds
+            if (selectedIndex >= 0 && selectedIndex < stageSpeedConversionSpeedList.Count)
+            {
+                short controllerSpeedValue = (short)stageSpeedConversionSpeedList[selectedIndex];
+                MTAengine.SetStageSpeed(controllerSpeedValue);
+                MessageBox.Show("Stage Speed Set to: " + controllerSpeedValue.ToString());
+            }
         }
     }
 }

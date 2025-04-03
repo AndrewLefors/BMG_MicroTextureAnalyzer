@@ -19,6 +19,8 @@ namespace BMG_MicroTextureAnalyzer
         private MccDaq.Range _range = MccDaq.Range.BipPt078Volts;
         private MotionController _stage;
         private double _yStagePosition;
+        private double _stageSpeed = 0; //default speed of 19.1um/s //Stage uses 0-255 as speed values corresponding to the following equation: Actual speed(mm/s) = (speed value+1) * 22000 * pulse equivalent / 720
+                                        // The speed value is this stage speed, and pulse equivalent for the lab setup is 1/1600 -> pitch of the lead screw (mm) * stepper angle / (360 *subdivision) = (1*1.8(360*8)) -> 0.000625 
         private Connection _connection;
         private string _errorString;
         private readonly ConcurrentQueue<RawDataChangedEventArgs> _dataQueue = new ConcurrentQueue<RawDataChangedEventArgs>();
