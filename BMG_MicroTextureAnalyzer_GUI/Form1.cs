@@ -933,7 +933,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
             {
                 short controllerSpeedValue = (short)stageSpeedConversionSpeedList[selectedIndex];
                 MTAengine.SetStageSpeed(controllerSpeedValue);
-                MessageBox.Show("Stage Speed Set to: " + controllerSpeedValue.ToString());
+                MessageBox.Show("Stage Speed Set to: " + controllerSpeedValue.ToString() + ": " + DAQ_StageSpeedComboBox.SelectedItem?.ToString() + "um/s");
             }
         }
     }
