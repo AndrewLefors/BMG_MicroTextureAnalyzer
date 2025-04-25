@@ -189,6 +189,7 @@ namespace BMG_MicroTextureAnalyzer
             ThresholdMet = false;
             _isRunning = true;
             _isMonitoring = true;
+             // Move the stage 100mm down to get the stage on the sample
             _isStageMoving = true;
             _isFractureTest = true;
             _isPunctureTest = false;
@@ -210,12 +211,17 @@ namespace BMG_MicroTextureAnalyzer
             _dataCollectorWorker.DoWork += DataCollectorWorker_FractureTest;
             _dataCollectorWorker.WorkerSupportsCancellation = true;
             _dataCollectorWorker.RunWorkerAsync();
-            TranslateYStage(FractureDistance);
+            //this.TranslateYStage(FractureDistance);
             _dataCollectorWorker2 = new BackgroundWorker();
             _dataCollectorWorker2.DoWork += DataReaderWorker_FractureTest;
             _dataCollectorWorker2.WorkerSupportsCancellation = true;
             _dataCollectorWorker2.RunWorkerAsync();
 
+            //Task.Run(async () =>
+            //{
+            //    await Task.Delay(TimeSpan.FromSeconds(5));
+            //    this.TranslateYStage(FractureDistance);
+            //});
 
 
             _dataProcessorWorker = new BackgroundWorker();
@@ -970,7 +976,6 @@ namespace BMG_MicroTextureAnalyzer
             int[] dataBuffer = new int[this.NumPoints];
             double[] engUnits = new double[this.NumPoints];
             MccDaq.Range range = MccDaq.Range.Bip10Volts;
-
             while (!_dataCollectorWorker2.CancellationPending && !ThresholdMet)
             {
                 this._board.GetStatus(out short status, out int curCount, out int currentIndex, FunctionType.AiFunction);

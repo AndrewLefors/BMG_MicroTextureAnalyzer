@@ -685,8 +685,13 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 MTAengine.FractureDistance = depth;
                 DialogResult dresult = MessageBox.Show("Current Fracture Depth:" + MTAengine.FractureDistance);
                 //MTAengine.SetStageSpeed(1);
-                MTAengine.TranslateYStage(MTAengine.FractureDistance);
+                //MTAengine.TranslateYStage(MTAengine.FractureDistance);
                 MTAengine.FractureTest();
+                Task.Run(async () =>
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(5));
+                    MTAengine.TranslateYStage(MTAengine.FractureDistance);
+                });
                 StartChartUpdateThread();
 
             }
