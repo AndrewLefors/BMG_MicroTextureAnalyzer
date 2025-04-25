@@ -1187,7 +1187,7 @@ namespace BMG_MicroTextureAnalyzer
             //Thread.Sleep(1000);
             this.GetYLocation();
             this.Stage.Delay();
-            TranslateYStage(0.1);
+            TranslateYStage(0.5);
             e.Cancel = true;
             
            // ((BackgroundWorker)sender).CancelAsync();
