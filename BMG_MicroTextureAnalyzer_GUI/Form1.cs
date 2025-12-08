@@ -6,6 +6,12 @@ using System.Timers;
 using System.ComponentModel;
 using System.Collections.Concurrent;
 using System.Drawing;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Linq;
+using System.Collections.Generic;
+
 namespace BMG_MicroTextureAnalyzer_GUI
 {
     public partial class Form1 : Form
@@ -42,6 +48,44 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
         private double voltageOffset = 0;
 
+        private bool chartSaveToFile = false;
+        private int displayWindowSeconds = 30; // seconds of data to keep in circular buffer
+        private int maxDisplayPoints = 1200; // maximum points to display (approx pixels)
+        private CircularBuffer<(double X, double Y)> displayBuffer;
+        private BlockingCollection<string> fileWriteQueue;
+        private Task fileWriterTask;
+        private CancellationTokenSource chartCancellationTokenSource;
+
+        // circular buffer implementation
+        private class CircularBuffer<T>
+        {
+            private readonly T[] _buf;
+            private int _start;
+            private int _count;
+            public CircularBuffer(int capacity) { _buf = new T[capacity]; _start = 0; _count = 0; }
+            public int Count => _count;
+            public void Add(T item)
+            {
+                if (_count < _buf.Length)
+                {
+                    _buf[(_start + _count) % _buf.Length] = item;
+                    _count++;
+                }
+                else
+                {
+                    _buf[_start] = item;
+                    _start = (_start + 1) % _buf.Length;
+                }
+            }
+            public T[] ToArray()
+            {
+                T[] outArr = new T[_count];
+                for (int i = 0; i < _count; i++) outArr[i] = _buf[(_start + i) % _buf.Length];
+                return outArr;
+            }
+            public void Clear() { _start = 0; _count = 0; }
+        }
+
         public Form1()
         {
             BMG_MicroTextureAnalyzer.Engine engine = new BMG_MicroTextureAnalyzer.Engine();
@@ -55,6 +99,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
             var subdivisionList = new List<int> { 1, 2, 4, 8 };
             var stageSpeedList = new List<double> { 19.1, 95.5, 152.8, 190.1, 248.3, 305.6, 401.0, 496.5 }; //unts in um/s
             var averageWindowList = new List<int> { 0, 10, 25, 50, 100, 150, 200, 250, 500, 1000 };
+
 
 
 
@@ -129,82 +174,122 @@ namespace BMG_MicroTextureAnalyzer_GUI
         }
         private void ProcessDataQueue()
         {
-            var stopwatch = new System.Diagnostics.Stopwatch();
-            stopwatch.Start();
-            while (MTAengine.IsRunning)
+            var token = chartCancellationTokenSource?.Token ?? CancellationToken.None;
+            var sw = Stopwatch.StartNew();
+
+            while (!token.IsCancellationRequested && MTAengine.IsRunning)
             {
-                List<Engine.ProcessedDataChangedEventArgs> batch = new List<Engine.ProcessedDataChangedEventArgs>();
-                while (stopwatch.ElapsedMilliseconds < batchIntervalMs)
+                var batch = new List<Engine.ProcessedDataChangedEventArgs>();
+                var batchTimer = Stopwatch.StartNew();
+
+                while (batchTimer.ElapsedMilliseconds < batchIntervalMs && !token.IsCancellationRequested)
                 {
-                    if (dataQueue.TryDequeue(out Engine.ProcessedDataChangedEventArgs data))
+                    if (dataQueue.TryDequeue(out var item))
                     {
-                        data.Newtons = data.Newtons - this.MTAengine.ForceOffset;
-                        async void temp()
-                        {
-                            Task.Run(() =>
-                            {
-                                forceOffsetReadingLabel.Text = voltageOffset.ToString("F4");
-                            });
-                        }
-                        batch.Add(data);
-                    }
-                }
-                if (batch.Count > 0)
-                {
-                    UpdateChart(batch);
-
-                }
-
-                stopwatch.Restart();
-            }
-
-        }
-
-        private void UpdateChart(List<Engine.ProcessedDataChangedEventArgs> data)
-        {
-            if (MonitorResponseChart.InvokeRequired)
-            {
-                MonitorResponseChart.Invoke(new Action<List<Engine.ProcessedDataChangedEventArgs>>(UpdateChart), data);
-            }
-            else
-            {
-
-                foreach (var d in data)
-                {
-                    if (this.relativeStartTime != -1)
-                    {
-                        var time = d.TimeStamp - this.relativeStartTime;
-                        MonitorResponseChart.Series[0].Points.AddXY(time, d.Newtons);
-                        // YPosLabel.Text = MTAengine.YStagePosition.ToString();
-                        //YPosLabel.ForeColor = Color.Green;
-
+                        item.Newtons -= MTAengine.ForceOffset;
+                        batch.Add(item);
                     }
                     else
                     {
-                        this.relativeStartTime = d.TimeStamp;
-                        Series series = new Series
-                        {
-                            ChartType = SeriesChartType.Line
-                        };
+                        Thread.Sleep(0);
+                    }
+                }
 
-                        MonitorResponseChart.Series[0] = series;
-                        MonitorResponseChart.Series[0].Points.AddXY(0, 0);
-                        //YPosLabel.Text = MTAengine.Stage.CurrentYPosition.ToString();
-                        //DAQDataGridView.Rows.Add(0, 0, d.Step);
+                if (batch.Count == 0) continue;
+
+                if (chartSaveToFile && fileWriteQueue != null)
+                {
+                    foreach (var d in batch)
+                    {
+                        try { fileWriteQueue.Add($"{d.TimeStamp:F6},{d.Newtons:F6}"); } catch { }
+                    }
+                }
+                else
+                {
+                    foreach (var d in batch)
+                    {
+                        if (relativeStartTime == 0) relativeStartTime = d.TimeStamp;
+                        double t = d.TimeStamp - relativeStartTime;
+                        displayBuffer.Add((t, d.Newtons));
                     }
 
+                    // prepare downsampled arrays
+                    var raw = displayBuffer.ToArray();
+                    int total = raw.Length;
+                    if (total == 0) continue;
 
-                }
-                ;
+                    int target = Math.Min(maxDisplayPoints, MonitorResponseChart?.Width > 0 ? MonitorResponseChart.Width : maxDisplayPoints);
+                    if (target <= 0) target = Math.Min(maxDisplayPoints, 1000);
 
-                // Update force reading label with the most recent sample from the batch.
-                // Use a dedicated method so UI update logic is centralized and non-blocking.
-                if (data.Count > 0)
-                {
-                    var last = data[data.Count - 1];
-                    UpdateForceReadingLabel(last.Newtons);
+                    double[] xs, ys;
+                    if (total <= target)
+                    {
+                        xs = new double[total]; ys = new double[total];
+                        for (int i = 0; i < total; i++) { xs[i] = raw[i].X; ys[i] = raw[i].Y; }
+                    }
+                    else
+                    {
+                        int bins = Math.Max(1, target / 2);
+                        int pointsPerBin = (int)Math.Ceiling((double)total / bins);
+                        var xsList = new List<double>(bins * 2);
+                        var ysList = new List<double>(bins * 2);
+
+                        for (int b = 0; b < bins; b++)
+                        {
+                            int start = b * pointsPerBin;
+                            int end = Math.Min(total, start + pointsPerBin);
+                            if (start >= end) break;
+                            double minY = double.MaxValue, maxY = double.MinValue;
+                            double minX = 0, maxX = 0;
+                            for (int i = start; i < end; i++)
+                            {
+                                var p = raw[i];
+                                if (p.Y < minY) { minY = p.Y; minX = p.X; }
+                                if (p.Y > maxY) { maxY = p.Y; maxX = p.X; }
+                            }
+                            xsList.Add(minX); ysList.Add(minY);
+                            if (maxY != minY) { xsList.Add(maxX); ysList.Add(maxY); }
+                        }
+                        xs = xsList.ToArray(); ys = ysList.ToArray();
+                    }
+
+                    // marshal update to UI
+                    try
+                    {
+                        this.BeginInvoke(new Action<double[], double[]>((a, b) => UpdateChartWithArrays(a, b)), xs, ys);
+                    }
+                    catch { }
                 }
             }
+
+            // finalize file writer
+            try
+            {
+                if (fileWriteQueue != null) { fileWriteQueue.CompleteAdding(); fileWriterTask?.Wait(500); fileWriteQueue = null; }
+            }
+            catch { }
+        }
+
+        private void UpdateChartWithArrays(double[] xs, double[] ys)
+        {
+            try
+            {
+                if (MonitorResponseChart == null) return;
+                if (MonitorResponseChart.Series.Count == 0)
+                {
+                    MonitorResponseChart.Series.Add(new Series { ChartType = SeriesChartType.FastLine, XValueType = ChartValueType.Double, YValueType = ChartValueType.Double });
+                }
+                var s = MonitorResponseChart.Series[0];
+                s.Points.DataBindXY(xs, ys);
+
+                if (xs.Length > 0 && MonitorResponseChart.ChartAreas.Count > 0)
+                {
+                    var area = MonitorResponseChart.ChartAreas[0];
+                    area.AxisX.Minimum = xs.First();
+                    area.AxisX.Maximum = xs.Last();
+                }
+            }
+            catch { }
         }
 
         /// <summary>
@@ -507,6 +592,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
             {
                 //Make this a task to run a seperate thread to leave ui response
                 await Task.Run(() => MTAengine.HomeYStage());
+
             }
             SendYToHomeButton.Enabled = true;
         }
@@ -657,63 +743,41 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
 
 
-        private async void DAQStopMonitoringButton_Click(object sender, EventArgs e)
+        private void DAQStopMonitoringButton_Click(object sender, EventArgs e)
         {
-            // disable immediately to prevent re-entrancy
-            try { if (DAQStopMonitoringButton != null) DAQStopMonitoringButton.Enabled = false; } catch { }
-
-            var engine = MTAengine;
-            try
+            if (InvokeRequired)
             {
-                if (engine != null)
+                Invoke(new Action(() =>
                 {
-                    // run stop on background thread to avoid blocking UI or hitting native driver timeouts
-                    await Task.Run(() =>
+                    if (MTAengine.IsStageRunning)
                     {
-                        try
-                        {
-                            engine.StopAllImmediate();
-                        }
-                        catch (Exception ex)
-                        {
-                            try { engine.ErrorString = "StopAllImmediate error: " + ex.Message; } catch { }
-                        }
-                    });
+                        MTAengine.StopMotionController();
+                        MTAengine.IsStageRunning = false;
+                    }
+                    if (MTAengine.IsMonitoring)
+                    {
+                        MTAengine.StopBackgroundCollection();
+                        MTAengine.IsMonitoring = false;
+                    }
 
-                    try { engine.IsStageRunning = false; } catch { }
-                    try { engine.IsMonitoring = false; } catch { }
-                }
+                }));
+
             }
-            catch (Exception ex)
+            else
             {
-                try { MessageBox.Show("Stop error: " + ex.Message); } catch { }
-            }
-            finally
-            {
-                // Always re-enable the button on the UI thread
-                try
+                if (MTAengine.Stage.ConnectionStatus)
                 {
-                    Action uiUpdate = () =>
-                    {
-                        try
-                        {
-                            if (ConnectionStatusResponseLabel != null)
-                            {
-                                bool connected = false;
-                                try { connected = MTAengine?.Stage?.ConnectionStatus == true; } catch { connected = false; }
-                                ConnectionStatusResponseLabel.Text = connected ? "Connected" : "Not Connected";
-                                ConnectionStatusResponseLabel.ForeColor = connected ? Color.Green : Color.Red;
-                            }
-                        }
-                        catch { }
-
-                        try { if (DAQStopMonitoringButton != null) DAQStopMonitoringButton.Enabled = true; } catch { }
-                    };
-
-                    if (this.IsHandleCreated && this.InvokeRequired) this.BeginInvoke(uiUpdate); else uiUpdate();
+                    MTAengine.StopMotionController();
+                    MTAengine.IsStageRunning = false;
                 }
-                catch { }
+                if (MTAengine.IsMonitoring)
+                {
+                    MTAengine.StopBackgroundCollection();
+                    MTAengine.IsMonitoring = false;
+                }
+
             }
+
         }
 
         private async void StartConstantMonitorButton_Click(object sender, EventArgs e)
