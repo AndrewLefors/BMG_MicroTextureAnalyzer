@@ -9,6 +9,8 @@ using System.Runtime.InteropServices.Marshalling;
 using System.Runtime.InteropServices;
 using System;
 using System.Runtime.CompilerServices;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace BMG_MicroTextureAnalyzer
 {
@@ -16,7 +18,7 @@ namespace BMG_MicroTextureAnalyzer
     {
         private MccBoard _board;
         private bool _isMonitoring;
-        private MccDaq.Range _range = MccDaq.Range.BipPt078Volts;
+        private MccDaq.Range _range = MccDaq.Range.Bip10Volts;
         private MotionController _stage;
         private double _yStagePosition;
         private double _stageSpeed = 0; //default speed of 19.1um/s //Stage uses 0-255 as speed values corresponding to the following equation: Actual speed(mm/s) = (speed value+1) * 22000 * pulse equivalent / 720
@@ -59,6 +61,26 @@ namespace BMG_MicroTextureAnalyzer
         private double _newtonConversion;
 
         private double _voltageOffset = 0.0;
+
+        // Force offset (Newtons) - engine-side zeroing target
+        private double _forceOffset = 0.0;
+        public double ForceOffset
+        {
+            get => _forceOffset;
+            set
+            {
+                if (_forceOffset != value)
+                {
+                    _forceOffset = value;
+                    OnPropertyChanged(nameof(ForceOffset));
+                }
+            }
+        }
+
+        // Recent force buffer for engine-side zeroing (values in Newtons).
+        private readonly object _recentForceLock = new object();
+        private readonly Queue<double> _recentForces = new Queue<double>();
+        private int _recentForceBufferSize = 200; // number of recent samples to keep
 
         private int _rate = 1000; //default of 1kHz
         private double _dataCollectionTime = 10; //default of 10 seconds
@@ -270,7 +292,7 @@ namespace BMG_MicroTextureAnalyzer
 
 
             _dataCollectorWorker = new BackgroundWorker();
-            _dataCollectorWorker.DoWork += DataCollectorWorker_PunctureTest;
+            //_dataCollectorWorker.DoWork += DataCollectorWorker_PunctureTest;
             _dataCollectorWorker.WorkerSupportsCancellation = true;
             _dataCollectorWorker.RunWorkerAsync();
 
@@ -324,6 +346,7 @@ namespace BMG_MicroTextureAnalyzer
                 this.ErrorString = ex.Message;
             }
             
+
 
             if (MemHandle == 0)
             {
@@ -501,6 +524,57 @@ namespace BMG_MicroTextureAnalyzer
                     OnPropertyChanged(nameof(VoltageOffset));
                 }
             }
+        }
+
+        /// <summary>
+        /// Adds a processed force sample (Newtons) to the engine's recent-sample buffer.
+        /// Call this after creating a ProcessedDataChangedEventArgs so the buffer contains
+        /// the engine's processed force samples (before offset application).
+        /// </summary>
+        private void AddRecentForceSample(double newtons)
+        {
+            lock (_recentForceLock)
+            {
+                _recentForces.Enqueue(newtons);
+                while (_recentForces.Count > _recentForceBufferSize)
+                    _recentForces.Dequeue();
+            }
+        }
+
+        /// <summary>
+        /// Compute a robust zero (force offset in Newtons) from the recent processed-force samples and set ForceOffset.
+        /// Uses median by default which is robust to spikes.
+        /// </summary>
+        public void ComputeAndSetForceOffset(int sampleCount = 100, bool useMedian = true)
+        {
+            double[] snap;
+            lock (_recentForceLock)
+            {
+                if (_recentForces.Count == 0) return;
+                int take = Math.Min(sampleCount, _recentForces.Count);
+                snap = _recentForces.Skip(Math.Max(0, _recentForces.Count - take)).Take(take).ToArray();
+            }
+
+            if (snap.Length == 0) return;
+
+            double offset;
+            if (useMedian)
+            {
+                Array.Sort(snap);
+                int m = snap.Length / 2;
+                offset = (snap.Length % 2 == 1) ? snap[m] : ((snap[m - 1] + snap[m]) / 2.0);
+            }
+            else
+            {
+                offset = snap.Average();
+            }
+
+            this.ForceOffset = offset;
+        }
+
+        public void SetForceOffset(double newtons)
+        {
+            this.ForceOffset = newtons;
         }
 
         public double VoltConversion
@@ -809,7 +883,7 @@ namespace BMG_MicroTextureAnalyzer
                 this._board = new MccBoard(1);
             }
             int channel = 7;
-            MccDaq.Range range = MccDaq.Range.BipPt078Volts;
+            MccDaq.Range range = MccDaq.Range.Bip10Volts;
             while (!_dataCollectorWorker.CancellationPending)
             {
                 MccDaq.ErrorInfo ulStat = this._board.AIn32(channel, range, out int rawData, 0);
@@ -834,7 +908,7 @@ namespace BMG_MicroTextureAnalyzer
             
             short status;
             //Need to shorten the range to accommodate the 5V input from the load cell to get more accurate results (currently using 78mV when maxiumum range is 7.5mV)
-            MccDaq.Range range = MccDaq.Range.BipPt078Volts;
+            MccDaq.Range range = MccDaq.Range.Bip10Volts;
             MccDaq.Range altRange = MccDaq.Range.Bip10Volts; //Use this for puncture tests, this should provide highest resolution for the load cell below 100mN
             MccDaq.Range iaa300 = MccDaq.Range.Bip10Volts; //Use this for the fracture test, this should provide highest resolution for the load cell below 500mN
             int rate = this.Rate;
@@ -865,8 +939,8 @@ namespace BMG_MicroTextureAnalyzer
             int lastIndex = 0;
             int[] dataBuffer = new int[this.NumPoints];
             double[] engUnits = new double[this.NumPoints];
-            MccDaq.Range range = MccDaq.Range.BipPt078Volts;
-            MccDaq.Range altRange = MccDaq.Range.BipPt005Volts;
+            MccDaq.Range range = MccDaq.Range.Bip10Volts;
+            MccDaq.Range altRange = MccDaq.Range.Bip10Volts;
             MccDaq.Range iaa300 = MccDaq.Range.Bip10Volts;
 
             while (!_dataCollectorWorker2.CancellationPending && !ThresholdMet)
@@ -922,7 +996,7 @@ namespace BMG_MicroTextureAnalyzer
             }
            
             int channel = 7;
-            MccDaq.Range range = MccDaq.Range.BipPt078Volts;
+            MccDaq.Range range = MccDaq.Range.Bip10Volts;
 
 
             //TranslateYStage(-100); // Move the stage 100mm down to get the stage on the sample
@@ -967,7 +1041,7 @@ namespace BMG_MicroTextureAnalyzer
             while (!_dataCollectorWorker.CancellationPending && !ThresholdMet)
             {
 
-
+                //Thread.Sleep(1);
             }
             //cancel the background worker
             _dataCollectorWorker.CancelAsync();
@@ -1034,15 +1108,22 @@ namespace BMG_MicroTextureAnalyzer
                     {
                         throw new Exception("Error converting raw data to : " + ulStat.Message);
                     }
+
                     ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion);
+
+                    // record force (Newtons) before offset so we can compute a robust zero in force units
+                    AddRecentForceSample(processedData.Newtons);
+
+                    // apply engine-side force offset so downstream consumers receive zeroed forces
+                    processedData.Newtons = processedData.Newtons - this.ForceOffset;
+
                     //Run an async task to check the data if it meets or exceeds the threshold
-                 
                     if (processedData.Newtons >= this.FindPlaneThreshold)
                     {
                         this.ThresholdMet = true;
                         this.StopBackgroundCollection();
                     }
-                    
+
                     lock (_dataLock)
                     {
                         _processedDataList.Add(processedData);
@@ -1055,45 +1136,20 @@ namespace BMG_MicroTextureAnalyzer
 
         }
 
-        private void DataCollectorWorker_PunctureTest(object sender, DoWorkEventArgs e)
-        {
-            if (this._board == null)
-            {
-                this._board = new MccBoard(1);
-            }
-            //sender.
-            int channel = 7;
-            MccDaq.Range range = MccDaq.Range.BipPt078Volts;
-            TranslateYStage(this.PunctureDistance); // Move the stage 100mm down to get the stage on the sample
-
-            while (!((BackgroundWorker)sender).CancellationPending && !ThresholdMet)
-            {
-                MccDaq.ErrorInfo ulStat = this._board.AIn32(channel, range, out int rawData, 0);
-                if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
-                {
-                    throw new Exception("Error reading analog input: " + ulStat.Message);
-                }
-            
-                RawDataChangedEventArgs dataChangedEventArgs = new RawDataChangedEventArgs(rawData);
-                _dataQueue.Enqueue(dataChangedEventArgs);
-                Thread.Sleep(2); // Adjust sampling rate as necessary
-
-            }
-        }
-
-
         private void DataProcessorWorker_DoWork(object sender, DoWorkEventArgs e)
         {
             while (!((BackgroundWorker)sender).CancellationPending)
             {
                 if (_dataQueue.TryDequeue(out RawDataChangedEventArgs args))
                 {
-                    MccDaq.ErrorInfo ulStat = _board.ToEngUnits32(MccDaq.Range.BipPt078Volts, args.RawData, out double voltage);
+                    MccDaq.ErrorInfo ulStat = _board.ToEngUnits32(MccDaq.Range.Bip10Volts, args.RawData, out double voltage);
                     if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
                     {
                         throw new Exception("Error converting raw data to voltage: " + ulStat.Message);
                     }
                     ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion);
+                    AddRecentForceSample(processedData.Newtons);
+                    processedData.Newtons = processedData.Newtons - this.ForceOffset;
                     lock (_dataLock)
                     {
                         _processedDataList.Add(processedData);
@@ -1110,53 +1166,54 @@ namespace BMG_MicroTextureAnalyzer
         {
             //this.Stage.MoveYAbsolute(100);
             MccDaq.Range iaa300 = MccDaq.Range.Bip10Volts;
-            MccDaq.Range range = MccDaq.Range.BipPt078Volts;
+            MccDaq.Range range = MccDaq.Range.Bip10Volts;
             while (!((BackgroundWorker)sender).CancellationPending && !ThresholdMet)
             {
                // this.GetYLocation();
                 if (_dataQueue.TryDequeue(out RawDataChangedEventArgs args))
                 {
-                    MccDaq.ErrorInfo ulStat = _board.ToEngUnits32(iaa300, args.RawData, out double voltage); //Changed from bipPt078Volts to bipPt005Volts on Feb 17 2025
+                    MccDaq.ErrorInfo ulStat = _board.ToEngUnits32(iaa300, args.RawData, out double voltage); //Changed from Bip10Volts to Bip10Volts on Feb 17 2025
                     if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
                     {
                         throw new Exception("Error converting raw data to : " + ulStat.Message);
                     }
                     ProcessedDataChangedEventArgs processedData = null;
-                    //if (this.Stage.ConnectionStatus && this.IsStageRunning)
-                    //{
-                        //this.GetYLocation();
-                    processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion, this.YStagePosition);
-                    //}
-                    //else
-                    //{
-                    //    processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion);
-                    //}
-                    //Run an async task to check the data if it meets or exceeds the threshold
-                    Task.Run(() =>
-                    {
-                        if (processedData.Newtons >= this.FindPlaneThreshold +this.VoltageOffset)
-                        {
-                            this.ThresholdMet = true;
-                            //this.Stage.Stop();
-                            this.StopMotionController();
-                            this.IsStageRunning = false;
-                            this._board.StopBackground(FunctionType.AiFunction);
-                            this.IsMonitoring = false;
-                            //this._stageWorker.CancelAsync();
-                        }
-                    });
-                    lock (_dataLock)
-                    {
-                        _processedDataList.Add(processedData);
-                    }
-                    OnDataChanged(processedData);
-                }
-                //Thread.Sleep(2);// Adjust processing rate as necessary
-            }   
-            e.Cancel = true;
+                     //if (this.Stage.ConnectionStatus && this.IsStageRunning)
+                     //{
+                         //this.GetYLocation();
+                     processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion, this.YStagePosition);
+                     //}
+                     //else
+                     //{
+                     //    processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion);
+                     //}
+                     AddRecentForceSample(processedData.Newtons);
+                     processedData.Newtons = processedData.Newtons - this.ForceOffset;
+                     //Run an async task to check the data if it meets or exceeds the threshold
+                     Task.Run(() =>
+                     {
+                         if (processedData.Newtons >= this.FindPlaneThreshold + this.VoltageOffset)
+                         {
+                             this.ThresholdMet = true;
+                             //this.Stage.Stop();
+                             this.StopMotionController();
+                             this.IsStageRunning = false;
+                             this._board.StopBackground(FunctionType.AiFunction);
+                             this.IsMonitoring = false;
+                             //this._stageWorker.CancelAsync();
+                         }
+                     });
+                     lock (_dataLock)
+                     {
+                         _processedDataList.Add(processedData);
+                     }
+                     OnDataChanged(processedData);
+                 }
+                 //Thread.Sleep(2);// Adjust processing rate as necessary
+             }
+             e.Cancel = true;
+         }
 
-        }
-        //This method needs to be refactored or else it rematurely stops the stage from reaching the desired plane
         private void DataProcessorWorker_FindPlane(object sender, DoWorkEventArgs e)
         {
             MccDaq.Range range = MccDaq.Range.Bip10Volts;
@@ -1170,73 +1227,39 @@ namespace BMG_MicroTextureAnalyzer
                     {
                         throw new Exception("Error converting raw data to voltage: " + ulStat.Message);
                     }
-                    if (((voltage - this.VoltageOffset) * this.VoltageConversion * this.NewtonConversion) > this.FindPlaneThreshold)
-                    {
-                        ThresholdMet = true;
-                        //this.Stage.Stop();
-                        //this._board.StopBackground(FunctionType.AiFunction);
-                        this.StopBackgroundCollection();
-                        this.IsMonitoring = false;
-                        this.IsStageRunning = false;
-
-                        //this._stageWorker.CancelAsync();
-                    }
-                    //Task.Run(() =>this.GetYLocation());
                     ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion, this.YStagePosition);
-                    lock (_dataLock)
-                    {
-                        _processedDataList.Add(processedData);
-                    }
-                    OnDataChanged(processedData);
-                }
-                //Thread.Sleep(1);// Adjust processing rate as necessary
-            }
+                    AddRecentForceSample(processedData.Newtons);
+                    processedData.Newtons = processedData.Newtons - this.ForceOffset;
+                    if (processedData.Newtons > this.FindPlaneThreshold)
+                     {
+                         ThresholdMet = true;
+                         //this.Stage.Stop();
+                         //this._board.StopBackground(FunctionType.AiFunction);
+                         this.StopBackgroundCollection();
+                         this.IsMonitoring = false;
+                         this.IsStageRunning = false;
 
-            //Thread.Sleep(1000);
-            this.GetYLocation();
-            this.Stage.Delay();
-            TranslateYStage(0.5);
-            e.Cancel = true;
-            
-           // ((BackgroundWorker)sender).CancelAsync();
+                         //this._stageWorker.CancelAsync();
+                     }
+                     //Task.Run(() =>this.GetYLocation());
+                     lock (_dataLock)
+                     {
+                         _processedDataList.Add(processedData);
+                     }
+                     OnDataChanged(processedData);
+                 }
+                 //Thread.Sleep(1);// Adjust processing rate as necessary
+             }
 
-        }
+             //Thread.Sleep(1000);
+             this.GetYLocation();
+             this.Stage.Delay();
+             TranslateYStage(0.5);
+             e.Cancel = true;
+             
+            // ((BackgroundWorker)sender).CancelAsync();
 
-        //private void DataProcessorWorker_FractureTest(object sender, DoWorkEventArgs e)
-        //{
-
-        //    while (!((BackgroundWorker)sender).CancellationPending && !ThresholdMet)
-        //    {
-        //        if (_dataQueue.TryDequeue(out RawDataChangedEventArgs args))
-        //        {
-        //            MccDaq.ErrorInfo ulStat = _board.ToEngUnits32(MccDaq.Range.BipPt078Volts, args.RawData, out double voltage);
-        //            if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
-        //            {
-        //                throw new Exception("Error converting raw data to voltage: " + ulStat.Message);
-        //            }
-        //            if ((voltage * this.VoltageConversion) >= 25) //If over the voltage limit for the LC or 2 minutes have passed
-        //            {
-        //                ThresholdMet = true;
-        //                this.Stage.Stop();
-        //                Task.Run(() => this.StopAsync());
-        //            }
-        //            ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion);
-        //            lock (_dataLock)
-        //            {
-        //                _processedDataList.Add(processedData);
-        //            }
-        //            OnDataChanged(processedData);
-        //        }
-        //        Thread.Sleep(1);// Adjust processing rate as necessary
-        //    }
-        //    this.SetStageSpeed(100);
-        //    Thread.Sleep(1000);
-        //    TranslateYStage(5);
-        //    e.Cancel = true;
-
-        //    //((BackgroundWorker)sender).CancelAsync();
-
-        //}
+         }
 
         private void DataProcessorWorker_PunctureTest(object sender, DoWorkEventArgs e)
         {
@@ -1245,76 +1268,36 @@ namespace BMG_MicroTextureAnalyzer
             {
                 if (_dataQueue.TryDequeue(out RawDataChangedEventArgs args))
                 {
-                    MccDaq.ErrorInfo ulStat = _board.ToEngUnits32(MccDaq.Range.BipPt078Volts, args.RawData, out double voltage);
+                    MccDaq.ErrorInfo ulStat = _board.ToEngUnits32(MccDaq.Range.Bip10Volts, args.RawData, out double voltage);
                     if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
                     {
                         throw new Exception("Error converting raw data to voltage: " + ulStat.Message);
                     }
-                    if (((voltage - this.VoltageOffset) * this.VoltageConversion * this.NewtonConversion) >= this.PunctureThreshold)
-                    {
-                        ThresholdMet = true;
-                        this.Stage.Stop();
-                        //Task.Run(() => this.StopAsync());
-                    }   
                     ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion);
-                    lock (_dataLock)
-                    {
-                        _processedDataList.Add(processedData);
-                    }
-                    OnDataChanged(processedData);
-                }
-                Thread.Sleep(1);// Adjust processing rate as necessary
-            }
-            this.SetStageSpeed(100);
-            Thread.Sleep(1000);
-            TranslateYStage(3);
-            e.Cancel = true;
+                    AddRecentForceSample(processedData.Newtons);
+                    processedData.Newtons = processedData.Newtons - this.ForceOffset;
+                    if (processedData.Newtons >= this.PunctureThreshold)
+                     {
+                         ThresholdMet = true;
+                         this.Stage.Stop();
+                         //Task.Run(() => this.StopAsync());
+                     }   
+                     lock (_dataLock)
+                     {
+                         _processedDataList.Add(processedData);
+                     }
+                     OnDataChanged(processedData);
+                 }
+                 Thread.Sleep(1);// Adjust processing rate as necessary
+             }
+             this.SetStageSpeed(100);
+             Thread.Sleep(1000);
+             TranslateYStage(3);
+             e.Cancel = true;
 
-            //((BackgroundWorker)sender).CancelAsync();
+             //((BackgroundWorker)sender).CancelAsync();
 
-        }
-
-        private void StageWorker_StartStage(object sender, DoWorkEventArgs e)
-        {
-            _isStageMoving = true;
-            // Start stage movement
-            TranslateYStage(100);
-        }
-
-        public void StageWorker_GetStagePosition(object sender, DoWorkEventArgs e)
-        {
-            // Get the current stage position
-            while (this.IsStageRunning)
-            {
-                this.GetYLocation();
-                this.Stage.Delay();
-            }
-        }
-
-        private void StageWorker_FindPlane(object sender, DoWorkEventArgs e)
-        {
-       
-
-            // Monitor for threshold signal
-            while (_isStageMoving && !((BackgroundWorker)sender).CancellationPending)
-            {
-                // Check threshold from the latest processed data
-                //double latestVoltage = GetLatestProcessedVoltage();
-                if (ThresholdMet)
-                {
-                    // Stop stage movement if threshold is met
-                    StopMotionController(); 
-                    _isStageMoving = false;
-                    
-                }
-
-                //Thread.Sleep(100); // Adjust control rate as necessary
-            }
-
-            e.Cancel = true;
-        }
-
-        
+         }
 
         protected virtual void OnDataChanged(ProcessedDataChangedEventArgs e)
         {

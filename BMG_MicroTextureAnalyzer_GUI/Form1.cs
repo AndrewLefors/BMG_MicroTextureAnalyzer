@@ -5,6 +5,7 @@ using System.Windows.Forms.DataVisualization.Charting;
 using System.Timers;
 using System.ComponentModel;
 using System.Collections.Concurrent;
+using System.Drawing;
 namespace BMG_MicroTextureAnalyzer_GUI
 {
     public partial class Form1 : Form
@@ -137,7 +138,14 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 {
                     if (dataQueue.TryDequeue(out Engine.ProcessedDataChangedEventArgs data))
                     {
-                        data.Newtons = data.Newtons - voltageOffset;
+                        data.Newtons = data.Newtons - this.MTAengine.ForceOffset;
+                        async void temp()
+                        {
+                            Task.Run(() =>
+                            {
+                                forceOffsetReadingLabel.Text = voltageOffset.ToString("F4");
+                            });
+                        }
                         batch.Add(data);
                     }
                 }
@@ -188,8 +196,59 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
                 }
                 ;
+
+                // Update force reading label with the most recent sample from the batch.
+                // Use a dedicated method so UI update logic is centralized and non-blocking.
+                if (data.Count > 0)
+                {
+                    var last = data[data.Count - 1];
+                    UpdateForceReadingLabel(last.Newtons);
+                }
             }
         }
+
+        /// <summary>
+        /// Update a UI label with the latest force reading (Newtons).
+        /// This method locates a control named "forceReadingLabel" (if present) and updates it.
+        /// If that control is not found, it falls back to updating the existing
+        /// "voltageOffsetReadingLabel" so callers don't have to know which label exists.
+        /// The update is performed via BeginInvoke to avoid blocking data threads.
+        /// </summary>
+        /// <param name="newtons">Force value in Newtons to display.</param>
+        private void UpdateForceReadingLabel(double newtons)
+        {
+            string text = newtons.ToString("F4");
+
+            Action setLabel = () =>
+            {
+                // Try to find a dedicated forceReadingLabel control by name (designer may or may not have added it).
+                var found = this.Controls.Find("forceReadingLabel", true);
+                if (found.Length > 0 && found[0] is Label lbl)
+                {
+                    lbl.Text = text;
+                    return;
+                }
+
+                // Fallback: update voltageOffsetReadingLabel if present
+                try
+                {
+                    if (forceOffsetReadingLabel != null)
+                    {
+                        forceOffsetReadingLabel.Text = text;
+                    }
+                }
+                catch
+                {
+                    // swallow any exceptions to avoid interrupting data processing
+                }
+            };
+
+            if (this.IsHandleCreated && this.InvokeRequired)
+                this.BeginInvoke(setLabel);
+            else
+                setLabel();
+        }
+
         private void MTAengine_DataChanged(object? sender, Engine.ProcessedDataChangedEventArgs e)
         {
             dataQueue.Enqueue(e);
@@ -349,6 +408,41 @@ namespace BMG_MicroTextureAnalyzer_GUI
                     //MTAengine.StopMotionController();
                     //MessageBox.Show("Threshold Met");
                 }
+            }
+
+            // Update UI when engine force offset changes so user always sees current zero
+            if (e.PropertyName == nameof(Engine.ForceOffset))
+            {
+                // Use BeginInvoke/Invoke to marshal to UI thread if needed
+                Action update = () =>
+                {
+                    try
+                    {
+                        if (forceOffsetReadingLabel != null)
+                        {
+                            forceOffsetReadingLabel.Text = MTAengine.ForceOffset.ToString("F4");
+
+                            // Visual confirmation when resetting to zero (briefly flash background)
+                            if (Math.Abs(MTAengine.ForceOffset) < 1e-6)
+                            {
+                                var orig = forceOffsetReadingLabel.BackColor;
+                                forceOffsetReadingLabel.BackColor = Color.LightGreen;
+                                // restore color after short delay without blocking UI thread
+                                Task.Run(async () =>
+                                {
+                                    await Task.Delay(500);
+                                    if (!forceOffsetReadingLabel.IsDisposed && forceOffsetReadingLabel.IsHandleCreated)
+                                    {
+                                        try { forceOffsetReadingLabel.BeginInvoke(new Action(() => forceOffsetReadingLabel.BackColor = orig)); } catch { }
+                                    }
+                                });
+                            }
+                        }
+                    }
+                    catch { }
+                };
+
+                if (InvokeRequired) BeginInvoke(update); else update();
             }
 
         }
@@ -595,7 +689,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
             MTAengine.DataCollectionTime = 600;
             if (double.TryParse(PlaneDetectionThresholdTextBox.Text, out var planeThresh))
             {
-                MTAengine.FindPlaneThreshold = planeThresh + voltageOffset;
+                MTAengine.FindPlaneThreshold = planeThresh + this.MTAengine.ForceOffset;
                 MTAengine.TranslateYStage(-1000);
                 MTAengine.FindPlane();
                 StartChartUpdateThread();
@@ -778,7 +872,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
         //        offset += Convert.ToDouble(DAQDataGridView.Rows[i].Cells[1].Value);
         //    }
         //    offset = offset / DAQDataGridView.RowCount;
-        //    MTAengine.VoltageOffset = offset;
+        //    MTAengine.ForceOffset = offset;
         //}
 
         private void MicroTextureAnalyzerTabPage_Click(object sender, EventArgs e)
@@ -890,15 +984,12 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
         private void zero_voltage_button_Click(object sender, EventArgs e)
         {
-            if (MonitorResponseChart.Series[0].Points.Count > 0)
-            {
-                voltageOffset = MonitorResponseChart.Series[0].Points.Average(point => point.YValues[0]);
-            }
+            this.MTAengine.ComputeAndSetForceOffset();
         }
 
         private void clear_zero_button_Click(object sender, EventArgs e)
         {
-            voltageOffset = 0.0;
+            this.MTAengine.SetForceOffset(0);
         }
 
         private void label6_Click(object sender, EventArgs e)

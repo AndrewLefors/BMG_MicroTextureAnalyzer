@@ -90,7 +90,7 @@
             DaqDeviceTabPage = new TabPage();
             tableLayoutPanel16 = new TableLayoutPanel();
             label12 = new Label();
-            voltageOffsetReadingLabel = new Label();
+            forceOffsetReadingLabel = new Label();
             label5 = new Label();
             tableLayoutPanel15 = new TableLayoutPanel();
             label11 = new Label();
@@ -829,7 +829,7 @@
             tableLayoutPanel16.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
             tableLayoutPanel16.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 48F));
             tableLayoutPanel16.Controls.Add(label12, 2, 0);
-            tableLayoutPanel16.Controls.Add(voltageOffsetReadingLabel, 1, 0);
+            tableLayoutPanel16.Controls.Add(forceOffsetReadingLabel, 1, 0);
             tableLayoutPanel16.Controls.Add(label5, 0, 0);
             tableLayoutPanel16.Location = new Point(744, 112);
             tableLayoutPanel16.Name = "tableLayoutPanel16";
@@ -845,21 +845,21 @@
             label12.Font = new Font("Segoe UI", 16F);
             label12.Location = new Point(181, 16);
             label12.Name = "label12";
-            label12.Size = new Size(24, 30);
+            label12.Size = new Size(29, 30);
             label12.TabIndex = 3;
-            label12.Text = "v";
+            label12.Text = "N";
             // 
-            // voltageOffsetReadingLabel
+            // forceOffsetReadingLabel
             // 
-            voltageOffsetReadingLabel.Anchor = AnchorStyles.Right;
-            voltageOffsetReadingLabel.AutoSize = true;
-            voltageOffsetReadingLabel.Font = new Font("Segoe UI", 16F);
-            voltageOffsetReadingLabel.Location = new Point(123, 16);
-            voltageOffsetReadingLabel.Name = "voltageOffsetReadingLabel";
-            voltageOffsetReadingLabel.Size = new Size(52, 30);
-            voltageOffsetReadingLabel.TabIndex = 2;
-            voltageOffsetReadingLabel.Text = "N/A";
-            voltageOffsetReadingLabel.Click += voltageOffsetReadingLabel_Click;
+            forceOffsetReadingLabel.Anchor = AnchorStyles.Right;
+            forceOffsetReadingLabel.AutoSize = true;
+            forceOffsetReadingLabel.Font = new Font("Segoe UI", 16F);
+            forceOffsetReadingLabel.Location = new Point(123, 16);
+            forceOffsetReadingLabel.Name = "forceOffsetReadingLabel";
+            forceOffsetReadingLabel.Size = new Size(52, 30);
+            forceOffsetReadingLabel.TabIndex = 2;
+            forceOffsetReadingLabel.Text = "N/A";
+            forceOffsetReadingLabel.Click += voltageOffsetReadingLabel_Click;
             // 
             // label5
             // 
@@ -1533,7 +1533,7 @@
         private Label label8;
         private Label label3;
         private TableLayoutPanel tableLayoutPanel16;
-        private Label voltageOffsetReadingLabel;
+        private Label forceOffsetReadingLabel;
         private Label label5;
         private Label label12;
         private Button StartConstantMonitorButton;
