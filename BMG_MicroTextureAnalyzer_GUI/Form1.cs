@@ -49,6 +49,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
         private double voltageOffset = 0;
 
         private bool chartSaveToFile = false;
+        private string fileSavePath = null;
         private int displayWindowSeconds = 30; // seconds of data to keep in circular buffer
         private int maxDisplayPoints = 1200; // maximum points to display (approx pixels)
         private CircularBuffer<(double X, double Y)> displayBuffer;
@@ -127,25 +128,65 @@ namespace BMG_MicroTextureAnalyzer_GUI
             {
                 return;
             }
-            //MonitorResponseChart = new Chart();
 
-            await Task.Run(() => MonitorResponseChart.Invoke(() =>
+            // stop any previous chart thread
+            try { chartCancellationTokenSource?.Cancel(); } catch { }
+            if (chartUpdateThread != null && chartUpdateThread.IsAlive)
             {
-                MonitorResponseChart.Series.Clear();
-                Series series = new Series
+                try { chartUpdateThread.Join(200); } catch { }
+            }
+
+            // prepare circular buffer
+            int rate = Math.Max(1, MTAengine.Rate);
+            int capacity = Math.Max(1000, rate * displayWindowSeconds);
+            displayBuffer = new CircularBuffer<(double X, double Y)>(capacity);
+
+            // prepare file writer if saving mode and path provided
+            if (chartSaveToFile && !string.IsNullOrEmpty(fileSavePath))
+            {
+                try
                 {
-                    ChartType = SeriesChartType.Line
-                };
-                MonitorResponseChart.Series.Add(series);
-                chartUpdateThread = new Thread(ProcessDataQueue);
-                chartUpdateThread.IsBackground = true;
-                chartUpdateThread.Start();
-            }));
-            //Get YPosition
-            //chartUpdateThread.Join();
+                    fileWriteQueue = new BlockingCollection<string>(new ConcurrentQueue<string>());
+                    var path = fileSavePath; // capture
+                    fileWriterTask = Task.Run(() =>
+                    {
+                        try
+                        {
+                            using (var sw = new StreamWriter(path, false))
+                            {
+                                sw.WriteLine("Time,Newtons");
+                                foreach (var line in fileWriteQueue.GetConsumingEnumerable())
+                                {
+                                    sw.WriteLine(line);
+                                    if (fileWriteQueue.Count == 0) sw.Flush();
+                                }
+                            }
+                        }
+                        catch { }
+                    });
+                }
+                catch { }
+            }
 
+            // prepare chart series on UI thread
+            try
+            {
+                if (MonitorResponseChart != null && !MonitorResponseChart.IsDisposed)
+                {
+                    MonitorResponseChart.Invoke(new Action(() =>
+                    {
+                        MonitorResponseChart.Series.Clear();
+                        var s = new Series { ChartType = SeriesChartType.FastLine, XValueType = ChartValueType.Double, YValueType = ChartValueType.Double };
+                        MonitorResponseChart.Series.Add(s);
+                        try { typeof(Control).GetProperty("DoubleBuffered", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?.SetValue(MonitorResponseChart, true, null); } catch { }
+                    }));
+                }
+            }
+            catch { }
 
-
+            chartCancellationTokenSource = new CancellationTokenSource();
+            chartUpdateThread = new Thread(ProcessDataQueue) { IsBackground = true };
+            chartUpdateThread.Start();
         }
 
         //This function is under-cooked and should not be used until heavy revisions
@@ -782,6 +823,8 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
         private async void StartConstantMonitorButton_Click(object sender, EventArgs e)
         {
+            chartSaveToFile = false;
+            fileSavePath = null;
             await Task.Run(() => MTAengine.StopAsync());
             MonitorResponseChart.Series.Clear();
             this.relativeStartTime = -1;
@@ -880,6 +923,20 @@ namespace BMG_MicroTextureAnalyzer_GUI
             MTAengine.FindPlaneThreshold = 100 + voltageOffset;
             if (double.TryParse(FractureDepthTextBox.Text, out var depth))
             {
+                // Prompt user for file path before starting fracture test
+                using (var sfd = new SaveFileDialog())
+                {
+                    sfd.Filter = "CSV files (*.csv)|*.csv";
+                    sfd.FileName = $"fracture_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+                    if (sfd.ShowDialog() != DialogResult.OK)
+                    {
+                        // user cancelled - do not start test
+                        return;
+                    }
+                    fileSavePath = sfd.FileName;
+                    chartSaveToFile = true;
+                }
+
                 MTAengine.FractureDistance = depth;
                 DialogResult dresult = MessageBox.Show("Current Fracture Depth:" + MTAengine.FractureDistance);
                 //MTAengine.SetStageSpeed(1);
@@ -994,6 +1051,8 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
         private async void button1_Click(object sender, EventArgs e)
         {
+            chartSaveToFile = false;
+            fileSavePath = null;
             await Task.Run(() => MTAengine.StopAsync());
             Thread.Sleep(10);
             //await Task.Run(() => MTAengine.Stage.Stop());
@@ -1032,7 +1091,6 @@ namespace BMG_MicroTextureAnalyzer_GUI
             MTAengine.ContinuousScanTest();
             StartChartUpdateThread();
             //StartPositionUpdateThread();
-
 
 
         }
