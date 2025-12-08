@@ -957,7 +957,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
         {
             if (ThousandHertzRadioButton.Checked)
             {
-                MTAengine.Rate = 1000;
+                MTAengine.SetSamplingRate(1000);
             }
         }
 
@@ -965,7 +965,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
         {
             if (TwoThousandHertzRadioButton.Checked)
             {
-                MTAengine.Rate = 1500;
+                MTAengine.SetSamplingRate(2000);
             }
         }
 
@@ -973,7 +973,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
         {
             if (ThreeThousandHertzRadioButton.Checked)
             {
-                MTAengine.Rate = 2999;
+                MTAengine.SetSamplingRate(3000);
             }
         }
 

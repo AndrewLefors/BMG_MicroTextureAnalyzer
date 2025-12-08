@@ -83,6 +83,7 @@ namespace BMG_MicroTextureAnalyzer
         private int _recentForceBufferSize = 200; // number of recent samples to keep
 
         private int _rate = 1000; //default of 1kHz
+        private int _maxSampleRate = 3000; // maximum supported sample rate (adjust per hardware)
         private double _dataCollectionTime = 10; //default of 10 seconds
         private int _numPoints = 10000; //default of 10000 points (10 seconds @ 1kHz)
 
@@ -385,7 +386,7 @@ namespace BMG_MicroTextureAnalyzer
             _dataProcessorWorker.RunWorkerCompleted += (sender, e) =>
             {
                // _dataProcessorWorker.CancelAsync();
-                //_dataProcessorWorker.Dispose();  
+                //_dataProcessorWorkerDispose();  
             };
             _dataCollectorWorker.RunWorkerCompleted -= (sender, e) =>
             {
@@ -460,6 +461,108 @@ namespace BMG_MicroTextureAnalyzer
                     _rate = value;
                     _numPoints = (int)(DataCollectionTime * Rate);
                     OnPropertyChanged(nameof(Rate));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Safely change the sampling rate at runtime. If a continuous scan is active this will stop it,
+        /// reallocate the DAQ buffer for the new rate, then restart the continuous-scan workers.
+        /// </summary>
+        public void SetSamplingRate(int newRate)
+        {
+            if (newRate <= 0) return;
+
+            if (newRate > _maxSampleRate)
+            {
+                this.ErrorString = $"Requested rate {newRate} > max {_maxSampleRate}. Clamping to {_maxSampleRate}.";
+                newRate = _maxSampleRate;
+            }
+
+            bool wasMonitoring = this.IsMonitoring;
+            bool wasRunning = this.IsRunning;
+
+            // Stop background acquisition if running
+            if (wasMonitoring)
+            {
+                try
+                {
+                    // signal background scan to stop
+                    this.StopBackgroundCollection();
+                    // also request workers cancellation if present
+                    if (_dataCollectorWorker != null && _dataCollectorWorker.IsBusy) _dataCollectorWorker.CancelAsync();
+                    if (_dataCollectorWorker2 != null && _dataCollectorWorker2.IsBusy) _dataCollectorWorker2.CancelAsync();
+                    if (_dataProcessorWorker != null && _dataProcessorWorker.IsBusy) _dataProcessorWorker.CancelAsync();
+                }
+                catch (Exception ex)
+                {
+                    this.ErrorString = "Error stopping existing scan: " + ex.Message;
+                }
+
+                // Give workers a short time to stop
+                int wait = 0;
+                while (((_dataCollectorWorker != null && _dataCollectorWorker.IsBusy) || (_dataCollectorWorker2 != null && _dataCollectorWorker2.IsBusy) || (_dataProcessorWorker != null && _dataProcessorWorker.IsBusy)) && wait < 2000)
+                {
+                    Thread.Sleep(50);
+                    wait += 50;
+                }
+            }
+
+            // Set new rate and recompute buffer size
+            this.Rate = newRate;
+            _numPoints = (int)(DataCollectionTime * Rate);
+
+            // Reallocate DAQ buffer
+            try
+            {
+                if (MemHandle != IntPtr.Zero)
+                {
+                    MccDaq.MccService.WinBufFreeEx(MemHandle);
+                    MemHandle = IntPtr.Zero;
+                }
+                MemHandle = MccDaq.MccService.WinBufAlloc32Ex(NumPoints);
+                if (MemHandle == IntPtr.Zero)
+                {
+                    this.ErrorString = "Failed to allocate DAQ buffer for NumPoints=" + NumPoints;
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                this.ErrorString = "Buffer allocation error: " + ex.Message;
+                return;
+            }
+
+            // If we were monitoring, restart continuous-scan workers to use the new rate/buffer
+            if (wasMonitoring || wasRunning)
+            {
+                try
+                {
+                    // recreate workers similar to ContinuousScanTest
+                    _dataQueue.Clear();
+                    _processedDataList.Clear();
+
+                    _dataCollectorWorker = new BackgroundWorker();
+                    _dataCollectorWorker.DoWork += DataCollectorWorker_ContinuousScan;
+                    _dataCollectorWorker.WorkerSupportsCancellation = true;
+                    _dataCollectorWorker.RunWorkerAsync();
+
+                    _dataCollectorWorker2 = new BackgroundWorker();
+                    _dataCollectorWorker2.DoWork += DataReaderWorker_ContinuousScan;
+                    _dataCollectorWorker2.WorkerSupportsCancellation = true;
+                    _dataCollectorWorker2.RunWorkerAsync();
+
+                    _dataProcessorWorker = new BackgroundWorker();
+                    _dataProcessorWorker.DoWork += DataProcessorWorker_ContinuousScanInput;
+                    _dataProcessorWorker.WorkerSupportsCancellation = true;
+                    _dataProcessorWorker.RunWorkerAsync();
+
+                    this.IsMonitoring = true;
+                    this._isRunning = true;
+                }
+                catch (Exception ex)
+                {
+                    this.ErrorString = "Failed to restart acquisition after rate change: " + ex.Message;
                 }
             }
         }
@@ -1289,7 +1392,7 @@ namespace BMG_MicroTextureAnalyzer
                      OnDataChanged(processedData);
                  }
                  Thread.Sleep(1);// Adjust processing rate as necessary
-             }
+            }
              this.SetStageSpeed(100);
              Thread.Sleep(1000);
              TranslateYStage(3);
