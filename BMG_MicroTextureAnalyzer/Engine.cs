@@ -14,6 +14,17 @@ using System.Linq;
 
 namespace BMG_MicroTextureAnalyzer
 {
+    public class UserNotificationEventArgs : EventArgs
+    {
+        public string Message { get; }
+        public string Caption { get; }
+        public bool IsError { get; }
+        public UserNotificationEventArgs(string message, string caption = null, bool isError = false)
+        {
+            Message = message; Caption = caption; IsError = isError;
+        }
+    }
+
     public class Engine : INotifyPropertyChanged
     {
         private MccBoard _board;
@@ -107,7 +118,48 @@ namespace BMG_MicroTextureAnalyzer
 
         public event EventHandler<ProcessedDataChangedEventArgs> DataChanged;
         public event PropertyChangedEventHandler PropertyChanged = delegate { };
+        // Event UI can subscribe to in order to show MessageBox or other user-facing messages
+        public event EventHandler<UserNotificationEventArgs> UserNotification;
 
+        private void NotifyUser(string message, string caption = null, bool isError = false)
+        {
+            try
+            {
+                this.ErrorString = message;
+                UserNotification?.Invoke(this, new UserNotificationEventArgs(message, caption, isError));
+            }
+            catch { }
+
+            if (isError)
+            {
+                // Ensure engine is moved to a safe idle state so UI can start new operations.
+                try
+                {
+                    // Stop acquisition and stage immediately and clear running flags
+                    StopAllImmediate();
+
+                    // Also set logical flags in case StopAllImmediate didn't clear them
+                    _isMonitoring = false;
+                    _isRunning = false;
+                    _isStageMoving = false;
+                    ThresholdMet = false;
+
+                    // Attempt an automatic reset in background to recreate DAQ resources so UI actions will work again
+                    Task.Run(() =>
+                    {
+                        try
+                        {
+                            ResetEngine();
+                        }
+                        catch { }
+                    });
+                }
+                catch
+                {
+                    // swallow - best-effort cleanup
+                }
+            }
+        }
 
         public void StartMonitor()
         {
@@ -1034,18 +1086,33 @@ namespace BMG_MicroTextureAnalyzer
             MccDaq.Range range = MccDaq.Range.Bip10Volts;
             while (!_dataCollectorWorker.CancellationPending)
             {
-                MccDaq.ErrorInfo ulStat = this._board.AIn32(channel, range, out int rawData, 0);
-                if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
+                try
                 {
-                    throw new Exception("Error reading analog input: " + ulStat.Message);
+                    MccDaq.ErrorInfo ulStat = this._board.AIn32(channel, range, out int rawData, 0);
+                    if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
+                    {
+                        // record error and notify UI (via event), then stop gracefully
+                        var msg = "AIn32 failed: " + ulStat.Message;
+                        this.ErrorString = msg;
+                        NotifyUser(msg, "DAQ Error", true);
+                        try { this._board?.StopBackground(FunctionType.AiFunction); } catch { }
+                        break;
+                    }
+                    RawDataChangedEventArgs dataChangedEventArgs = new RawDataChangedEventArgs(rawData);
+                    _dataQueue.Enqueue(dataChangedEventArgs);
+                    Thread.Sleep(2); // Adjust sampling rate as necessary
                 }
-                //ulStat = daqBoard.ToEngUnits32(range, rawData, out double voltage);
-                //Create new datachangedevent args to store the timestamp and voltage
-                RawDataChangedEventArgs dataChangedEventArgs = new RawDataChangedEventArgs(rawData);
-                _dataQueue.Enqueue(dataChangedEventArgs);
-                Thread.Sleep(2); // Adjust sampling rate as necessary
+                catch (Exception ex)
+                {
+                    var msg = "DataCollectorWorker error: " + ex.Message;
+                    this.ErrorString = msg;
+                    NotifyUser(msg, "DAQ Error", true);
+                    try { this._board?.StopBackground(FunctionType.AiFunction); } catch { }
+                    break;
+                }
             }
         }
+
         private void DataCollectorWorker_ContinuousScan(object sender, DoWorkEventArgs e)
         {
             if (this._board == null)
@@ -1053,7 +1120,7 @@ namespace BMG_MicroTextureAnalyzer
                 this._board = new MccBoard(1);
             }
             int channel = 7;
-            
+
             short status;
             MccDaq.Range iaa300 = MccDaq.Range.Bip10Volts;
             int rate = this.Rate;
@@ -1061,20 +1128,18 @@ namespace BMG_MicroTextureAnalyzer
             MccDaq.ErrorInfo ulStat = this._board.AInScan(channel, channel, NumPoints, ref rate, iaa300, MemHandle, ScanOptions.Background);
             if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
             {
-                // record error and stop gracefully instead of throwing
-                this.ErrorString = "AInScan failed: " + ulStat.Message;
+                var msg = "AInScan failed: " + ulStat.Message;
+                this.ErrorString = msg;
+                NotifyUser(msg, "DAQ Error", true);
                 return;
             }
-            // UL may adjust the requested rate and return the actual rate via the ref parameter
             this.ActualRate = rate;
 
             while (!_dataCollectorWorker.CancellationPending && !ThresholdMet)
             {
-                // If an external immediate stop was requested, break
                 if (!this._isRunning || !this.IsMonitoring) break;
                 Thread.Sleep(1);
             }
-            //cancel the background worker
             try { _dataCollectorWorker.CancelAsync(); } catch { }
             try { _board?.StopBackground(FunctionType.AiFunction); } catch { }
         }
@@ -1095,7 +1160,6 @@ namespace BMG_MicroTextureAnalyzer
 
                     if (MemHandle == IntPtr.Zero)
                     {
-                        // buffer not allocated; wait a bit and continue
                         Thread.Sleep(1);
                         continue;
                     }
@@ -1108,8 +1172,9 @@ namespace BMG_MicroTextureAnalyzer
                             MccDaq.ErrorInfo ulStat = MccDaq.MccService.WinBufToArray32(MemHandle, dataBuffer, lastIndex, pointsToRead);
                             if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
                             {
-                                this.ErrorString = "WinBufToArray32 failed: " + ulStat.Message;
-                                // stop background acquisition and exit loop
+                                var msg = "WinBufToArray32 failed: " + ulStat.Message;
+                                this.ErrorString = msg;
+                                NotifyUser(msg, "DAQ Error", true);
                                 try { _board.StopBackground(FunctionType.AiFunction); } catch { }
                                 break;
                             }
@@ -1120,7 +1185,7 @@ namespace BMG_MicroTextureAnalyzer
                                 _dataQueue.Enqueue(dataChangedEventArgs);
                             }
                         }
-                        else // wrap-around case: read [lastIndex..NumPoints) then [0..currentIndex)
+                        else
                         {
                             int firstChunk = NumPoints - lastIndex;
                             if (firstChunk > 0)
@@ -1128,7 +1193,9 @@ namespace BMG_MicroTextureAnalyzer
                                 MccDaq.ErrorInfo ulStat = MccDaq.MccService.WinBufToArray32(MemHandle, dataBuffer, lastIndex, firstChunk);
                                 if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
                                 {
-                                    this.ErrorString = "WinBufToArray32 failed (first chunk): " + ulStat.Message;
+                                    var msg = "WinBufToArray32 failed (first chunk): " + ulStat.Message;
+                                    this.ErrorString = msg;
+                                    NotifyUser(msg, "DAQ Error", true);
                                     try { _board.StopBackground(FunctionType.AiFunction); } catch { }
                                     break;
                                 }
@@ -1143,7 +1210,9 @@ namespace BMG_MicroTextureAnalyzer
                                 MccDaq.ErrorInfo ulStat2 = MccDaq.MccService.WinBufToArray32(MemHandle, dataBuffer, 0, currentIndex);
                                 if (ulStat2.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
                                 {
-                                    this.ErrorString = "WinBufToArray32 failed (second chunk): " + ulStat2.Message;
+                                    var msg = "WinBufToArray32 failed (second chunk): " + ulStat2.Message;
+                                    this.ErrorString = msg;
+                                    NotifyUser(msg, "DAQ Error", true);
                                     try { _board.StopBackground(FunctionType.AiFunction); } catch { }
                                     break;
                                 }
@@ -1160,7 +1229,9 @@ namespace BMG_MicroTextureAnalyzer
                 }
                 catch (Exception ex)
                 {
-                    this.ErrorString = "DataReaderWorker error: " + ex.Message;
+                    var msg = "DataReaderWorker error: " + ex.Message;
+                    this.ErrorString = msg;
+                    NotifyUser(msg, "DAQ Error", true);
                     try { _board.StopBackground(FunctionType.AiFunction); } catch { }
                     break;
                 }
@@ -1177,7 +1248,7 @@ namespace BMG_MicroTextureAnalyzer
             {
                 this._board = new MccBoard(1);
             }
-           
+
             int channel = 7;
             MccDaq.Range range = MccDaq.Range.Bip10Volts;
 
@@ -1187,21 +1258,31 @@ namespace BMG_MicroTextureAnalyzer
 
             while (!_dataCollectorWorker.CancellationPending && !ThresholdMet)
             {
-                MccDaq.ErrorInfo ulStat = this._board.AIn32(channel, range, out int rawData, 0);
-                if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
+                try
                 {
-                    throw new Exception("Error reading analog input: " + ulStat.Message);
-                }
-                //ulStat = daqBoard.ToEngUnits32(range, rawData, out double voltage);
-                //Create new datachangedevent args to store the timestamp and voltage
-                RawDataChangedEventArgs dataChangedEventArgs = new RawDataChangedEventArgs(rawData);
-                _dataQueue.Enqueue(dataChangedEventArgs);
-                Thread.Sleep(1); // Adjust sampling rate as necessary
+                    MccDaq.ErrorInfo ulStat = this._board.AIn32(channel, range, out int rawData, 0);
+                    if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
+                    {
+                        var msg = "AIn32 failed: " + ulStat.Message;
+                        this.ErrorString = msg;
+                        NotifyUser(msg, "DAQ Error", true);
+                        break;
+                    }
+                    RawDataChangedEventArgs dataChangedEventArgs = new RawDataChangedEventArgs(rawData);
+                    _dataQueue.Enqueue(dataChangedEventArgs);
+                    Thread.Sleep(1); // Adjust sampling rate as necessary
 
-            }
-            
-            
-            e.Cancel = true;
+                }
+                catch (Exception ex)
+                {
+                    var msg = "DataCollectorWorker_FindPlane error: " + ex.Message;
+                    this.ErrorString = msg;
+                    NotifyUser(msg, "DAQ Error", true);
+                    break;
+                }
+             }
+
+             e.Cancel = true;
         }
 
         private void DataCollectorWorker_FractureTest(object sender, DoWorkEventArgs e)
@@ -1215,59 +1296,79 @@ namespace BMG_MicroTextureAnalyzer
             short status;
             MccDaq.Range range = MccDaq.Range.Bip10Volts;
             int rate = this.Rate;
-            //TranslateYStage(this.FractureDistance); // Move the stage 100mm down to get the stage on the sample
-            MccDaq.ErrorInfo ulStat = this._board.AInScan(channel, channel, NumPoints, ref rate, range, MemHandle, ScanOptions.Background);
-            if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
+            try
             {
-                throw new Exception("Error reading analog input: " + ulStat.Message);
-            }
-            // capture actual rate returned by UL
-            this.ActualRate = rate;
-             while (!_dataCollectorWorker.CancellationPending && !ThresholdMet)
-             {
+                MccDaq.ErrorInfo ulStat = this._board.AInScan(channel, channel, NumPoints, ref rate, range, MemHandle, ScanOptions.Background);
+                if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
+                {
+                    var msg = "AInScan failed: " + ulStat.Message;
+                    this.ErrorString = msg;
+                    NotifyUser(msg, "DAQ Error", true);
+                    return;
+                }
+                this.ActualRate = rate;
 
-                //Thread.Sleep(1);
-             }
-             //cancel the background worker
-             _dataCollectorWorker.CancelAsync();
+                while (!_dataCollectorWorker.CancellationPending && !ThresholdMet)
+                {
+                    Thread.Sleep(1);
+                }
+            }
+            catch (Exception ex)
+            {
+                var msg = "DataCollectorWorker_FractureTest error: " + ex.Message;
+                this.ErrorString = msg;
+                NotifyUser(msg, "DAQ Error", true);
+            }
+            finally
+            {
+                try { _dataCollectorWorker.CancelAsync(); } catch { }
+            }
         }
 
         private void DataProcessorWorker_FractureTest(object sender, DoWorkEventArgs e)
         {
-            //this.Stage.MoveYAbsolute(100);
             MccDaq.Range range = MccDaq.Range.Bip10Volts;
             while (!((BackgroundWorker)sender).CancellationPending && !ThresholdMet)
             {
-                if (_dataQueue.TryDequeue(out RawDataChangedEventArgs args))
+                try
                 {
-                    MccDaq.ErrorInfo ulStat = _board.ToEngUnits32(range, args.RawData, out double voltage);
-                    if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
+                    if (_dataQueue.TryDequeue(out RawDataChangedEventArgs args))
                     {
-                        throw new Exception("Error converting raw data to : " + ulStat.Message);
+                        MccDaq.ErrorInfo ulStat = _board.ToEngUnits32(range, args.RawData, out double voltage);
+                        if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
+                        {
+                            this.ErrorString = "ToEngUnits32 failed: " + ulStat.Message;
+                            NotifyUser("DAQ conversion error: " + ulStat.Message, "DAQ Error", true);
+                            this.StopBackgroundCollection();
+                            break;
+                        }
+
+                        ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion);
+
+                        AddRecentForceSample(processedData.Newtons);
+
+                        processedData.Newtons = processedData.Newtons - this.ForceOffset;
+
+                        if (processedData.Newtons >= this.FindPlaneThreshold)
+                        {
+                            this.ThresholdMet = true;
+                            this.StopBackgroundCollection();
+                        }
+
+                        lock (_dataLock)
+                        {
+                            _processedDataList.Add(processedData);
+                        }
+                        OnDataChanged(processedData);
                     }
-
-                    ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion);
-
-                    // record force (Newtons) before offset so we can compute a robust zero in force units
-                    AddRecentForceSample(processedData.Newtons);
-
-                    // apply engine-side force offset so downstream consumers receive zeroed forces
-                    processedData.Newtons = processedData.Newtons - this.ForceOffset;
-
-                    //Run an async task to check the data if it meets or exceeds the threshold
-                    if (processedData.Newtons >= this.FindPlaneThreshold)
-                    {
-                        this.ThresholdMet = true;
-                        this.StopBackgroundCollection();
-                    }
-
-                    lock (_dataLock)
-                    {
-                        _processedDataList.Add(processedData);
-                    }
-                    OnDataChanged(processedData);
                 }
-                //Thread.Sleep(2);// Adjust processing rate as necessary
+                catch (Exception ex)
+                {
+                    var msg = "DataProcessorWorker_FractureTest error: " + ex.Message;
+                    this.ErrorString = msg;
+                    NotifyUser(msg, "Processing Error", true);
+                    break;
+                }
             }
             e.Cancel = true;
 
@@ -1277,23 +1378,35 @@ namespace BMG_MicroTextureAnalyzer
         {
             while (!((BackgroundWorker)sender).CancellationPending)
             {
-                if (_dataQueue.TryDequeue(out RawDataChangedEventArgs args))
+                try
                 {
-                    MccDaq.ErrorInfo ulStat = _board.ToEngUnits32(MccDaq.Range.Bip10Volts, args.RawData, out double voltage);
-                    if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
+                    if (_dataQueue.TryDequeue(out RawDataChangedEventArgs args))
                     {
-                        throw new Exception("Error converting raw data to voltage: " + ulStat.Message);
+                        MccDaq.ErrorInfo ulStat = _board.ToEngUnits32(MccDaq.Range.Bip10Volts, args.RawData, out double voltage);
+                        if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
+                        {
+                            this.ErrorString = "ToEngUnits32 failed: " + ulStat.Message;
+                            NotifyUser("DAQ conversion error: " + ulStat.Message, "DAQ Error", true);
+                            continue;
+                        }
+                        ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion);
+                        AddRecentForceSample(processedData.Newtons);
+                        processedData.Newtons = processedData.Newtons - this.ForceOffset;
+                        lock (_dataLock)
+                        {
+                            _processedDataList.Add(processedData);
+                        }
+                        OnDataChanged(processedData);
                     }
-                    ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion);
-                    AddRecentForceSample(processedData.Newtons);
-                    processedData.Newtons = processedData.Newtons - this.ForceOffset;
-                    lock (_dataLock)
-                    {
-                        _processedDataList.Add(processedData);
-                    }
-                    OnDataChanged(processedData);
+                    Thread.Sleep(2);// Adjust processing rate as necessary
                 }
-               Thread.Sleep(2);// Adjust processing rate as necessary
+                catch (Exception ex)
+                {
+                    var msg = "DataProcessorWorker error: " + ex.Message;
+                    this.ErrorString = msg;
+                    NotifyUser(msg, "Processing Error", true);
+                    break;
+                }
             }
 
             e.Cancel = true;
@@ -1301,55 +1414,53 @@ namespace BMG_MicroTextureAnalyzer
 
         private void DataProcessorWorker_ContinuousScanInput(object sender, DoWorkEventArgs e)
         {
-            //this.Stage.MoveYAbsolute(100);
             MccDaq.Range iaa300 = MccDaq.Range.Bip10Volts;
             MccDaq.Range range = MccDaq.Range.Bip10Volts;
             while (!((BackgroundWorker)sender).CancellationPending && !ThresholdMet)
             {
-               // this.GetYLocation();
-                if (_dataQueue.TryDequeue(out RawDataChangedEventArgs args))
+                try
                 {
-                    MccDaq.ErrorInfo ulStat = _board.ToEngUnits32(iaa300, args.RawData, out double voltage); //Changed from Bip10Volts to Bip10Volts on Feb 17 2025
-                    if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
+                    if (_dataQueue.TryDequeue(out RawDataChangedEventArgs args))
                     {
-                        throw new Exception("Error converting raw data to : " + ulStat.Message);
+                        MccDaq.ErrorInfo ulStat = _board.ToEngUnits32(iaa300, args.RawData, out double voltage);
+                        if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
+                        {
+                            this.ErrorString = "ToEngUnits32 failed: " + ulStat.Message;
+                            NotifyUser("DAQ conversion error: " + ulStat.Message, "DAQ Error", true);
+                            this.StopBackgroundCollection();
+                            break;
+                        }
+                        ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion, this.YStagePosition);
+                        AddRecentForceSample(processedData.Newtons);
+                        processedData.Newtons = processedData.Newtons - this.ForceOffset;
+                        Task.Run(() =>
+                        {
+                            if (processedData.Newtons >= this.FindPlaneThreshold + this.VoltageOffset)
+                            {
+                                this.ThresholdMet = true;
+                                this.StopMotionController();
+                                this.IsStageRunning = false;
+                                this._board.StopBackground(FunctionType.AiFunction);
+                                this.IsMonitoring = false;
+                            }
+                        });
+                        lock (_dataLock)
+                        {
+                            _processedDataList.Add(processedData);
+                        }
+                        OnDataChanged(processedData);
                     }
-                    ProcessedDataChangedEventArgs processedData = null;
-                     //if (this.Stage.ConnectionStatus && this.IsStageRunning)
-                     //{
-                         //this.GetYLocation();
-                     processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion, this.YStagePosition);
-                     //}
-                     //else
-                     //{
-                     //    processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion);
-                     //}
-                     AddRecentForceSample(processedData.Newtons);
-                     processedData.Newtons = processedData.Newtons - this.ForceOffset;
-                     //Run an async task to check the data if it meets or exceeds the threshold
-                     Task.Run(() =>
-                     {
-                         if (processedData.Newtons >= this.FindPlaneThreshold + this.VoltageOffset)
-                         {
-                             this.ThresholdMet = true;
-                             //this.Stage.Stop();
-                             this.StopMotionController();
-                             this.IsStageRunning = false;
-                             this._board.StopBackground(FunctionType.AiFunction);
-                             this.IsMonitoring = false;
-                             //this._stageWorker.CancelAsync();
-                         }
-                     });
-                     lock (_dataLock)
-                     {
-                         _processedDataList.Add(processedData);
-                     }
-                     OnDataChanged(processedData);
-                 }
-                 //Thread.Sleep(2);// Adjust processing rate as necessary
-             }
-             e.Cancel = true;
-         }
+                }
+                catch (Exception ex)
+                {
+                    var msg = "DataProcessorWorker_ContinuousScanInput error: " + ex.Message;
+                    this.ErrorString = msg;
+                    NotifyUser(msg, "Processing Error", true);
+                    break;
+                }
+            }
+            e.Cancel = true;
+        }
 
         private void DataProcessorWorker_FindPlane(object sender, DoWorkEventArgs e)
         {
@@ -1357,35 +1468,44 @@ namespace BMG_MicroTextureAnalyzer
 
             while (!((BackgroundWorker)sender).CancellationPending && !ThresholdMet)
             {
-                if (_dataQueue.TryDequeue(out RawDataChangedEventArgs args))
+                try
                 {
-                    MccDaq.ErrorInfo ulStat = _board.ToEngUnits32(range, args.RawData, out double voltage);
-                    if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
+                    if (_dataQueue.TryDequeue(out RawDataChangedEventArgs args))
                     {
-                        throw new Exception("Error converting raw data to voltage: " + ulStat.Message);
+                        MccDaq.ErrorInfo ulStat = _board.ToEngUnits32(range, args.RawData, out double voltage);
+                        if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
+                        {
+                            this.ErrorString = "ToEngUnits32 failed: " + ulStat.Message;
+                            NotifyUser("DAQ conversion error: " + ulStat.Message, "DAQ Error", true);
+                            this.StopBackgroundCollection();
+                            this.IsMonitoring = false;
+                            this.IsStageRunning = false;
+                            break;
+                        }
+                        ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion, this.YStagePosition);
+                        AddRecentForceSample(processedData.Newtons);
+                        processedData.Newtons = processedData.Newtons - this.ForceOffset;
+                        if (processedData.Newtons > this.FindPlaneThreshold)
+                        {
+                            ThresholdMet = true;
+                            this.StopBackgroundCollection();
+                            this.IsMonitoring = false;
+                            this.IsStageRunning = false;
+                        }
+                        lock (_dataLock)
+                        {
+                            _processedDataList.Add(processedData);
+                        }
+                        OnDataChanged(processedData);
                     }
-                    ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion, this.YStagePosition);
-                    AddRecentForceSample(processedData.Newtons);
-                    processedData.Newtons = processedData.Newtons - this.ForceOffset;
-                    if (processedData.Newtons > this.FindPlaneThreshold)
-                     {
-                         ThresholdMet = true;
-                         //this.Stage.Stop();
-                         //this._board.StopBackground(FunctionType.AiFunction);
-                         this.StopBackgroundCollection();
-                         this.IsMonitoring = false;
-                         this.IsStageRunning = false;
-
-                         //this._stageWorker.CancelAsync();
-                     }
-                     //Task.Run(() =>this.GetYLocation());
-                     lock (_dataLock)
-                     {
-                         _processedDataList.Add(processedData);
-                     }
-                     OnDataChanged(processedData);
-                 }
-                 //Thread.Sleep(1);// Adjust processing rate as necessary
+                }
+                catch (Exception ex)
+                {
+                    var msg = "DataProcessorWorker_FindPlane error: " + ex.Message;
+                    this.ErrorString = msg;
+                    NotifyUser(msg, "Processing Error", true);
+                    break;
+                }
             }
 
             //Thread.Sleep(1000);
@@ -1403,36 +1523,45 @@ namespace BMG_MicroTextureAnalyzer
 
             while (!((BackgroundWorker)sender).CancellationPending && !ThresholdMet)
             {
-                if (_dataQueue.TryDequeue(out RawDataChangedEventArgs args))
+                try
                 {
-                    MccDaq.ErrorInfo ulStat = _board.ToEngUnits32(MccDaq.Range.Bip10Volts, args.RawData, out double voltage);
-                    if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
+                    if (_dataQueue.TryDequeue(out RawDataChangedEventArgs args))
                     {
-                        throw new Exception("Error converting raw data to voltage: " + ulStat.Message);
+                        MccDaq.ErrorInfo ulStat = _board.ToEngUnits32(MccDaq.Range.Bip10Volts, args.RawData, out double voltage);
+                        if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
+                        {
+                            this.ErrorString = "ToEngUnits32 failed: " + ulStat.Message;
+                            NotifyUser("DAQ conversion error: " + ulStat.Message, "DAQ Error", true);
+                            continue;
+                        }
+                        ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion);
+                        AddRecentForceSample(processedData.Newtons);
+                        processedData.Newtons = processedData.Newtons - this.ForceOffset;
+                        if (processedData.Newtons >= this.PunctureThreshold)
+                        {
+                            ThresholdMet = true;
+                            this.Stage.Stop();
+                        }
+                        lock (_dataLock)
+                        {
+                            _processedDataList.Add(processedData);
+                        }
+                        OnDataChanged(processedData);
                     }
-                    ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion);
-                    AddRecentForceSample(processedData.Newtons);
-                    processedData.Newtons = processedData.Newtons - this.ForceOffset;
-                    if (processedData.Newtons >= this.PunctureThreshold)
-                     {
-                         ThresholdMet = true;
-                         this.Stage.Stop();
-                         //Task.Run(() => this.StopAsync());
-                     }   
-                     lock (_dataLock)
-                     {
-                         _processedDataList.Add(processedData);
-                     }
-                     OnDataChanged(processedData);
-                 }
-                 Thread.Sleep(1);// Adjust processing rate as necessary
+                    Thread.Sleep(1);
+                }
+                catch (Exception ex)
+                {
+                    var msg = "DataProcessorWorker_PunctureTest error: " + ex.Message;
+                    this.ErrorString = msg;
+                    NotifyUser(msg, "Processing Error", true);
+                    break;
+                }
             }
              this.SetStageSpeed(100);
              Thread.Sleep(1000);
              TranslateYStage(3);
-             e.Cancel = true;
-
-             //((BackgroundWorker)sender).CancelAsync();
+            e.Cancel = true;
 
          }
 
@@ -1683,6 +1812,64 @@ namespace BMG_MicroTextureAnalyzer
             catch (Exception ex)
             {
                 this.ErrorString = ex.Message;
+            }
+        }
+
+        /// <summary>
+        /// Attempt to reset the engine to a clean state so acquisitions can be retried after a DAQ error.
+        /// This is a best-effort operation and will stop any background work, free/reallocate the DAQ buffer,
+        /// and recreate the board instance if necessary.
+        /// </summary>
+        public void ResetEngine()
+        {
+            try
+            {
+                // Stop everything immediately
+                StopAllImmediate();
+
+                // Clear queues and processed data
+                try { while (_dataQueue.TryDequeue(out _)) { } } catch { }
+                lock (_dataLock) { _processedDataList.Clear(); }
+
+                // Free and reallocate memory buffer
+                try
+                {
+                    if (MemHandle != IntPtr.Zero)
+                    {
+                        MccDaq.MccService.WinBufFreeEx(MemHandle);
+                        MemHandle = IntPtr.Zero;
+                    }
+                    // allocate a default small buffer; actual size will be allocated when test starts
+                    MemHandle = MccDaq.MccService.WinBufAlloc32Ex(10000);
+                }
+                catch (Exception ex)
+                {
+                    this.ErrorString = "ResetEngine: buffer allocation error: " + ex.Message;
+                }
+
+                // Recreate board instance if needed
+                try
+                {
+                    this._board = new MccBoard(1);
+                }
+                catch (Exception ex)
+                {
+                    this.ErrorString = "ResetEngine: board init error: " + ex.Message;
+                }
+
+                // clear logical flags
+                _isMonitoring = false;
+                _isRunning = false;
+                _isStageMoving = false;
+                ThresholdMet = false;
+
+                // Notify UI that reset completed
+                NotifyUser("Engine reset completed.", "Engine Reset", false);
+            }
+            catch (Exception ex)
+            {
+                this.ErrorString = "ResetEngine failed: " + ex.Message;
+                NotifyUser(this.ErrorString, "Engine Reset Failed", true);
             }
         }
 

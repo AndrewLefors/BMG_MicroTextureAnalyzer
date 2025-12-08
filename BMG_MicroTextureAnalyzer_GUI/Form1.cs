@@ -91,6 +91,8 @@ namespace BMG_MicroTextureAnalyzer_GUI
         {
             BMG_MicroTextureAnalyzer.Engine engine = new BMG_MicroTextureAnalyzer.Engine();
             MTAengine = engine;
+            // Subscribe GUI to engine user notifications so errors can be shown without Engine depending on WinForms
+            MTAengine.UserNotification += Engine_UserNotification;
             MTAengine.DataChanged += MTAengine_DataChanged;
             board = new MccDaq.MccBoard(1);
 
@@ -1209,6 +1211,52 @@ namespace BMG_MicroTextureAnalyzer_GUI
         private void voltageOffsetReadingLabel_Click(object sender, EventArgs e)
         {
 
+        }
+
+        // Engine -> UI notification handler. Use BeginInvoke to ensure it's shown on UI thread and non-blocking.
+        private void Engine_UserNotification(object? sender, BMG_MicroTextureAnalyzer.UserNotificationEventArgs e)
+        {
+            try
+            {
+                if (this.IsHandleCreated && !this.IsDisposed)
+                {
+                    this.BeginInvoke(new Action(() =>
+                    {
+                        try
+                        {
+                            var result = MessageBox.Show(this, e.Message + (e.IsError ? "\n\nWould you like to attempt an automatic reset?" : ""), e.Caption ?? "Notice", e.IsError ? MessageBoxButtons.YesNo : MessageBoxButtons.OK, e.IsError ? MessageBoxIcon.Error : MessageBoxIcon.Information);
+                            if (e.IsError && result == DialogResult.Yes)
+                            {
+                                // attempt a reset of the engine
+                                Task.Run(() => MTAengine.ResetEngine());
+                            }
+                        }
+                        catch { }
+
+                        // After showing the error, ensure main controls are re-enabled so user can start again
+                        try
+                        {
+                            FractureTestStartButton.Enabled = true;
+                            StartConstantMonitorButton.Enabled = true;
+                            button1.Enabled = true; // continuous scan
+                            DAQStopMonitoringButton.Enabled = true;
+                            ConnectToMotionControllerButton.Enabled = true;
+                            ScanAvailableMotionControllerDevicesButton.Enabled = true;
+                            ReturnProbeToMaxHeightButton.Enabled = true;
+                            StopMotionControllerButton.Enabled = true;
+                            // enable save button if present
+                            try { button2.Enabled = true; } catch { }
+                        }
+                        catch { }
+                    }));
+                }
+            }
+            catch { }
+        }
+
+        private void resetEngineButton_Click(object sender, EventArgs e)
+        {
+            Task.Run(() => MTAengine.ResetEngine());
         }
     }
 }

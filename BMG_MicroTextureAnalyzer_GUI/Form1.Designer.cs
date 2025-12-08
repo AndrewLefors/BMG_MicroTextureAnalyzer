@@ -130,6 +130,7 @@
             FractureDepthTextBox = new TextBox();
             FractureTestStartButton = new Button();
             button2 = new Button();
+            resetEngineButton = new Button();
             tableLayoutPanel8 = new TableLayoutPanel();
             StartConstantMonitorButton = new Button();
             DAQStopMonitoringButton = new Button();
@@ -1268,6 +1269,15 @@
             tableLayoutPanel9.Controls.Add(FractureDepthTextBox, 0, 0);
             tableLayoutPanel9.Controls.Add(FractureTestStartButton, 0, 1);
             tableLayoutPanel9.Controls.Add(button2, 3, 1);
+            // Reset engine button
+            resetEngineButton.Location = new Point(209, 53);
+            resetEngineButton.Name = "resetEngineButton";
+            resetEngineButton.Size = new Size(75, 23);
+            resetEngineButton.TabIndex = 20;
+            resetEngineButton.Text = "Reset Engine";
+            resetEngineButton.UseVisualStyleBackColor = true;
+            resetEngineButton.Click += resetEngineButton_Click;
+            tableLayoutPanel9.Controls.Add(resetEngineButton, 2, 1);
             tableLayoutPanel9.Location = new Point(615, 342);
             tableLayoutPanel9.Name = "tableLayoutPanel9";
             tableLayoutPanel9.RowCount = 2;
@@ -1505,6 +1515,7 @@
         private TableLayoutPanel tableLayoutPanel9;
         private Button FractureTestStartButton;
         private TextBox FractureDepthTextBox;
+        private Button resetEngineButton;
         private TableLayoutPanel tableLayoutPanel10;
         private RadioButton radioButton1;
         private RadioButton radioButton2;
