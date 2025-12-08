@@ -84,6 +84,21 @@ namespace BMG_MicroTextureAnalyzer
 
         private int _rate = 1000; //default of 1kHz
         private int _maxSampleRate = 3000; // maximum supported sample rate (adjust per hardware)
+        private int _actualRate = 1000;
+
+        public int ActualRate
+        {
+            get => _actualRate;
+            private set
+            {
+                if (_actualRate != value)
+                {
+                    _actualRate = value;
+                    OnPropertyChanged(nameof(ActualRate));
+                }
+            }
+        }
+
         private double _dataCollectionTime = 10; //default of 10 seconds
         private int _numPoints = 10000; //default of 10000 points (10 seconds @ 1kHz)
 
@@ -1027,11 +1042,13 @@ namespace BMG_MicroTextureAnalyzer
             {
                    throw new Exception("Error reading analog input: " + ulStat.Message);
             }
-            while (!_dataCollectorWorker.CancellationPending && !ThresholdMet)
-            {
-                //Thread.Sleep(1);
-                continue;
-            }
+            // UL may adjust the requested rate and return the actual rate via the ref parameter
+            this.ActualRate = rate;
+             while (!_dataCollectorWorker.CancellationPending && !ThresholdMet)
+             {
+                 //Thread.Sleep(1);
+                 continue;
+             }
             //cancel the background worker
             _dataCollectorWorker.CancelAsync();
             _board.StopBackground(FunctionType.AiFunction);
@@ -1141,13 +1158,15 @@ namespace BMG_MicroTextureAnalyzer
             {
                 throw new Exception("Error reading analog input: " + ulStat.Message);
             }
-            while (!_dataCollectorWorker.CancellationPending && !ThresholdMet)
-            {
+            // capture actual rate returned by UL
+            this.ActualRate = rate;
+             while (!_dataCollectorWorker.CancellationPending && !ThresholdMet)
+             {
 
                 //Thread.Sleep(1);
-            }
-            //cancel the background worker
-            _dataCollectorWorker.CancelAsync();
+             }
+             //cancel the background worker
+             _dataCollectorWorker.CancelAsync();
         }
 
         private void DataReaderWorker_FractureTest(object sender, DoWorkEventArgs e)
@@ -1352,13 +1371,13 @@ namespace BMG_MicroTextureAnalyzer
                      OnDataChanged(processedData);
                  }
                  //Thread.Sleep(1);// Adjust processing rate as necessary
-             }
+            }
 
-             //Thread.Sleep(1000);
-             this.GetYLocation();
-             this.Stage.Delay();
-             TranslateYStage(0.5);
-             e.Cancel = true;
+            //Thread.Sleep(1000);
+            this.GetYLocation();
+            this.Stage.Delay();
+            TranslateYStage(0.5);
+            e.Cancel = true;
              
             // ((BackgroundWorker)sender).CancelAsync();
 

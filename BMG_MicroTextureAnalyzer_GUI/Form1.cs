@@ -410,6 +410,33 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 }
             }
 
+            // Update UI when engine reports actual DAQ sampling rate
+            if (e.PropertyName == nameof(Engine.ActualRate))
+            {
+                Action update = () =>
+                {
+                    try
+                    {
+                        if (RateReadingLabel != null)
+                        {
+                            RateReadingLabel.Text = MTAengine.ActualRate.ToString() + " Hz";
+                            var orig = RateReadingLabel.BackColor;
+                            RateReadingLabel.BackColor = Color.LightBlue;
+                            Task.Run(async () =>
+                            {
+                                await Task.Delay(400);
+                                if (!RateReadingLabel.IsDisposed && RateReadingLabel.IsHandleCreated)
+                                {
+                                    try { RateReadingLabel.BeginInvoke(new Action(() => RateReadingLabel.BackColor = orig)); } catch { }
+                                }
+                            });
+                        }
+                    }
+                    catch { }
+                };
+                if (InvokeRequired) BeginInvoke(update); else update();
+            }
+
             // Update UI when engine force offset changes so user always sees current zero
             if (e.PropertyName == nameof(Engine.ForceOffset))
             {
