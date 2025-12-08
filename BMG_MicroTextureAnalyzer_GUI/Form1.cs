@@ -36,7 +36,8 @@ namespace BMG_MicroTextureAnalyzer_GUI
         private Thread positionUpdateThread;
         private bool positionUpdateThreadRunning = false;
 
-        private List<int> stageSpeedConversionSpeedList = [0, 4, 7, 9, 12, 15, 20, 25]; //default of 19.1um/s
+        private List<int> stageSpeedConversionSpeedList = new List<int> { 0, 4, 7, 9, 12, 15, 20, 25 }; //default of 19.1um/s
+        private List<int> averageWindowList = new List<int> { 0, 10, 25, 50, 100, 150, 200, 250, 500, 1000 };
 
         private double voltageOffset = 0;
 
@@ -52,7 +53,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
             MTAengine.PropertyChanged += MTAengine_PropertyChanged;
             var subdivisionList = new List<int> { 1, 2, 4, 8 };
             var stageSpeedList = new List<double> { 19.1, 95.5, 152.8, 190.1, 248.3, 305.6, 401.0, 496.5 }; //unts in um/s
-
+            var averageWindowList = new List<int> { 0, 10, 25, 50, 100, 150, 200, 250, 500, 1000 };
 
 
 
@@ -61,11 +62,13 @@ namespace BMG_MicroTextureAnalyzer_GUI
             this.MotionControllerSubdivisionComboBox.DataSource = subdivisionList;
             this.MotionControllerSubdivisionComboBox.SelectedIndex = 0;
             this.DAQ_StageSpeedComboBox.DataSource = stageSpeedList;
-            DAQDataGridView.Columns.Add("Time", "Time");
-            DAQDataGridView.Columns.Add("Voltage", "Voltage");
-            DAQDataGridView.Columns.Add("Pounds", "Pounds");
-            DAQDataGridView.Columns.Add("Newtons", "Newtons");
-            DAQDataGridView.Columns.Add("Step", "Step");
+            //this.AverageWindowComboBox.DataSource = averageWindowList;
+            //this.AverageWindowComboBox.SelectedIndexChanged += AverageWindowComboBox_SelectedIndexChanged;
+            //DAQDataGridView.Columns.Add("Time", "Time");
+            //DAQDataGridView.Columns.Add("Voltage", "Voltage");
+            //DAQDataGridView.Columns.Add("Pounds", "Pounds");
+            //DAQDataGridView.Columns.Add("Newtons", "Newtons");
+            //DAQDataGridView.Columns.Add("Step", "Step");
             //MonitorResponseChart = new Chart();
 
             //StartChartUpdateThread();
@@ -183,7 +186,8 @@ namespace BMG_MicroTextureAnalyzer_GUI
                     }
 
 
-                };
+                }
+                ;
             }
         }
         private void MTAengine_DataChanged(object? sender, Engine.ProcessedDataChangedEventArgs e)
@@ -216,19 +220,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
         }
         private void MTAengine_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-
-            if (e.PropertyName == nameof(DAQ_StageSpeedComboBox.SelectedIndex))
-            {
-                int selectedIndex = DAQ_StageSpeedComboBox.SelectedIndex;
-
-                // Validate the index is within bounds
-                if (selectedIndex >= 0 && selectedIndex < stageSpeedConversionSpeedList.Count)
-                {
-                    short controllerSpeedValue = (short)stageSpeedConversionSpeedList[selectedIndex];
-                    MTAengine.SetStageSpeed(controllerSpeedValue);
-                    MessageBox.Show("Stage Speed Set to: " + controllerSpeedValue.ToString());
-                }
-            }
+            // AverageWindowComboBox handled by SelectedIndexChanged handler
 
             if (e.PropertyName == nameof(Engine.FractureTestComplete))
             {
@@ -241,58 +233,58 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
                 }
             }
-            if (e.PropertyName == nameof(Engine.PunctureTestComplete))
-            {
-                if (MTAengine.PunctureTestComplete)
-                {
-                    //Take the data from the chart and add it to the datagrid
-                    Task.Run(() => Invoke((MethodInvoker)(delegate
-                    {
-                        //Prompt a messagebox that asks the user if they want to save the file
-                        SaveFileDialog saveFileDialog = new SaveFileDialog();
-                        saveFileDialog.Filter = "CSV files (*.csv)|*.csv";
-                        saveFileDialog.FilterIndex = 2;
-                        saveFileDialog.RestoreDirectory = true;
-                        //Use data from datagrid to save to a file
-                        if (saveFileDialog.ShowDialog() == DialogResult.OK)
-                        {
-                            using (var writer = new StreamWriter(saveFileDialog.FileName))
-                            {
-                                // Write headers
-                                for (int i = 0; i < DAQDataGridView.Columns.Count; i++)
-                                {
-                                    writer.Write(DAQDataGridView.Columns[i].HeaderText);
-                                    if (i < DAQDataGridView.Columns.Count - 1)
-                                    {
-                                        writer.Write(",");
-                                    }
-                                }
-                                writer.WriteLine();
+            //if (e.PropertyName == nameof(Engine.PunctureTestComplete))
+            //{
+            //    if (MTAengine.PunctureTestComplete)
+            //    {
+            //        //Take the data from the chart and add it to the datagrid
+            //        Task.Run(() => Invoke((MethodInvoker)(delegate
+            //        {
+            //            //Prompt a messagebox that asks the user if they want to save the file
+            //            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            //            saveFileDialog.Filter = "CSV files (*.csv)|*.csv";
+            //            saveFileDialog.FilterIndex = 2;
+            //            saveFileDialog.RestoreDirectory = true;
+            //            //Use data from datagrid to save to a file
+            //            if (saveFileDialog.ShowDialog() == DialogResult.OK)
+            //            {
+            //                using (var writer = new StreamWriter(saveFileDialog.FileName))
+            //                {
+            //                    // Write headers
+            //                    for (int i = 0; i < DAQDataGridView.Columns.Count; i++)
+            //                    {
+            //                        writer.Write(DAQDataGridView.Columns[i].HeaderText);
+            //                        if (i < DAQDataGridView.Columns.Count - 1)
+            //                        {
+            //                            writer.Write(",");
+            //                        }
+            //                    }
+            //                    writer.WriteLine();
 
-                                // Write rows
-                                for (int i = 0; i < DAQDataGridView.Rows.Count; i++)
-                                {
-                                    for (int j = 0; j < DAQDataGridView.Columns.Count; j++)
-                                    {
-                                        writer.Write(DAQDataGridView.Rows[i].Cells[j].Value?.ToString());
-                                        if (j < DAQDataGridView.Columns.Count - 1)
-                                        {
-                                            writer.Write(",");
-                                        }
-                                    }
-                                    writer.WriteLine();
-                                }
-                            }
-                            //dataListBox.Items.Add("Results saved.");
-                        }
-                        else
-                        {
-                            // dataListBox.Items.Add("Save canceled.");
-                        }
+            //                    // Write rows
+            //                    for (int i = 0; i < DAQDataGridView.Rows.Count; i++)
+            //                    {
+            //                        for (int j = 0; j < DAQDataGridView.Columns.Count; j++)
+            //                        {
+            //                            writer.Write(DAQDataGridView.Rows[i].Cells[j].Value?.ToString());
+            //                            if (j < DAQDataGridView.Columns.Count - 1)
+            //                            {
+            //                                writer.Write(",");
+            //                            }
+            //                        }
+            //                        writer.WriteLine();
+            //                    }
+            //                }
+            //                //dataListBox.Items.Add("Results saved.");
+            //            }
+            //            else
+            //            {
+            //                // dataListBox.Items.Add("Save canceled.");
+            //            }
 
-                    })));
-                }
-            }
+            //        })));
+            //    }
+            //}
 
             //EHandle Connection event to populate combox with available devices after scan for devies button has been pressed
             if (e.PropertyName == "Connection.AvailableDevices")
@@ -392,7 +384,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
             SendYToHomeButton.Enabled = false;
             if (MTAengine.Stage.ConnectionStatus)
             {
-                //Make this a task to run a sepearte thread to leave ui response
+                //Make this a task to run a seperate thread to leave ui response
                 await Task.Run(() => MTAengine.HomeYStage());
 
             }
@@ -592,7 +584,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 ChartType = SeriesChartType.Line
             };
             MonitorResponseChart.Series.Add(series);
-            DAQDataGridView.Rows.Clear();
+            // DAQDataGridView.Rows.Clear();
             //MTAengine.SetStageSpeed(0);
             //double.TryParse(CollectionTimeSecondsTextBox.Text, out double result);
             //if (result == 0)
@@ -642,7 +634,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 ChartType = SeriesChartType.Line
             };
             MonitorResponseChart.Series.Add(series);
-            DAQDataGridView.Rows.Clear();
+            // DAQDataGridView.Rows.Clear();
             MTAengine.StartMonitor();
 
         }
@@ -721,7 +713,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 {
                     //MTAengine.FractureThreshold = 1.5;
                 }
-                this.PunctureTestStartButton.Enabled = false;
+                //this.PunctureTestStartButton.Enabled = false;
                 this.FractureTestStartButton.Enabled = true;
                 MTAengine.VoltageConversion = this.MTAengine.FractureVoltageConversion;
                 MTAengine.NewtonConversion = this.MTAengine.FractureNewtonConversion;
@@ -732,15 +724,15 @@ namespace BMG_MicroTextureAnalyzer_GUI
         {
             if (radioButton2.Checked)
             {
-                if (double.TryParse(PunctureMaxDepthTextBox.Text, out double thresh))
-                {
-                    //MTAengine.PunctureThreshold = thresh;
-                }
-                else
-                {
-                    // MTAengine.PunctureThreshold = 0.05;
-                }
-                this.PunctureTestStartButton.Enabled = false;
+                //if (double.TryParse(PunctureMaxDepthTextBox.Text, out double thresh))
+                //{
+                //    //MTAengine.PunctureThreshold = thresh;
+                //}
+                //else
+                //{
+                //    // MTAengine.PunctureThreshold = 0.05;
+                //}
+                //this.PunctureTestStartButton.Enabled = false;
                 this.FractureTestStartButton.Enabled = true;
                 MTAengine.VoltageConversion = this.MTAengine.PunctureVoltageConversion;
                 MTAengine.NewtonConversion = this.MTAengine.PunctureNewtonConversion;
@@ -750,44 +742,44 @@ namespace BMG_MicroTextureAnalyzer_GUI
         private async void PunctureTestStartButton_Click(object sender, EventArgs e)
         {
 
-            await Task.Run(() => MTAengine.StopAsync());
-            await Task.Run(() => MTAengine.StopMotionController());
-            await Task.Run(() => MTAengine.GetYLocation());
-            MonitorResponseChart.Series.Clear();
-            Series series = new Series
-            {
-                ChartType = SeriesChartType.Line
-            };
-            if (double.TryParse(PunctureMaxDepthTextBox.Text, out double depth))
-            {
+            //await Task.Run(() => MTAengine.StopAsync());
+            //await Task.Run(() => MTAengine.StopMotionController());
+            //await Task.Run(() => MTAengine.GetYLocation());
+            //MonitorResponseChart.Series.Clear();
+            //Series series = new Series
+            //{
+            //    ChartType = SeriesChartType.Line
+            //};
+            //if (double.TryParse(PunctureMaxDepthTextBox.Text, out double depth))
+            //{
 
-                MTAengine.PunctureDistance = depth;
-                MonitorResponseChart.Series.Add(series);
-                DAQDataGridView.Rows.Clear();
-                //MTAengine.SetStageSpeed(1);
-                this._voltageConversion = MTAengine.PunctureVoltageConversion;
-                this._newtonConversion = MTAengine.PunctureNewtonConversion;
-                Thread.Sleep(10);
+            //    MTAengine.PunctureDistance = depth;
+            //    MonitorResponseChart.Series.Add(series);
+            //  //  DAQDataGridView.Rows.Clear();
+            //    //MTAengine.SetStageSpeed(1);
+            //    this._voltageConversion = MTAengine.PunctureVoltageConversion;
+            //    this._newtonConversion = MTAengine.PunctureNewtonConversion;
+            //    Thread.Sleep(10);
 
-                MTAengine.PunctureTest();
-            }
-            else
-            {
-                MessageBox.Show("Please enter a valid depth value");
-            }
+            //    MTAengine.PunctureTest();
+            //}
+            //else
+            //{
+            //    MessageBox.Show("Please enter a valid depth value");
+            //}
         }
 
-        private void SetPunctureOffsetButton_Click(object sender, EventArgs e)
-        {
-            //Take the average of the first 1000 data points in the voltage column and set that as the offset
-            double offset = 0;
-            for (int i = 0; i < DAQDataGridView.RowCount; i++)
-            {
-                offset += Convert.ToDouble(DAQDataGridView.Rows[i].Cells[1].Value);
-            }
-            offset = offset / DAQDataGridView.RowCount;
-            MTAengine.VoltageOffset = offset;
-        }
+        //private void SetPunctureOffsetButton_Click(object sender, EventArgs e)
+        //{
+        //    //Take the average of the first 1000 data points in the voltage column and set that as the offset
+        //    double offset = 0;
+        //    for (int i = 0; i < DAQDataGridView.RowCount; i++)
+        //    {
+        //        offset += Convert.ToDouble(DAQDataGridView.Rows[i].Cells[1].Value);
+        //    }
+        //    offset = offset / DAQDataGridView.RowCount;
+        //    MTAengine.VoltageOffset = offset;
+        //}
 
         private void MicroTextureAnalyzerTabPage_Click(object sender, EventArgs e)
         {
@@ -806,7 +798,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 ChartType = SeriesChartType.Line
             };
             MonitorResponseChart.Series.Add(series);
-           // MTAengine.SetStageSpeed(1);
+            // MTAengine.SetStageSpeed(1);
             if (PlaneDetectionThresholdTextBox.Text != "")
             {
                 MTAengine.FindPlaneThreshold = double.Parse(PlaneDetectionThresholdTextBox.Text);
@@ -940,6 +932,22 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 MTAengine.SetStageSpeed(controllerSpeedValue);
                 MessageBox.Show("Stage Speed Set to: " + controllerSpeedValue.ToString() + ": " + DAQ_StageSpeedComboBox.SelectedItem?.ToString() + "um/s");
             }
+        }
+
+        private void AverageWindowComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            //int selectedIndex = AverageWindowComboBox.SelectedIndex;
+            //if (selectedIndex >= 0 && selectedIndex < averageWindowList.Count)
+            //{
+            //    int averageWindowValue = averageWindowList[selectedIndex];
+            //   // MTAengine.AverageWindow = averageWindowValue;
+            //    MessageBox.Show("Average Window Set to: " + averageWindowValue.ToString() + " samples");
+            //}
+        }
+
+        private void voltageOffsetReadingLabel_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }

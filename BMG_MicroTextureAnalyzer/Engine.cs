@@ -461,6 +461,9 @@ namespace BMG_MicroTextureAnalyzer
             }
         }
 
+        //public int AverageWindow
+           // { get { return _averageWindow; }
+
         public bool IsStageRunning
         {         
             get { return _isStageMoving; }
