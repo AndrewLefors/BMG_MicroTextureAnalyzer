@@ -507,7 +507,6 @@ namespace BMG_MicroTextureAnalyzer_GUI
             {
                 //Make this a task to run a seperate thread to leave ui response
                 await Task.Run(() => MTAengine.HomeYStage());
-
             }
             SendYToHomeButton.Enabled = true;
         }
@@ -658,41 +657,63 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
 
 
-        private void DAQStopMonitoringButton_Click(object sender, EventArgs e)
+        private async void DAQStopMonitoringButton_Click(object sender, EventArgs e)
         {
-            if (InvokeRequired)
+            // disable immediately to prevent re-entrancy
+            try { if (DAQStopMonitoringButton != null) DAQStopMonitoringButton.Enabled = false; } catch { }
+
+            var engine = MTAengine;
+            try
             {
-                Invoke(new Action(() =>
+                if (engine != null)
                 {
-                    if (MTAengine.IsStageRunning)
+                    // run stop on background thread to avoid blocking UI or hitting native driver timeouts
+                    await Task.Run(() =>
                     {
-                        MTAengine.StopMotionController();
-                        MTAengine.IsStageRunning = false;
-                    }
-                    if (MTAengine.IsMonitoring)
-                    {
-                        MTAengine.StopBackgroundCollection();
-                        MTAengine.IsMonitoring = false;
-                    }
+                        try
+                        {
+                            engine.StopAllImmediate();
+                        }
+                        catch (Exception ex)
+                        {
+                            try { engine.ErrorString = "StopAllImmediate error: " + ex.Message; } catch { }
+                        }
+                    });
 
-                }));
-
+                    try { engine.IsStageRunning = false; } catch { }
+                    try { engine.IsMonitoring = false; } catch { }
+                }
             }
-            else
+            catch (Exception ex)
             {
-                if (MTAengine.Stage.ConnectionStatus)
-                {
-                    MTAengine.StopMotionController();
-                    MTAengine.IsStageRunning = false;
-                }
-                if (MTAengine.IsMonitoring)
-                {
-                    MTAengine.StopBackgroundCollection();
-                    MTAengine.IsMonitoring = false;
-                }
-
+                try { MessageBox.Show("Stop error: " + ex.Message); } catch { }
             }
+            finally
+            {
+                // Always re-enable the button on the UI thread
+                try
+                {
+                    Action uiUpdate = () =>
+                    {
+                        try
+                        {
+                            if (ConnectionStatusResponseLabel != null)
+                            {
+                                bool connected = false;
+                                try { connected = MTAengine?.Stage?.ConnectionStatus == true; } catch { connected = false; }
+                                ConnectionStatusResponseLabel.Text = connected ? "Connected" : "Not Connected";
+                                ConnectionStatusResponseLabel.ForeColor = connected ? Color.Green : Color.Red;
+                            }
+                        }
+                        catch { }
 
+                        try { if (DAQStopMonitoringButton != null) DAQStopMonitoringButton.Enabled = true; } catch { }
+                    };
+
+                    if (this.IsHandleCreated && this.InvokeRequired) this.BeginInvoke(uiUpdate); else uiUpdate();
+                }
+                catch { }
+            }
         }
 
         private async void StartConstantMonitorButton_Click(object sender, EventArgs e)

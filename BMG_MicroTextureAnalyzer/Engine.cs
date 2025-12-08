@@ -182,6 +182,7 @@ namespace BMG_MicroTextureAnalyzer
             _dataCollectorWorker.RunWorkerAsync();
         
             _dataCollectorWorker2 = new BackgroundWorker();
+            // reuse the continuous-scan reader implementation for fracture test
             _dataCollectorWorker2.DoWork += DataReaderWorker_ContinuousScan;
             _dataCollectorWorker2.WorkerSupportsCancellation = true;
             _dataCollectorWorker2.RunWorkerAsync();
@@ -251,9 +252,10 @@ namespace BMG_MicroTextureAnalyzer
             _dataCollectorWorker.RunWorkerAsync();
             //this.TranslateYStage(FractureDistance);
             _dataCollectorWorker2 = new BackgroundWorker();
-            _dataCollectorWorker2.DoWork += DataReaderWorker_FractureTest;
-            _dataCollectorWorker2.WorkerSupportsCancellation = true;
-            _dataCollectorWorker2.RunWorkerAsync();
+            // reuse the continuous-scan reader implementation for fracture test
+            _dataCollectorWorker2.DoWork += DataReaderWorker_ContinuousScan;
+             _dataCollectorWorker2.WorkerSupportsCancellation = true;
+             _dataCollectorWorker2.RunWorkerAsync();
 
             //Task.Run(async () =>
             //{
@@ -934,64 +936,92 @@ namespace BMG_MicroTextureAnalyzer
             ThresholdMet = false;
 
         }
+
+        /// <summary>
+        /// Stop background data collection gracefully (stops DAQ background and cancels workers).
+        /// This matches earlier usage from UI and other processors.
+        /// </summary>
         public void StopBackgroundCollection()
         {
-            if (!_isRunning) return;
-            if (IsStageRunning)
+            try
             {
-                this.StopMotionController();
-                _isStageMoving = false;
+                if (this._board != null)
+                {
+                    try { this._board.StopBackground(FunctionType.AiFunction); } catch { }
+                }
             }
-            if (this.IsMonitoring)
+            catch (Exception ex)
             {
-                this._board.StopBackground(FunctionType.AiFunction);
-                this.IsMonitoring = false;
-                //if (_dataCollectorWorker != null && _dataCollectorWorker.IsBusy)
-                //{
-                //    _dataCollectorWorker.CancelAsync();
-                //}
-                //if (_dataProcessorWorker != null && _dataProcessorWorker.IsBusy)
-                //{
-                //    _dataProcessorWorker.CancelAsync();
-                //}
-                //if (_dataCollectorWorker2 != null && _dataCollectorWorker2.IsBusy)
-                //{
-                //    _dataCollectorWorker2.CancelAsync();
-                //}
-                //if (_stageWorker != null && _stageWorker.IsBusy)
-                //{
-                //    _stageWorker.CancelAsync();
-                //}
+                this.ErrorString = "Error stopping DAQ background: " + ex.Message;
             }
 
-        }
-        public List<ProcessedDataChangedEventArgs> GetProcessedData()
-        {
-            lock (_dataLock)
+            try
             {
-                return new List<ProcessedDataChangedEventArgs>(_processedDataList);
+                _dataCollectorWorker?.CancelAsync();
+                _dataCollectorWorker2?.CancelAsync();
+                _dataProcessorWorker?.CancelAsync();
             }
+            catch (Exception ex)
+            {
+                this.ErrorString = "Error cancelling workers: " + ex.Message;
+            }
+
+            _isMonitoring = false;
         }
 
-        private void StageWorker_ReportStageLocation(object sender, DoWorkEventArgs e)
+        public void StopAllImmediate()
         {
-            while (IsStageRunning && !((BackgroundWorker)sender).CancellationPending)
+            // Immediate stop: stop stage and DAQ background, cancel workers and wait briefly for them to exit.
+            try
             {
-                //Get the current stage location
-                if (this.IsStageRunning)
+                if (this.Stage != null)
                 {
-                    this.GetYLocation();
-                    Thread.Sleep(1);
+                    try { this.Stage.Stop(); } catch { }
+                    this._isStageMoving = false;
                 }
-                else
-                {
-                    _stageWorker.CancelAsync();
-                    //Thread.Sleep(1);
-                }
-
+            }
+            catch (Exception ex)
+            {
+                this.ErrorString = "Error stopping stage: " + ex.Message;
             }
 
-            e.Cancel = true;
+            try
+            {
+                if (this._board != null)
+                {
+                    try { this._board.StopBackground(FunctionType.AiFunction); } catch { }
+                }
+            }
+            catch (Exception ex)
+            {
+                this.ErrorString = "Error stopping DAQ background: " + ex.Message;
+            }
+
+            // Request cancellation for workers
+            try
+            {
+                _dataCollectorWorker?.CancelAsync();
+                _dataCollectorWorker2?.CancelAsync();
+                _dataProcessorWorker?.CancelAsync();
+                _stageWorker?.CancelAsync();
+            }
+            catch (Exception ex)
+            {
+                this.ErrorString = "Error cancelling workers: " + ex.Message;
+            }
+
+            // Wait shortly for workers to stop
+            int waited = 0;
+            while (((_dataCollectorWorker != null && _dataCollectorWorker.IsBusy) || (_dataCollectorWorker2 != null && _dataCollectorWorker2.IsBusy) || (_dataProcessorWorker != null && _dataProcessorWorker.IsBusy)) && waited < 3000)
+            {
+                Thread.Sleep(50);
+                waited += 50;
+            }
+
+            // Mark engine as not monitoring/running
+            this._isMonitoring = false;
+            this._isRunning = false;
+            this.ThresholdMet = false;
         }
 
         private void DataCollectorWorker_DoWork(object sender, DoWorkEventArgs e)
@@ -1025,89 +1055,122 @@ namespace BMG_MicroTextureAnalyzer
             int channel = 7;
             
             short status;
-            //Need to shorten the range to accommodate the 5V input from the load cell to get more accurate results (currently using 78mV when maxiumum range is 7.5mV)
-            MccDaq.Range range = MccDaq.Range.Bip10Volts;
-            MccDaq.Range altRange = MccDaq.Range.Bip10Volts; //Use this for puncture tests, this should provide highest resolution for the load cell below 100mN
-            MccDaq.Range iaa300 = MccDaq.Range.Bip10Volts; //Use this for the fracture test, this should provide highest resolution for the load cell below 500mN
+            MccDaq.Range iaa300 = MccDaq.Range.Bip10Volts;
             int rate = this.Rate;
-            //Deallocate memhandle then re-allocate
 
-          
-            //MccDaq.MccService.WinBufFreeEx(MemHandle);
-            
-            //MemHandle = MccDaq.MccService.WinBufAlloc32Ex(NumPoints);
-            
-            MccDaq.ErrorInfo ulStat = this._board.AInScan(channel, channel, NumPoints, ref rate, iaa300, MemHandle, ScanOptions.Background); //Modified to use alt range on Feb 17 2025
+            MccDaq.ErrorInfo ulStat = this._board.AInScan(channel, channel, NumPoints, ref rate, iaa300, MemHandle, ScanOptions.Background);
             if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
             {
-                   throw new Exception("Error reading analog input: " + ulStat.Message);
+                // record error and stop gracefully instead of throwing
+                this.ErrorString = "AInScan failed: " + ulStat.Message;
+                return;
             }
             // UL may adjust the requested rate and return the actual rate via the ref parameter
             this.ActualRate = rate;
-             while (!_dataCollectorWorker.CancellationPending && !ThresholdMet)
-             {
-                 //Thread.Sleep(1);
-                 continue;
-             }
+
+            while (!_dataCollectorWorker.CancellationPending && !ThresholdMet)
+            {
+                // If an external immediate stop was requested, break
+                if (!this._isRunning || !this.IsMonitoring) break;
+                Thread.Sleep(1);
+            }
             //cancel the background worker
-            _dataCollectorWorker.CancelAsync();
-            _board.StopBackground(FunctionType.AiFunction);
+            try { _dataCollectorWorker.CancelAsync(); } catch { }
+            try { _board?.StopBackground(FunctionType.AiFunction); } catch { }
         }
 
         private void DataReaderWorker_ContinuousScan(object sender, DoWorkEventArgs e)
         {
             int lastIndex = 0;
-            int[] dataBuffer = new int[this.NumPoints];
-            double[] engUnits = new double[this.NumPoints];
-            MccDaq.Range range = MccDaq.Range.Bip10Volts;
-            MccDaq.Range altRange = MccDaq.Range.Bip10Volts;
+            int[] dataBuffer = new int[Math.Max(1, this.NumPoints)];
             MccDaq.Range iaa300 = MccDaq.Range.Bip10Volts;
 
             while (!_dataCollectorWorker2.CancellationPending && !ThresholdMet)
             {
-                this._board.GetStatus(out short status, out int curCount, out int currentIndex, FunctionType.AiFunction);
+                if (!this._isRunning || !this.IsMonitoring) break;
 
-                //Added Feb15 2025 for position tracking
-             
-                if (currentIndex > lastIndex)
+                try
                 {
-                    int pointsToRead = currentIndex - lastIndex;
+                    this._board.GetStatus(out short status, out int curCount, out int currentIndex, FunctionType.AiFunction);
 
-                    // Read the new data from the buffer
-                    MccDaq.ErrorInfo ulStat = MccDaq.MccService.WinBufToArray32(MemHandle, dataBuffer, lastIndex, pointsToRead);
-                    if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
+                    if (MemHandle == IntPtr.Zero)
                     {
-                        throw new Exception("Error reading buffer: " + ulStat.Message);
+                        // buffer not allocated; wait a bit and continue
+                        Thread.Sleep(1);
+                        continue;
                     }
 
-                    // Convert raw data to Eng32 units
-                    for (int i = 0; i < pointsToRead; i++)
+                    if (currentIndex != lastIndex)
                     {
-                        //ulStat = this._board.ToEngUnits32(range, dataBuffer[i], out engUnits[i]);
-                        //if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
-                        //{
-                        //    throw new Exception("Error converting to EngUnits: " + ulStat.Message);
-                        //}
-                        //Make datachanged event arg and pass to dataqueue 
-                        RawDataChangedEventArgs dataChangedEventArgs = new RawDataChangedEventArgs(dataBuffer[i]);
-                        _dataQueue.Enqueue(dataChangedEventArgs);
+                        if (currentIndex > lastIndex)
+                        {
+                            int pointsToRead = currentIndex - lastIndex;
+                            MccDaq.ErrorInfo ulStat = MccDaq.MccService.WinBufToArray32(MemHandle, dataBuffer, lastIndex, pointsToRead);
+                            if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
+                            {
+                                this.ErrorString = "WinBufToArray32 failed: " + ulStat.Message;
+                                // stop background acquisition and exit loop
+                                try { _board.StopBackground(FunctionType.AiFunction); } catch { }
+                                break;
+                            }
+
+                            for (int i = 0; i < pointsToRead; i++)
+                            {
+                                RawDataChangedEventArgs dataChangedEventArgs = new RawDataChangedEventArgs(dataBuffer[i]);
+                                _dataQueue.Enqueue(dataChangedEventArgs);
+                            }
+                        }
+                        else // wrap-around case: read [lastIndex..NumPoints) then [0..currentIndex)
+                        {
+                            int firstChunk = NumPoints - lastIndex;
+                            if (firstChunk > 0)
+                            {
+                                MccDaq.ErrorInfo ulStat = MccDaq.MccService.WinBufToArray32(MemHandle, dataBuffer, lastIndex, firstChunk);
+                                if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
+                                {
+                                    this.ErrorString = "WinBufToArray32 failed (first chunk): " + ulStat.Message;
+                                    try { _board.StopBackground(FunctionType.AiFunction); } catch { }
+                                    break;
+                                }
+                                for (int i = 0; i < firstChunk; i++)
+                                {
+                                    RawDataChangedEventArgs dataChangedEventArgs = new RawDataChangedEventArgs(dataBuffer[i]);
+                                    _dataQueue.Enqueue(dataChangedEventArgs);
+                                }
+                            }
+                            if (currentIndex > 0)
+                            {
+                                MccDaq.ErrorInfo ulStat2 = MccDaq.MccService.WinBufToArray32(MemHandle, dataBuffer, 0, currentIndex);
+                                if (ulStat2.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
+                                {
+                                    this.ErrorString = "WinBufToArray32 failed (second chunk): " + ulStat2.Message;
+                                    try { _board.StopBackground(FunctionType.AiFunction); } catch { }
+                                    break;
+                                }
+                                for (int i = 0; i < currentIndex; i++)
+                                {
+                                    RawDataChangedEventArgs dataChangedEventArgs = new RawDataChangedEventArgs(dataBuffer[i]);
+                                    _dataQueue.Enqueue(dataChangedEventArgs);
+                                }
+                            }
+                        }
+
+                        lastIndex = currentIndex;
                     }
-
-                    
-
-                    lastIndex = currentIndex;
+                }
+                catch (Exception ex)
+                {
+                    this.ErrorString = "DataReaderWorker error: " + ex.Message;
+                    try { _board.StopBackground(FunctionType.AiFunction); } catch { }
+                    break;
                 }
 
-                // Small delay to prevent busy-waiting
-               // Thread.Sleep(1);
+                Thread.Sleep(1);
             }
-            //cancel the background worker
-            _dataCollectorWorker2.CancelAsync();
-            //Free the two local arrays
-           
+
+            try { _dataCollectorWorker2.CancelAsync(); } catch { }
         }
 
- 
         private void DataCollectorWorker_FindPlane(object sender, DoWorkEventArgs e)
         {
             if (this._board == null)
@@ -1167,54 +1230,6 @@ namespace BMG_MicroTextureAnalyzer
              }
              //cancel the background worker
              _dataCollectorWorker.CancelAsync();
-        }
-
-        private void DataReaderWorker_FractureTest(object sender, DoWorkEventArgs e)
-        {
-            int lastIndex = 0;
-            int[] dataBuffer = new int[this.NumPoints];
-            double[] engUnits = new double[this.NumPoints];
-            MccDaq.Range range = MccDaq.Range.Bip10Volts;
-            while (!_dataCollectorWorker2.CancellationPending && !ThresholdMet)
-            {
-                this._board.GetStatus(out short status, out int curCount, out int currentIndex, FunctionType.AiFunction);
-
-                if (currentIndex > lastIndex)
-                {
-                    int pointsToRead = currentIndex - lastIndex;
-
-                    // Read the new data from the buffer
-                    MccDaq.ErrorInfo ulStat = MccDaq.MccService.WinBufToArray32(memHandle, dataBuffer, lastIndex, pointsToRead);
-                    if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
-                    {
-                        throw new Exception("Error reading buffer: " + ulStat.Message);
-                    }
-
-                    // Convert raw data to Eng32 units
-                    for (int i = 0; i < pointsToRead; i++)
-                    {
-                        //ulStat = this._board.ToEngUnits32(range, dataBuffer[i], out engUnits[i]);
-                        //if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
-                        //{
-                        //    throw new Exception("Error converting to EngUnits: " + ulStat.Message);
-                        //}
-                        //Make datachanged event arg and pass to dataqueue 
-                        RawDataChangedEventArgs dataChangedEventArgs = new RawDataChangedEventArgs(dataBuffer[i]);
-                        _dataQueue.Enqueue(dataChangedEventArgs);
-                    }
-
-
-
-                    lastIndex = currentIndex;
-                }
-
-                // Small delay to prevent busy-waiting
-                // Thread.Sleep(1);
-            }
-            //cancel the background worker
-            _dataCollectorWorker2.CancelAsync();
-            //Free the two local arrays
-
         }
 
         private void DataProcessorWorker_FractureTest(object sender, DoWorkEventArgs e)

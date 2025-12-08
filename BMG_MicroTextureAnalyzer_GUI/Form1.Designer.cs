@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            components = new System.ComponentModel.Container();
             System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea1 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
             System.Windows.Forms.DataVisualization.Charting.Legend legend1 = new System.Windows.Forms.DataVisualization.Charting.Legend();
             System.Windows.Forms.DataVisualization.Charting.Series series1 = new System.Windows.Forms.DataVisualization.Charting.Series();
@@ -135,6 +136,7 @@
             ReturnProbeToMaxHeightButton = new Button();
             MonitorResponseChart = new System.Windows.Forms.DataVisualization.Charting.Chart();
             backgroundWorker1 = new System.ComponentModel.BackgroundWorker();
+            contextMenuStrip1 = new ContextMenuStrip(components);
             ((System.ComponentModel.ISupportInitialize)MMELogoPictureBox).BeginInit();
             tabControl1.SuspendLayout();
             MotionControllerTabPage.SuspendLayout();
@@ -1376,6 +1378,11 @@
             MonitorResponseChart.TabIndex = 7;
             MonitorResponseChart.Text = "chart1";
             // 
+            // contextMenuStrip1
+            // 
+            contextMenuStrip1.Name = "contextMenuStrip1";
+            contextMenuStrip1.Size = new Size(61, 4);
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -1540,5 +1547,6 @@
         private Button DAQStopMonitoringButton;
         private Button ReturnProbeToMaxHeightButton;
         private System.ComponentModel.BackgroundWorker backgroundWorker1;
+        private ContextMenuStrip contextMenuStrip1;
     }
 }
