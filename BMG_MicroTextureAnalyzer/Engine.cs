@@ -119,14 +119,17 @@ namespace BMG_MicroTextureAnalyzer
         public event EventHandler<ProcessedDataChangedEventArgs> DataChanged;
         public event PropertyChangedEventHandler PropertyChanged = delegate { };
         // Event UI can subscribe to in order to show MessageBox or other user-facing messages
-        public event EventHandler<UserNotificationEventArgs> UserNotification;
+        // public event EventHandler<UserNotificationEventArgs> UserNotification;
+
+        // NotifyUser removed per user request. Engine will not raise UI notifications automatically.
+        
 
         private void NotifyUser(string message, string caption = null, bool isError = false)
         {
             try
             {
                 this.ErrorString = message;
-                UserNotification?.Invoke(this, new UserNotificationEventArgs(message, caption, isError));
+                // UserNotification?.Invoke(this, new UserNotificationEventArgs(message, caption, isError));
             }
             catch { }
 
@@ -144,15 +147,7 @@ namespace BMG_MicroTextureAnalyzer
                     _isStageMoving = false;
                     ThresholdMet = false;
 
-                    // Attempt an automatic reset in background to recreate DAQ resources so UI actions will work again
-                    Task.Run(() =>
-                    {
-                        try
-                        {
-                            ResetEngine();
-                        }
-                        catch { }
-                    });
+                    // Do NOT attempt an automatic reset here - automatic resets caused instability.
                 }
                 catch
                 {
@@ -717,7 +712,7 @@ namespace BMG_MicroTextureAnalyzer
         /// Compute a robust zero (force offset in Newtons) from the recent processed-force samples and set ForceOffset.
         /// Uses median by default which is robust to spikes.
         /// </summary>
-        public void ComputeAndSetForceOffset(int sampleCount = 100, bool useMedian = true)
+        public void ComputeAndSetForceOffset(int sampleCount = 100, bool useMedian = false)
         {
             double[] snap;
             lock (_recentForceLock)
@@ -1091,10 +1086,9 @@ namespace BMG_MicroTextureAnalyzer
                     MccDaq.ErrorInfo ulStat = this._board.AIn32(channel, range, out int rawData, 0);
                     if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
                     {
-                        // record error and notify UI (via event), then stop gracefully
+                        // record error then stop gracefully
                         var msg = "AIn32 failed: " + ulStat.Message;
                         this.ErrorString = msg;
-                        NotifyUser(msg, "DAQ Error", true);
                         try { this._board?.StopBackground(FunctionType.AiFunction); } catch { }
                         break;
                     }
@@ -1106,7 +1100,6 @@ namespace BMG_MicroTextureAnalyzer
                 {
                     var msg = "DataCollectorWorker error: " + ex.Message;
                     this.ErrorString = msg;
-                    NotifyUser(msg, "DAQ Error", true);
                     try { this._board?.StopBackground(FunctionType.AiFunction); } catch { }
                     break;
                 }
@@ -1130,7 +1123,6 @@ namespace BMG_MicroTextureAnalyzer
             {
                 var msg = "AInScan failed: " + ulStat.Message;
                 this.ErrorString = msg;
-                NotifyUser(msg, "DAQ Error", true);
                 return;
             }
             this.ActualRate = rate;
@@ -1174,7 +1166,6 @@ namespace BMG_MicroTextureAnalyzer
                             {
                                 var msg = "WinBufToArray32 failed: " + ulStat.Message;
                                 this.ErrorString = msg;
-                                NotifyUser(msg, "DAQ Error", true);
                                 try { _board.StopBackground(FunctionType.AiFunction); } catch { }
                                 break;
                             }
@@ -1195,7 +1186,6 @@ namespace BMG_MicroTextureAnalyzer
                                 {
                                     var msg = "WinBufToArray32 failed (first chunk): " + ulStat.Message;
                                     this.ErrorString = msg;
-                                    NotifyUser(msg, "DAQ Error", true);
                                     try { _board.StopBackground(FunctionType.AiFunction); } catch { }
                                     break;
                                 }
@@ -1212,7 +1202,6 @@ namespace BMG_MicroTextureAnalyzer
                                 {
                                     var msg = "WinBufToArray32 failed (second chunk): " + ulStat2.Message;
                                     this.ErrorString = msg;
-                                    NotifyUser(msg, "DAQ Error", true);
                                     try { _board.StopBackground(FunctionType.AiFunction); } catch { }
                                     break;
                                 }
@@ -1231,7 +1220,6 @@ namespace BMG_MicroTextureAnalyzer
                 {
                     var msg = "DataReaderWorker error: " + ex.Message;
                     this.ErrorString = msg;
-                    NotifyUser(msg, "DAQ Error", true);
                     try { _board.StopBackground(FunctionType.AiFunction); } catch { }
                     break;
                 }
@@ -1265,7 +1253,6 @@ namespace BMG_MicroTextureAnalyzer
                     {
                         var msg = "AIn32 failed: " + ulStat.Message;
                         this.ErrorString = msg;
-                        NotifyUser(msg, "DAQ Error", true);
                         break;
                     }
                     RawDataChangedEventArgs dataChangedEventArgs = new RawDataChangedEventArgs(rawData);
@@ -1277,7 +1264,6 @@ namespace BMG_MicroTextureAnalyzer
                 {
                     var msg = "DataCollectorWorker_FindPlane error: " + ex.Message;
                     this.ErrorString = msg;
-                    NotifyUser(msg, "DAQ Error", true);
                     break;
                 }
              }
@@ -1303,7 +1289,6 @@ namespace BMG_MicroTextureAnalyzer
                 {
                     var msg = "AInScan failed: " + ulStat.Message;
                     this.ErrorString = msg;
-                    NotifyUser(msg, "DAQ Error", true);
                     return;
                 }
                 this.ActualRate = rate;
@@ -1317,7 +1302,6 @@ namespace BMG_MicroTextureAnalyzer
             {
                 var msg = "DataCollectorWorker_FractureTest error: " + ex.Message;
                 this.ErrorString = msg;
-                NotifyUser(msg, "DAQ Error", true);
             }
             finally
             {
@@ -1338,7 +1322,6 @@ namespace BMG_MicroTextureAnalyzer
                         if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
                         {
                             this.ErrorString = "ToEngUnits32 failed: " + ulStat.Message;
-                            NotifyUser("DAQ conversion error: " + ulStat.Message, "DAQ Error", true);
                             this.StopBackgroundCollection();
                             break;
                         }
@@ -1366,7 +1349,6 @@ namespace BMG_MicroTextureAnalyzer
                 {
                     var msg = "DataProcessorWorker_FractureTest error: " + ex.Message;
                     this.ErrorString = msg;
-                    NotifyUser(msg, "Processing Error", true);
                     break;
                 }
             }
@@ -1386,7 +1368,6 @@ namespace BMG_MicroTextureAnalyzer
                         if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
                         {
                             this.ErrorString = "ToEngUnits32 failed: " + ulStat.Message;
-                            NotifyUser("DAQ conversion error: " + ulStat.Message, "DAQ Error", true);
                             continue;
                         }
                         ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion);
@@ -1404,7 +1385,6 @@ namespace BMG_MicroTextureAnalyzer
                 {
                     var msg = "DataProcessorWorker error: " + ex.Message;
                     this.ErrorString = msg;
-                    NotifyUser(msg, "Processing Error", true);
                     break;
                 }
             }
@@ -1426,7 +1406,6 @@ namespace BMG_MicroTextureAnalyzer
                         if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
                         {
                             this.ErrorString = "ToEngUnits32 failed: " + ulStat.Message;
-                            NotifyUser("DAQ conversion error: " + ulStat.Message, "DAQ Error", true);
                             this.StopBackgroundCollection();
                             break;
                         }
@@ -1455,7 +1434,6 @@ namespace BMG_MicroTextureAnalyzer
                 {
                     var msg = "DataProcessorWorker_ContinuousScanInput error: " + ex.Message;
                     this.ErrorString = msg;
-                    NotifyUser(msg, "Processing Error", true);
                     break;
                 }
             }
@@ -1476,7 +1454,6 @@ namespace BMG_MicroTextureAnalyzer
                         if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
                         {
                             this.ErrorString = "ToEngUnits32 failed: " + ulStat.Message;
-                            NotifyUser("DAQ conversion error: " + ulStat.Message, "DAQ Error", true);
                             this.StopBackgroundCollection();
                             this.IsMonitoring = false;
                             this.IsStageRunning = false;
@@ -1503,7 +1480,6 @@ namespace BMG_MicroTextureAnalyzer
                 {
                     var msg = "DataProcessorWorker_FindPlane error: " + ex.Message;
                     this.ErrorString = msg;
-                    NotifyUser(msg, "Processing Error", true);
                     break;
                 }
             }
@@ -1531,7 +1507,6 @@ namespace BMG_MicroTextureAnalyzer
                         if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
                         {
                             this.ErrorString = "ToEngUnits32 failed: " + ulStat.Message;
-                            NotifyUser("DAQ conversion error: " + ulStat.Message, "DAQ Error", true);
                             continue;
                         }
                         ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion);
@@ -1554,7 +1529,6 @@ namespace BMG_MicroTextureAnalyzer
                 {
                     var msg = "DataProcessorWorker_PunctureTest error: " + ex.Message;
                     this.ErrorString = msg;
-                    NotifyUser(msg, "Processing Error", true);
                     break;
                 }
             }
@@ -1815,63 +1789,7 @@ namespace BMG_MicroTextureAnalyzer
             }
         }
 
-        /// <summary>
-        /// Attempt to reset the engine to a clean state so acquisitions can be retried after a DAQ error.
-        /// This is a best-effort operation and will stop any background work, free/reallocate the DAQ buffer,
-        /// and recreate the board instance if necessary.
-        /// </summary>
-        public void ResetEngine()
-        {
-            try
-            {
-                // Stop everything immediately
-                StopAllImmediate();
-
-                // Clear queues and processed data
-                try { while (_dataQueue.TryDequeue(out _)) { } } catch { }
-                lock (_dataLock) { _processedDataList.Clear(); }
-
-                // Free and reallocate memory buffer
-                try
-                {
-                    if (MemHandle != IntPtr.Zero)
-                    {
-                        MccDaq.MccService.WinBufFreeEx(MemHandle);
-                        MemHandle = IntPtr.Zero;
-                    }
-                    // allocate a default small buffer; actual size will be allocated when test starts
-                    MemHandle = MccDaq.MccService.WinBufAlloc32Ex(10000);
-                }
-                catch (Exception ex)
-                {
-                    this.ErrorString = "ResetEngine: buffer allocation error: " + ex.Message;
-                }
-
-                // Recreate board instance if needed
-                try
-                {
-                    this._board = new MccBoard(1);
-                }
-                catch (Exception ex)
-                {
-                    this.ErrorString = "ResetEngine: board init error: " + ex.Message;
-                }
-
-                // clear logical flags
-                _isMonitoring = false;
-                _isRunning = false;
-                _isStageMoving = false;
-                ThresholdMet = false;
-
-                // Notify UI that reset completed
-                NotifyUser("Engine reset completed.", "Engine Reset", false);
-            }
-            catch (Exception ex)
-            {
-                this.ErrorString = "ResetEngine failed: " + ex.Message;
-                NotifyUser(this.ErrorString, "Engine Reset Failed", true);
-            }
-        }
+        //ResetEngine removed: automatic reset logic was causing instability. If a manual reset is needed implement a safe sequence in UI-side code.
 
         //create class for event args that has timestamp and voltage
         public class ProcessedDataChangedEventArgs : EventArgs
