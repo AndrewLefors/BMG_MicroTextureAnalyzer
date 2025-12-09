@@ -1020,18 +1020,21 @@ namespace BMG_MicroTextureAnalyzer
             _isRunning = false;
             _isMonitoring = false;
             _isStageMoving = false;
-            //cancel the continuous scan
-            //check if invoke required
-            ThresholdMet = false;
+            // Ensure test mode flags are cleared so subsequent scans use correct conversions
+            _isFractureTest = false;
+            _isPunctureTest = false;
+             //cancel the continuous scan
+             //check if invoke required
+             ThresholdMet = false;
 
-        }
+         }
 
-        /// <summary>
-        /// Stop background data collection gracefully (stops DAQ background and cancels workers).
-        /// This matches earlier usage from UI and other processors.
-        /// </summary>
-        public void StopBackgroundCollection()
-        {
+         /// <summary>
+         /// Stop background data collection gracefully (stops DAQ background and cancels workers).
+         /// This matches earlier usage from UI and other processors.
+         /// </summary>
+         public void StopBackgroundCollection()
+         {
             try
             {
                 if (this._board != null)
@@ -1056,10 +1059,13 @@ namespace BMG_MicroTextureAnalyzer
             }
 
             _isMonitoring = false;
-        }
+            // Clear any transient mode flags so conversions are not left pointing at fracture/puncture
+            _isFractureTest = false;
+            _isPunctureTest = false;
+         }
 
-        public void StopAllImmediate()
-        {
+         public void StopAllImmediate()
+         {
             // Immediate stop: stop stage and DAQ background, cancel workers and wait briefly for them to exit.
             try
             {
@@ -1111,10 +1117,13 @@ namespace BMG_MicroTextureAnalyzer
             this._isMonitoring = false;
             this._isRunning = false;
             this.ThresholdMet = false;
-        }
+            // Clear test mode flags to avoid stale conversion selection on next run
+            _isFractureTest = false;
+            _isPunctureTest = false;
+         }
 
-        private void DataCollectorWorker_DoWork(object sender, DoWorkEventArgs e)
-        {
+         private void DataCollectorWorker_DoWork(object sender, DoWorkEventArgs e)
+         {
             if (this._board == null)
             {
                 this._board = new MccBoard(1);
@@ -1445,9 +1454,18 @@ namespace BMG_MicroTextureAnalyzer
                     break;
                 }
             }
+            // Mark fracture test finished and clear fracture mode so future scans pick correct conversion
+            try
+            {
+                FractureTestComplete = true;
+            }
+            catch { }
+            _isFractureTest = false;
+            _isMonitoring = false;
+            _isRunning = false;
             e.Cancel = true;
 
-        }
+         }
 
         private void DataProcessorWorker_DoWork(object sender, DoWorkEventArgs e)
         {

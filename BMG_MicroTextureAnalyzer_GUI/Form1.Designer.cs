@@ -29,19 +29,20 @@
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
-            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea1 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
-            System.Windows.Forms.DataVisualization.Charting.Legend legend1 = new System.Windows.Forms.DataVisualization.Charting.Legend();
-            System.Windows.Forms.DataVisualization.Charting.Series series1 = new System.Windows.Forms.DataVisualization.Charting.Series();
+            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea2 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
+            System.Windows.Forms.DataVisualization.Charting.Legend legend2 = new System.Windows.Forms.DataVisualization.Charting.Legend();
+            System.Windows.Forms.DataVisualization.Charting.Series series2 = new System.Windows.Forms.DataVisualization.Charting.Series();
             MMELogoPictureBox = new PictureBox();
             backgroundWorker1 = new System.ComponentModel.BackgroundWorker();
             contextMenuStrip1 = new ContextMenuStrip(components);
             DaqDeviceTabPage = new TabPage();
-            label16 = new Label();
-            label15 = new Label();
+            LogTextBox = new TextBox();
             tableLayoutPanel17 = new TableLayoutPanel();
             label14 = new Label();
-            label13 = new Label();
             tableLayoutPanel16 = new TableLayoutPanel();
+            label19 = new Label();
+            PositionReadingLabel = new Label();
+            label18 = new Label();
             label12 = new Label();
             forceOffsetReadingLabel = new Label();
             label5 = new Label();
@@ -142,9 +143,6 @@
             StopMotionControllerButton = new Button();
             SendYToHomeButton = new Button();
             tabControl1 = new TabControl();
-            label18 = new Label();
-            PositionReadingLabel = new Label();
-            label19 = new Label();
             ((System.ComponentModel.ISupportInitialize)MMELogoPictureBox).BeginInit();
             DaqDeviceTabPage.SuspendLayout();
             tableLayoutPanel17.SuspendLayout();
@@ -191,10 +189,8 @@
             // 
             // DaqDeviceTabPage
             // 
-            DaqDeviceTabPage.Controls.Add(label16);
-            DaqDeviceTabPage.Controls.Add(label15);
+            DaqDeviceTabPage.Controls.Add(LogTextBox);
             DaqDeviceTabPage.Controls.Add(tableLayoutPanel17);
-            DaqDeviceTabPage.Controls.Add(label13);
             DaqDeviceTabPage.Controls.Add(tableLayoutPanel16);
             DaqDeviceTabPage.Controls.Add(tableLayoutPanel15);
             DaqDeviceTabPage.Controls.Add(tableLayoutPanel14);
@@ -213,27 +209,16 @@
             DaqDeviceTabPage.Text = "DAQ Device";
             DaqDeviceTabPage.UseVisualStyleBackColor = true;
             // 
-            // label16
+            // LogTextBox
             // 
-            label16.AutoSize = true;
-            label16.Font = new Font("Segoe UI", 24F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label16.ForeColor = Color.Olive;
-            label16.Location = new Point(716, 324);
-            label16.Name = "label16";
-            label16.Size = new Size(37, 45);
-            label16.TabIndex = 30;
-            label16.Text = "3";
-            // 
-            // label15
-            // 
-            label15.AutoSize = true;
-            label15.Font = new Font("Segoe UI", 24F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label15.ForeColor = Color.Lime;
-            label15.Location = new Point(759, 284);
-            label15.Name = "label15";
-            label15.Size = new Size(37, 45);
-            label15.TabIndex = 29;
-            label15.Text = "2";
+            LogTextBox.AllowDrop = true;
+            LogTextBox.BackColor = SystemColors.InactiveCaption;
+            LogTextBox.Location = new Point(726, 288);
+            LogTextBox.Multiline = true;
+            LogTextBox.Name = "LogTextBox";
+            LogTextBox.ScrollBars = ScrollBars.Vertical;
+            LogTextBox.Size = new Size(337, 258);
+            LogTextBox.TabIndex = 29;
             // 
             // tableLayoutPanel17
             // 
@@ -259,17 +244,6 @@
             label14.TabIndex = 27;
             label14.Text = "Load Cell Selection";
             // 
-            // label13
-            // 
-            label13.AutoSize = true;
-            label13.Font = new Font("Segoe UI", 24F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label13.ForeColor = Color.Green;
-            label13.Location = new Point(716, 284);
-            label13.Name = "label13";
-            label13.Size = new Size(37, 45);
-            label13.TabIndex = 26;
-            label13.Text = "1";
-            // 
             // tableLayoutPanel16
             // 
             tableLayoutPanel16.BackColor = Color.MistyRose;
@@ -293,6 +267,39 @@
             tableLayoutPanel16.RowStyles.Add(new RowStyle(SizeType.Absolute, 52F));
             tableLayoutPanel16.Size = new Size(310, 173);
             tableLayoutPanel16.TabIndex = 25;
+            // 
+            // label19
+            // 
+            label19.Anchor = AnchorStyles.Left;
+            label19.AutoSize = true;
+            label19.Font = new Font("Segoe UI", 16F);
+            label19.Location = new Point(251, 76);
+            label19.Name = "label19";
+            label19.Size = new Size(51, 30);
+            label19.TabIndex = 33;
+            label19.Text = "mm";
+            // 
+            // PositionReadingLabel
+            // 
+            PositionReadingLabel.Anchor = AnchorStyles.Right;
+            PositionReadingLabel.AutoSize = true;
+            PositionReadingLabel.Font = new Font("Segoe UI", 16F);
+            PositionReadingLabel.Location = new Point(193, 76);
+            PositionReadingLabel.Name = "PositionReadingLabel";
+            PositionReadingLabel.Size = new Size(52, 30);
+            PositionReadingLabel.TabIndex = 32;
+            PositionReadingLabel.Text = "N/A";
+            // 
+            // label18
+            // 
+            label18.Anchor = AnchorStyles.None;
+            label18.AutoSize = true;
+            label18.Font = new Font("Segoe UI", 16F);
+            label18.Location = new Point(22, 76);
+            label18.Name = "label18";
+            label18.Size = new Size(93, 30);
+            label18.TabIndex = 31;
+            label18.Text = "Position:";
             // 
             // label12
             // 
@@ -851,16 +858,16 @@
             // MonitorResponseChart
             // 
             MonitorResponseChart.BackColor = Color.Silver;
-            chartArea1.Name = "ChartArea1";
-            MonitorResponseChart.ChartAreas.Add(chartArea1);
-            legend1.Name = "Legend1";
-            MonitorResponseChart.Legends.Add(legend1);
+            chartArea2.Name = "ChartArea1";
+            MonitorResponseChart.ChartAreas.Add(chartArea2);
+            legend2.Name = "Legend1";
+            MonitorResponseChart.Legends.Add(legend2);
             MonitorResponseChart.Location = new Point(8, 112);
             MonitorResponseChart.Name = "MonitorResponseChart";
-            series1.ChartArea = "ChartArea1";
-            series1.Legend = "Legend1";
-            series1.Name = "Series1";
-            MonitorResponseChart.Series.Add(series1);
+            series2.ChartArea = "ChartArea1";
+            series2.Legend = "Legend1";
+            series2.Name = "Series1";
+            MonitorResponseChart.Series.Add(series2);
             MonitorResponseChart.Size = new Size(476, 434);
             MonitorResponseChart.TabIndex = 7;
             MonitorResponseChart.Text = "chart1";
@@ -1480,39 +1487,6 @@
             tabControl1.Size = new Size(1119, 580);
             tabControl1.TabIndex = 1;
             // 
-            // label18
-            // 
-            label18.Anchor = AnchorStyles.None;
-            label18.AutoSize = true;
-            label18.Font = new Font("Segoe UI", 16F);
-            label18.Location = new Point(22, 76);
-            label18.Name = "label18";
-            label18.Size = new Size(93, 30);
-            label18.TabIndex = 31;
-            label18.Text = "Position:";
-            // 
-            // PositionReadingLabel
-            // 
-            PositionReadingLabel.Anchor = AnchorStyles.Right;
-            PositionReadingLabel.AutoSize = true;
-            PositionReadingLabel.Font = new Font("Segoe UI", 16F);
-            PositionReadingLabel.Location = new Point(193, 76);
-            PositionReadingLabel.Name = "PositionReadingLabel";
-            PositionReadingLabel.Size = new Size(52, 30);
-            PositionReadingLabel.TabIndex = 32;
-            PositionReadingLabel.Text = "N/A";
-            // 
-            // label19
-            // 
-            label19.Anchor = AnchorStyles.Left;
-            label19.AutoSize = true;
-            label19.Font = new Font("Segoe UI", 16F);
-            label19.Location = new Point(251, 76);
-            label19.Name = "label19";
-            label19.Size = new Size(51, 30);
-            label19.TabIndex = 33;
-            label19.Text = "mm";
-            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -1679,14 +1653,12 @@
         private Button StopMotionControllerButton;
         private Button SendYToHomeButton;
         private TabControl tabControl1;
-        private Label label13;
         private TableLayoutPanel tableLayoutPanel17;
         private Label label14;
-        private Label label16;
-        private Label label15;
         private Label label17;
         private Label label19;
         private Label PositionReadingLabel;
         private Label label18;
+        private TextBox LogTextBox;
     }
 }
