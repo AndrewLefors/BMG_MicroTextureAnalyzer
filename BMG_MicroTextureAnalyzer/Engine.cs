@@ -712,7 +712,7 @@ namespace BMG_MicroTextureAnalyzer
         /// Compute a robust zero (force offset in Newtons) from the recent processed-force samples and set ForceOffset.
         /// Uses median by default which is robust to spikes.
         /// </summary>
-        public void ComputeAndSetForceOffset(int sampleCount = 100, bool useMedian = false)
+        public void ComputeAndSetForceOffset(int sampleCount = 100, bool useMedian = true)
         {
             double[] snap;
             lock (_recentForceLock)

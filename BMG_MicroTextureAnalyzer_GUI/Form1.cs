@@ -233,7 +233,6 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 {
                     if (dataQueue.TryDequeue(out var item))
                     {
-                        item.Newtons -= MTAengine.ForceOffset;
                         batch.Add(item);
                     }
                     else
@@ -327,6 +326,8 @@ namespace BMG_MicroTextureAnalyzer_GUI
                     {
                         // Pass the desired visible window bounds so UpdateChartWithArrays can keep fixed width
                         this.BeginInvoke(new Action<double[], double[], double>((a, b, right) => UpdateChartWithArrays(a, b, right)), xs, ys, rightAll);
+                        // Also update time label with most recent relative time
+                        try { this.BeginInvoke(new Action(() => UpdateTimeReadingLabel(rightAll))); } catch { }
                     }
                     catch { }
                 }
@@ -413,7 +414,8 @@ namespace BMG_MicroTextureAnalyzer_GUI
         /// <param name="newtons">Force value in Newtons to display.</param>
         private void UpdateForceReadingLabel(double newtons)
         {
-            string text = newtons.ToString("F4");
+            // Display force in millinewtons with 5 decimal places
+            string text = (newtons * 1000.0).ToString("F5");
 
             Action setLabel = () =>
             {
@@ -430,6 +432,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 {
                     if (forceOffsetReadingLabel != null)
                     {
+                        // Show offset label also in millinewtons with 5 decimal places
                         forceOffsetReadingLabel.Text = text;
                     }
                 }
@@ -443,6 +446,35 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 this.BeginInvoke(setLabel);
             else
                 setLabel();
+        }
+
+        // Update the TimeReadingLabel with relative time in seconds (uses same time as chart X-axis)
+        private void UpdateTimeReadingLabel(double seconds)
+        {
+            string txt = seconds.ToString("F4") + " s"; // 4 decimal places to match chart
+
+            Action set = () =>
+            {
+                try
+                {
+                    var found = this.Controls.Find("TimeReadingLabel", true);
+                    if (found.Length > 0 && found[0] is Label lbl)
+                    {
+                        lbl.Text = txt;
+                        return;
+                    }
+
+                    // Fallback: if no specific TimeReadingLabel, try a label named "timeReadingLabel" (case)
+                    var found2 = this.Controls.Find("timeReadingLabel", true);
+                    if (found2.Length > 0 && found2[0] is Label lbl2)
+                    {
+                        lbl2.Text = txt;
+                    }
+                }
+                catch { }
+            };
+
+            if (this.IsHandleCreated && this.InvokeRequired) this.BeginInvoke(set); else set();
         }
 
         private void MTAengine_DataChanged(object? sender, Engine.ProcessedDataChangedEventArgs e)
@@ -643,7 +675,8 @@ namespace BMG_MicroTextureAnalyzer_GUI
                     {
                         if (forceOffsetReadingLabel != null)
                         {
-                            forceOffsetReadingLabel.Text = MTAengine.ForceOffset.ToString("F4");
+                            // Display force offset in millinewtons with 5 decimal places
+                            forceOffsetReadingLabel.Text = (MTAengine.ForceOffset * 1000.0).ToString("F5");
 
                             // Visual confirmation when resetting to zero (briefly flash background)
                             if (Math.Abs(MTAengine.ForceOffset) < 1e-6)

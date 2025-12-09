@@ -830,11 +830,11 @@
             tableLayoutPanel16.ColumnCount = 3;
             tableLayoutPanel16.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
             tableLayoutPanel16.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-            tableLayoutPanel16.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 48F));
+            tableLayoutPanel16.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 57F));
             tableLayoutPanel16.Controls.Add(label12, 2, 0);
             tableLayoutPanel16.Controls.Add(forceOffsetReadingLabel, 1, 0);
             tableLayoutPanel16.Controls.Add(label5, 0, 0);
-            tableLayoutPanel16.Location = new Point(744, 112);
+            tableLayoutPanel16.Location = new Point(753, 112);
             tableLayoutPanel16.Name = "tableLayoutPanel16";
             tableLayoutPanel16.RowCount = 1;
             tableLayoutPanel16.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
@@ -846,18 +846,18 @@
             label12.Anchor = AnchorStyles.Left;
             label12.AutoSize = true;
             label12.Font = new Font("Segoe UI", 16F);
-            label12.Location = new Point(181, 16);
+            label12.Location = new Point(173, 16);
             label12.Name = "label12";
-            label12.Size = new Size(29, 30);
+            label12.Size = new Size(48, 30);
             label12.TabIndex = 3;
-            label12.Text = "N";
+            label12.Text = "mN";
             // 
             // forceOffsetReadingLabel
             // 
             forceOffsetReadingLabel.Anchor = AnchorStyles.Right;
             forceOffsetReadingLabel.AutoSize = true;
             forceOffsetReadingLabel.Font = new Font("Segoe UI", 16F);
-            forceOffsetReadingLabel.Location = new Point(123, 16);
+            forceOffsetReadingLabel.Location = new Point(115, 16);
             forceOffsetReadingLabel.Name = "forceOffsetReadingLabel";
             forceOffsetReadingLabel.Size = new Size(52, 30);
             forceOffsetReadingLabel.TabIndex = 2;
@@ -869,7 +869,7 @@
             label5.Anchor = AnchorStyles.None;
             label5.AutoSize = true;
             label5.Font = new Font("Segoe UI", 16F);
-            label5.Location = new Point(6, 16);
+            label5.Location = new Point(4, 16);
             label5.Name = "label5";
             label5.Size = new Size(77, 30);
             label5.TabIndex = 1;
@@ -880,7 +880,7 @@
             tableLayoutPanel15.ColumnCount = 3;
             tableLayoutPanel15.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 52.2875824F));
             tableLayoutPanel15.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 47.7124176F));
-            tableLayoutPanel15.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 46F));
+            tableLayoutPanel15.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 57F));
             tableLayoutPanel15.Controls.Add(label11, 2, 2);
             tableLayoutPanel15.Controls.Add(RateReadingLabel, 1, 2);
             tableLayoutPanel15.Controls.Add(label10, 0, 2);
@@ -896,7 +896,7 @@
             tableLayoutPanel15.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
             tableLayoutPanel15.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
             tableLayoutPanel15.RowStyles.Add(new RowStyle(SizeType.Absolute, 51F));
-            tableLayoutPanel15.Size = new Size(251, 173);
+            tableLayoutPanel15.Size = new Size(263, 173);
             tableLayoutPanel15.TabIndex = 24;
             // 
             // label11
@@ -904,7 +904,7 @@
             label11.Anchor = AnchorStyles.Left;
             label11.AutoSize = true;
             label11.Font = new Font("Segoe UI", 16F);
-            label11.Location = new Point(207, 132);
+            label11.Location = new Point(208, 132);
             label11.Name = "label11";
             label11.Size = new Size(39, 30);
             label11.TabIndex = 8;
@@ -915,7 +915,7 @@
             RateReadingLabel.Anchor = AnchorStyles.Right;
             RateReadingLabel.AutoSize = true;
             RateReadingLabel.Font = new Font("Segoe UI", 16F);
-            RateReadingLabel.Location = new Point(149, 132);
+            RateReadingLabel.Location = new Point(150, 132);
             RateReadingLabel.Name = "RateReadingLabel";
             RateReadingLabel.Size = new Size(52, 30);
             RateReadingLabel.TabIndex = 7;
@@ -937,7 +937,7 @@
             label9.Anchor = AnchorStyles.Left;
             label9.AutoSize = true;
             label9.Font = new Font("Segoe UI", 16F);
-            label9.Location = new Point(207, 76);
+            label9.Location = new Point(208, 76);
             label9.Name = "label9";
             label9.Size = new Size(25, 30);
             label9.TabIndex = 5;
@@ -948,7 +948,7 @@
             TimeReadingLabel.Anchor = AnchorStyles.Right;
             TimeReadingLabel.AutoSize = true;
             TimeReadingLabel.Font = new Font("Segoe UI", 16F);
-            TimeReadingLabel.Location = new Point(149, 76);
+            TimeReadingLabel.Location = new Point(150, 76);
             TimeReadingLabel.Name = "TimeReadingLabel";
             TimeReadingLabel.Size = new Size(52, 30);
             TimeReadingLabel.TabIndex = 4;
@@ -970,11 +970,11 @@
             label3.Anchor = AnchorStyles.Left;
             label3.AutoSize = true;
             label3.Font = new Font("Segoe UI", 16F);
-            label3.Location = new Point(207, 15);
+            label3.Location = new Point(208, 15);
             label3.Name = "label3";
-            label3.Size = new Size(29, 30);
+            label3.Size = new Size(48, 30);
             label3.TabIndex = 2;
-            label3.Text = "N";
+            label3.Text = "mN";
             // 
             // label1
             // 
@@ -992,7 +992,7 @@
             ForceReadingLabel.Anchor = AnchorStyles.Right;
             ForceReadingLabel.AutoSize = true;
             ForceReadingLabel.Font = new Font("Segoe UI", 16F);
-            ForceReadingLabel.Location = new Point(149, 15);
+            ForceReadingLabel.Location = new Point(150, 15);
             ForceReadingLabel.Name = "ForceReadingLabel";
             ForceReadingLabel.Size = new Size(52, 30);
             ForceReadingLabel.TabIndex = 1;
@@ -1269,14 +1269,6 @@
             tableLayoutPanel9.Controls.Add(FractureDepthTextBox, 0, 0);
             tableLayoutPanel9.Controls.Add(FractureTestStartButton, 0, 1);
             tableLayoutPanel9.Controls.Add(button2, 3, 1);
-            // Reset engine button
-            resetEngineButton.Location = new Point(209, 53);
-            resetEngineButton.Name = "resetEngineButton";
-            resetEngineButton.Size = new Size(75, 23);
-            resetEngineButton.TabIndex = 20;
-            resetEngineButton.Text = "Reset Engine";
-            resetEngineButton.UseVisualStyleBackColor = true;
-            resetEngineButton.Click += resetEngineButton_Click;
             tableLayoutPanel9.Controls.Add(resetEngineButton, 2, 1);
             tableLayoutPanel9.Location = new Point(615, 342);
             tableLayoutPanel9.Name = "tableLayoutPanel9";
@@ -1318,13 +1310,23 @@
             // 
             // button2
             // 
-            button2.Location = new Point(138, 53);
+            button2.Location = new Point(219, 53);
             button2.Name = "button2";
             button2.Size = new Size(75, 23);
             button2.TabIndex = 19;
             button2.Text = "Save Data";
             button2.UseVisualStyleBackColor = true;
             button2.Click += saveFileButton_Click;
+            // 
+            // resetEngineButton
+            // 
+            resetEngineButton.Location = new Point(138, 53);
+            resetEngineButton.Name = "resetEngineButton";
+            resetEngineButton.Size = new Size(75, 23);
+            resetEngineButton.TabIndex = 20;
+            resetEngineButton.Text = "Reset Engine";
+            resetEngineButton.UseVisualStyleBackColor = true;
+            resetEngineButton.Click += resetEngineButton_Click;
             // 
             // tableLayoutPanel8
             // 
