@@ -1395,7 +1395,8 @@ namespace BMG_MicroTextureAnalyzer
                             break;
                         }
 
-                        ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion);
+                        var pos = GetStagePositionForSample(30);
+                        ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion, null, pos.positionMm, pos.timestampSec);
 
                         AddRecentForceSample(processedData.Newtons);
 
@@ -1439,7 +1440,8 @@ namespace BMG_MicroTextureAnalyzer
                             this.ErrorString = "ToEngUnits32 failed: " + ulStat.Message;
                             continue;
                         }
-                        ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion);
+                        var pos = GetStagePositionForSample(30);
+                        ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion, null, pos.positionMm, pos.timestampSec);
                         AddRecentForceSample(processedData.Newtons);
                         processedData.Newtons = processedData.Newtons - this.ForceOffset;
                         lock (_dataLock)
@@ -1478,7 +1480,9 @@ namespace BMG_MicroTextureAnalyzer
                             this.StopBackgroundCollection();
                             break;
                         }
-                        ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion, this.YStagePosition);
+
+                        var pos = GetStagePositionForSample(30);
+                        ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion, this.YStagePosition, pos.positionMm, pos.timestampSec);
                         AddRecentForceSample(processedData.Newtons);
                         processedData.Newtons = processedData.Newtons - this.ForceOffset;
                         Task.Run(() =>
@@ -1528,7 +1532,9 @@ namespace BMG_MicroTextureAnalyzer
                             this.IsStageRunning = false;
                             break;
                         }
-                        ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion, this.YStagePosition);
+
+                        var pos = GetStagePositionForSample(30);
+                        ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion, this.YStagePosition, pos.positionMm, pos.timestampSec);
                         AddRecentForceSample(processedData.Newtons);
                         processedData.Newtons = processedData.Newtons - this.ForceOffset;
                         if (processedData.Newtons > this.FindPlaneThreshold)
@@ -1578,7 +1584,9 @@ namespace BMG_MicroTextureAnalyzer
                             this.ErrorString = "ToEngUnits32 failed: " + ulStat.Message;
                             continue;
                         }
-                        ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion);
+
+                        var pos = GetStagePositionForSample(30);
+                        ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion, null, pos.positionMm, pos.timestampSec);
                         AddRecentForceSample(processedData.Newtons);
                         processedData.Newtons = processedData.Newtons - this.ForceOffset;
                         if (processedData.Newtons >= this.PunctureThreshold)
@@ -1882,6 +1890,31 @@ namespace BMG_MicroTextureAnalyzer
             }
         }
 
+        // Helper: per-sample position query with short timeout and fallback to cached/current
+        private (double positionMm, double timestampSec) GetStagePositionForSample(int timeoutMs = 30)
+        {
+            try
+            {
+                if (this.Stage != null && this.Stage.ConnectionStatus)
+                {
+                    try
+                    {
+                        var t = this.Stage.GetPositionAsync(timeoutMs).GetAwaiter().GetResult();
+                        return (t.positionMm, t.timestampSec);
+                    }
+                    catch { }
+
+                    try
+                    {
+                        return (this.Stage.CurrentYPosition, DateTime.UtcNow.Subtract(DateTime.UnixEpoch).TotalSeconds);
+                    }
+                    catch { }
+                }
+            }
+            catch { }
+            return (double.NaN, 0.0);
+        }
+
         //ResetEngine removed: automatic reset logic was causing instability. If a manual reset is needed implement a safe sequence in UI-side code.
 
         //create class for event args that has timestamp and voltage
@@ -1895,7 +1928,11 @@ namespace BMG_MicroTextureAnalyzer
 
             public double Newtons { get; set; }
 
-            public ProcessedDataChangedEventArgs(double voltage, double TimeStamp_seconds, double voltageConversion, double newtonConversion, double? step = null)
+            // new fields for position
+            public double PositionMm { get; }
+            public double PositionTimestamp { get; }
+
+            public ProcessedDataChangedEventArgs(double voltage, double TimeStamp_seconds, double voltageConversion, double newtonConversion, double? step = null, double positionMm = double.NaN, double positionTimestamp = 0.0)
             {
                 //Get the current time in total seconds
                 TimeStamp = TimeStamp_seconds;
@@ -1903,6 +1940,8 @@ namespace BMG_MicroTextureAnalyzer
                 Pounds = voltage * voltageConversion;
                 Newtons = Pounds * newtonConversion;
                 Step = step;
+                PositionMm = positionMm;
+                PositionTimestamp = positionTimestamp;
             }
         }
 

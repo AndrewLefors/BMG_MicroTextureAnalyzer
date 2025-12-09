@@ -49,6 +49,11 @@ namespace BMG_MicroTextureAnalyzer
         private long _currentYStep;
         private double _currentYPosition;
 
+        // last polled cached position and timestamp (Unix seconds)
+        private double _lastPolledPositionMm = double.NaN;
+        private double _lastPolledPositionTimestamp = 0.0;
+        private readonly object _lastPosLock = new object();
+
         public event PropertyChangedEventHandler? PropertyChanged;
 
         protected virtual void OnPropertyChanged(string propertyName = null)
@@ -308,7 +313,44 @@ namespace BMG_MicroTextureAnalyzer
             }
         }
 
-        private void StartPositionPolling(int intervalMs = 200)
+        // Get position synchronously/async with fallback to last polled cache
+        public async Task<(double positionMm, double timestampSec)> GetPositionAsync(int timeoutMs = 30)
+        {
+            // If serial not available return last cached
+            if (_serial == null || !_serial.IsOpen)
+            {
+                lock (_lastPosLock) { return (_lastPolledPositionMm, _lastPolledPositionTimestamp); }
+            }
+
+            try
+            {
+                var resp = await SendCommandAsync("?Y\r", timeoutMs).ConfigureAwait(false);
+                if (!string.IsNullOrEmpty(resp))
+                {
+                    var digits = Regex.Replace(resp, "[^0-9-]", "");
+                    if (long.TryParse(digits, out long steps))
+                    {
+                        double pos = PulseEquivalent != 0 ? (double)steps / PulseEquivalent : (double)steps * 0.005;
+                        double ts = DateTime.UtcNow.Subtract(DateTime.UnixEpoch).TotalSeconds;
+                        // update cached values
+                        lock (_lastPosLock)
+                        {
+                            _lastPolledPositionMm = pos;
+                            _lastPolledPositionTimestamp = ts;
+                        }
+                        // also update public properties
+                        CurrentYStep = steps;
+                        CurrentYPosition = pos;
+                        return (pos, ts);
+                    }
+                }
+            }
+            catch { /* ignore and fall back to cached value */ }
+
+            lock (_lastPosLock) { return (_lastPolledPositionMm, _lastPolledPositionTimestamp); }
+        }
+
+        private void StartPositionPolling(int intervalMs = 100)
         {
             StopPositionPolling();
             _pollingCts = new CancellationTokenSource();
@@ -326,8 +368,15 @@ namespace BMG_MicroTextureAnalyzer
                             var digits = Regex.Replace(resp, "[^0-9-]", "");
                             if (long.TryParse(digits, out long steps))
                             {
+                                double pos = PulseEquivalent != 0 ? (double)steps / PulseEquivalent : (double)steps * 0.005;
+                                double ts = DateTime.UtcNow.Subtract(DateTime.UnixEpoch).TotalSeconds;
+                                lock (_lastPosLock)
+                                {
+                                    _lastPolledPositionMm = pos;
+                                    _lastPolledPositionTimestamp = ts;
+                                }
                                 CurrentYStep = steps;
-                                CurrentYPosition = PulseEquivalent != 0 ? (double)steps / PulseEquivalent : (double)steps * 0.005;
+                                CurrentYPosition = pos;
                             }
                         }
                     }

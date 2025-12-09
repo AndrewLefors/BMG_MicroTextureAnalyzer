@@ -57,6 +57,12 @@ namespace BMG_MicroTextureAnalyzer_GUI
         private BlockingCollection<string> fileWriteQueue;
         private Task fileWriterTask;
         private CancellationTokenSource chartCancellationTokenSource;
+        
+        // fracture test file writer fields
+        private bool fractureSaving = false;
+        private string fractureFileSavePath = null;
+        private BlockingCollection<string> fractureFileWriteQueue;
+        private Task fractureFileWriterTask;
 
         // circular buffer implementation
         private class CircularBuffer<T>
@@ -492,6 +498,18 @@ namespace BMG_MicroTextureAnalyzer_GUI
         private void MTAengine_DataChanged(object? sender, Engine.ProcessedDataChangedEventArgs e)
         {
             dataQueue.Enqueue(e);
+
+            // If a fracture test file writer is active, enqueue a CSV line: Time,Newtons,Position_mm
+            if (fractureSaving && fractureFileWriteQueue != null)
+            {
+                try
+                {
+                    // Use per-sample aligned position provided by the engine in the event args
+                    double pos = double.IsNaN(e.PositionMm) ? double.NaN : e.PositionMm;
+                    fractureFileWriteQueue.Add($"{e.TimeStamp:F6},{e.Newtons:F6},{pos:F6}");
+                }
+                catch { }
+            }
         }
         private void PromptUserToSave()
         {
@@ -527,7 +545,26 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 {
                     //Take the data from the chart and add it to the datagrid
 
-
+                    // finalize fracture file writer if active
+                    if (fractureSaving && fractureFileWriteQueue != null)
+                    {
+                        try
+                        {
+                            var q = fractureFileWriteQueue;
+                            fractureSaving = false;
+                            fractureFileWriteQueue = null;
+                            Task.Run(() =>
+                            {
+                                try
+                                {
+                                    q.CompleteAdding();
+                                    fractureFileWriterTask?.Wait(2000);
+                                }
+                                catch { }
+                            });
+                        }
+                        catch { }
+                    }
 
 
                 }
@@ -639,6 +676,26 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 MessageBox.Show(MTAengine.Stage.PulseEquivalent.ToString());
                 PulseEquivalentResponseLabel.Text = MTAengine.Stage.PulseEquivalent.ToString();
             }
+
+            // Update position reading when the MotionController reports a Y position change
+            if (e.PropertyName == "MotionController.CurrentYPosition")
+            {
+                Action updatePos = () =>
+                {
+                    try
+                    {
+                        if (MTAengine?.Stage != null)
+                        {
+                            // display in mm with 3 decimal places
+                            PositionReadingLabel.Text = MTAengine.Stage.CurrentYPosition.ToString("F3") + " mm";
+                        }
+                    }
+                    catch { }
+                };
+
+                if (InvokeRequired) BeginInvoke(updatePos); else updatePos();
+            }
+
             if (e.PropertyName == nameof(Engine.ThresholdMet))
             {
 
@@ -1107,6 +1164,32 @@ namespace BMG_MicroTextureAnalyzer_GUI
                     }
                     fileSavePath = sfd.FileName;
                     chartSaveToFile = true;
+
+                    // Start fracture CSV writer (separate from chart writer)
+                    try
+                    {
+                        fractureFileSavePath = fileSavePath;
+                        fractureSaving = true;
+                        fractureFileWriteQueue = new BlockingCollection<string>(new ConcurrentQueue<string>());
+                        var path = fractureFileSavePath; // capture
+                        fractureFileWriterTask = Task.Run(() =>
+                        {
+                            try
+                            {
+                                using (var sw = new StreamWriter(path, false))
+                                {
+                                    sw.WriteLine("Time,Newtons,Position_mm");
+                                    foreach (var line in fractureFileWriteQueue.GetConsumingEnumerable())
+                                    {
+                                        sw.WriteLine(line);
+                                        if (fractureFileWriteQueue.Count == 0) sw.Flush();
+                                    }
+                                }
+                            }
+                            catch { }
+                        });
+                    }
+                    catch { }
                 }
 
                 MTAengine.FractureDistance = depth;
@@ -1135,7 +1218,6 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 MTAengine.FractureDistance = 0;
                 MessageBox.Show("Please enter a valid depth value");
             }
-
 
 
 
@@ -1295,6 +1377,19 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 MTAengine.StopBackgroundCollection();
             }
 
+            // finalize fracture writer if active
+            try
+            {
+                if (fractureSaving && fractureFileWriteQueue != null)
+                {
+                    var q = fractureFileWriteQueue;
+                    fractureSaving = false;
+                    fractureFileWriteQueue = null;
+                    q.CompleteAdding();
+                    fractureFileWriterTask?.Wait(500);
+                }
+            }
+            catch { }
 
             //// Ensure chartUpdateThread exists and is alive before joining.
             //if (chartUpdateThread != null && chartUpdateThread.IsAlive)
