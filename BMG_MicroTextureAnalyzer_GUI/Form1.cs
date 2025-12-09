@@ -171,10 +171,9 @@ namespace BMG_MicroTextureAnalyzer_GUI
         //Convert this to event driven so that the data is updated when the event is thrown
         private async void StartChartUpdateThread()
         {
-            if (!MTAengine.IsRunning)
-            {
-                return;
-            }
+            // Start chart thread regardless of engine running state so UI will display incoming data
+            // and file writers will be created. Guard against multiple starts.
+            if (chartUpdateThread != null && chartUpdateThread.IsAlive) return;
 
             // stop any previous chart thread
             try { chartCancellationTokenSource?.Cancel(); } catch { }
@@ -187,7 +186,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
             int rate = Math.Max(1, MTAengine.Rate);
             int windowSec = Math.Max(1, displayWindowSecondsContinuous);
             int capacity = Math.Max(1000, rate * windowSec);
-            displayBuffer = new CircularBuffer<(double X, double Y)>(capacity);
+            lock (_displayLock) { displayBuffer = new CircularBuffer<(double X, double Y)>(capacity); }
 
             // reset relative start time so chart X axis will show time since this run started
             relativeStartTime = double.NaN;
@@ -237,6 +236,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
             chartCancellationTokenSource = new CancellationTokenSource();
             chartUpdateThread = new Thread(ProcessDataQueue) { IsBackground = true };
+            chartUpdateThreadRunning = true;
             chartUpdateThread.Start();
         }
 
@@ -269,8 +269,15 @@ namespace BMG_MicroTextureAnalyzer_GUI
             var token = chartCancellationTokenSource?.Token ?? CancellationToken.None;
             var sw = Stopwatch.StartNew();
 
-            while (!token.IsCancellationRequested && MTAengine.IsRunning)
+            while (!token.IsCancellationRequested)
             {
+                // If no data queued, wait briefly to avoid busy loop
+                if (dataQueue.IsEmpty)
+                {
+                    Thread.Sleep(10);
+                    continue;
+                }
+
                 var batch = new List<Engine.ProcessedDataChangedEventArgs>();
                 var batchTimer = Stopwatch.StartNew();
 
@@ -301,20 +308,29 @@ namespace BMG_MicroTextureAnalyzer_GUI
                     try { UpdateForceReadingLabel(batch.Last().Newtons); } catch { }
 
                     // Add samples to displayBuffer (bounded by circular buffer) and optionally queue to file
-                    foreach (var d in batch)
+                    lock (_displayLock)
                     {
-                        if (double.IsNaN(relativeStartTime)) relativeStartTime = d.TimeStamp;
-                        double t = d.TimeStamp - relativeStartTime;
-                        displayBuffer.Add((t, d.Newtons));
-
-                        if (chartSaveToFile && fileWriteQueue != null)
+                        foreach (var d in batch)
                         {
-                            try { fileWriteQueue.Add($"{t:F6},{d.Newtons:F6}"); } catch { }
+                            if (double.IsNaN(relativeStartTime)) relativeStartTime = d.TimeStamp;
+                            double t = d.TimeStamp - relativeStartTime;
+                            displayBuffer.Add((t, d.Newtons));
+
+                            if (chartSaveToFile && fileWriteQueue != null)
+                            {
+                                try { fileWriteQueue.Add($"{t:F6},{d.Newtons:F6}"); } catch { }
+                            }
                         }
                     }
 
                     // prepare downsampled arrays from circular buffer
-                    var raw = displayBuffer.ToArray();
+                    double[][] snapshot;
+                    lock (_displayLock)
+                    {
+                        var arr = displayBuffer.ToArray();
+                        snapshot = new double[2][] { arr.Select(p => p.X).ToArray(), arr.Select(p => p.Y).ToArray() };
+                    }
+                    var raw = snapshot[0].Select((x, i) => (X: x, Y: snapshot[1][i])).ToArray();
                     int total = raw.Length;
                     if (total == 0) continue;
 
@@ -526,6 +542,22 @@ namespace BMG_MicroTextureAnalyzer_GUI
         {
             dataQueue.Enqueue(e);
 
+            // Log threshold event if exceeded (once per run)
+            try
+            {
+                _lastProcessedSample = e; // track last sample for property-changed logging
+                if (!_thresholdEventLogged && MTAengine != null)
+                {
+                    double thresh = MTAengine.FindPlaneThreshold;
+                    if (e.Newtons >= thresh)
+                    {
+                        _thresholdEventLogged = true;
+                        try { logger?.Log($"Threshold met: {e.Newtons:F6} N at t={e.TimeStamp:F6} s", LogLevel.Info, "Stage.Event"); } catch { }
+                    }
+                }
+            }
+            catch { }
+
             // If a fracture test file writer is active, enqueue a CSV line: Time,Newtons,Position_mm
             if (fractureSaving && fractureFileWriteQueue != null)
             {
@@ -719,6 +751,67 @@ namespace BMG_MicroTextureAnalyzer_GUI
             {
                 try { logger?.Log(MTAengine.Stage.WarningMessage, LogLevel.Warning, "MotionController"); } catch { }
             }
+
+            // Log start/stop and state transitions for user visibility
+            if (e.PropertyName == "IsRunning")
+            {
+                try
+                {
+                    if (MTAengine.IsRunning)
+                    {
+                        _thresholdEventLogged = false; // reset per-run
+                        logger?.Log("Engine started running", LogLevel.Info, "Engine.Event");
+                    }
+                    else
+                    {
+                        logger?.Log("Engine stopped", LogLevel.Info, "Engine.Event");
+                    }
+                }
+                catch { }
+            }
+
+            if (e.PropertyName == "IsMonitoring")
+            {
+                try
+                {
+                    logger?.Log($"Monitoring: {(MTAengine.IsMonitoring ? "Started" : "Stopped")}", LogLevel.Info, "Engine.Event");
+                }
+                catch { }
+            }
+
+            if (e.PropertyName == "ThresholdMet")
+            {
+                try
+                {
+                    if (MTAengine.ThresholdMet)
+                    {
+                        // use last processed sample if available
+                        if (_lastProcessedSample != null)
+                        {
+                            logger?.Log($"Threshold met: {_lastProcessedSample.Newtons:F6} N at t={_lastProcessedSample.TimeStamp:F6} s", LogLevel.Info, "Stage.Event");
+                        }
+                        else
+                        {
+                            logger?.Log("Threshold met", LogLevel.Info, "Stage.Event");
+                        }
+                    }
+                    else
+                    {
+                        logger?.Log("Threshold cleared", LogLevel.Info, "Stage.Event");
+                    }
+                }
+                catch { }
+            }
+
+            if (e.PropertyName == "IsStageRunning")
+            {
+                try
+                {
+                    logger?.Log($"Stage moving: {(MTAengine.IsStageRunning ? "Yes" : "No")}", LogLevel.Info, "Stage.Event");
+                }
+                catch { }
+            }
+
         }
 
         private async void ScanAvailableMotionControllerDevicesButton_Click(object sender, EventArgs e)
@@ -822,10 +915,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
             if (MTAengine.Stage != null && MTAengine.Stage.ConnectionStatus)
             {
                 await Task.Run(() => MTAengine.StopMotionController());
-            }
-            else
-            {
-                MessageBox.Show("Motion controller is not connected.", "Not Connected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                try { logger?.Log("Stop button pressed by user", LogLevel.Info, "Stage.Event"); } catch { }
             }
         }
 
@@ -1035,17 +1125,20 @@ namespace BMG_MicroTextureAnalyzer_GUI
             MTAengine.DataCollectionTime = 600;
             if (double.TryParse(PlaneDetectionThresholdTextBox.Text, out var planeThresh))
             {
+                MTAengine.FindPlane();
+                StartChartUpdateThread();
                 MTAengine.FindPlaneThreshold = planeThresh + this.MTAengine.ForceOffset;
                 if (MTAengine.Stage != null && MTAengine.Stage.ConnectionStatus)
                 {
+                    //make this delay for 1 second to allow time for the stage to set speed
+
                     MTAengine.TranslateYStage(-1000);
                 }
                 else
                 {
                     MessageBox.Show("Motion controller is not connected. Skipping stage move.", "Not Connected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
-                MTAengine.FindPlane();
-                StartChartUpdateThread();
+                
             }
             else
             {
@@ -1114,6 +1207,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 await Task.Run(() => MTAengine.StopAsync());
                 await Task.Delay(50);
             }
+
             // previously awaited StopAsync here; continue with setup
             MonitorResponseChart.Series.Clear();
             this.relativeStartTime = double.NaN;
@@ -1188,6 +1282,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 if (MTAengine.Stage != null && MTAengine.Stage.ConnectionStatus)
                 {
                     MTAengine.FractureTest();
+                    StartChartUpdateThread();
                     Task.Run(async () =>
                     {
                         await Task.Delay(TimeSpan.FromSeconds(5));
@@ -1197,9 +1292,10 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 else
                 {
                     MTAengine.FractureTest();
+                    StartChartUpdateThread();
                     MessageBox.Show("Motion controller is not connected. Starting fracture test without movement.", "Not Connected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
-                StartChartUpdateThread();
+                
 
             }
             else
@@ -1485,6 +1581,10 @@ namespace BMG_MicroTextureAnalyzer_GUI
             // Reset functionality disabled — keep UI stable
             MessageBox.Show("Reset is disabled. Use Stop or reconnect devices if needed.", "Reset Disabled", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
+
+        private bool _thresholdEventLogged = false;
+        private Engine.ProcessedDataChangedEventArgs _lastProcessedSample = null;
+        private readonly object _displayLock = new object();
     }
 }
 
