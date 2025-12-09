@@ -1,509 +1,157 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
-using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
-using static System.Net.Mime.MediaTypeNames;
 using System.IO.Ports;
-using System.Drawing;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Collections.Concurrent;
 
 namespace BMG_MicroTextureAnalyzer
 {
-    public class MotionController : INotifyPropertyChanged
+    public class MotionController : INotifyPropertyChanged, IDisposable
     {
+        private bool _connected; // connection status
+        private SerialPort? _serial;
+        private string _recvBuffer = string.Empty;
+        private readonly object _recvLock = new object();
 
-        private bool BlnConnect;                                 //Connection Status
-        public SerialPort SCPort = null;                 //Define serial port
-        public string StrReceiver;                              //Receive the string from controller
-        private bool BlnBusy;                                   //If controller is busy
-        private bool BlnReadCom;                                 //If reading is finished, return TRUE
-        private bool BlnStopCommand;                             //Stop waiting
-        public short ShrPort;                                   //The serial port number
-        private bool BlnSet;                                    //If the command sent is a set command or an inquiry command. TRUE is a set command
-        private double DblMotorDegree;                          //Motor degree
-        private double DblLeadScrewPitch;                       //Lead screw pitch
-        private double DblTransmissionRatio;                    //Transmission ratio
-        private double DblSubDivision;                          //Subdivision
-        private double DblPulseEqui;                            //Pulse equivalent
-        private string _errMessage;                              //Error message
-        private string _warningMessage;                          //Warning message
-        short sSpeed;                                           //Current speed
-        long lCurrStep;                                         //Current steps
-        double dCurrPosi;                                       //Current position
+        // Command request for async queue
+        private class CommandRequest
+        {
+            public string Command { get; }
+            public TaskCompletionSource<string> Tcs { get; }
+            public int TimeoutMs { get; }
+            public CommandRequest(string cmd, int timeoutMs)
+            {
+                Command = cmd;
+                Tcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+                TimeoutMs = timeoutMs;
+            }
+        }
 
-        private double _currentXPosition;
-        private long _currentXStep;
-        private double _currentYPosition;
+        private BlockingCollection<CommandRequest> _cmdQueue = new BlockingCollection<CommandRequest>();
+        private CancellationTokenSource? _cmdCts;
+        private Task? _cmdWorker;
+
+        // Polling
+        private CancellationTokenSource? _pollingCts;
+        private Task? _pollingTask;
+
+        // motion parameters
+        private double DblMotorDegree = 1.8;
+        private double DblLeadScrewPitch = 1.0;
+        private double DblSubDivision = 1.0;
+        private double DblPulseEqui = 1600.0; // default
+
+        // reported values
         private long _currentYStep;
+        private double _currentYPosition;
 
         public event PropertyChangedEventHandler? PropertyChanged;
-
-        public MotionController()
-        {
-            SCPort = new SerialPort();
-            
-            sSpeed = 200;
-            //GetYLocation();
-        }
 
         protected virtual void OnPropertyChanged(string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        public bool ConnectionStatus
+        public MotionController()
         {
-            get
-            {
-                return BlnConnect;
-            }
-            private set
-            {
-                if (BlnConnect != value)
-                {
-                    BlnConnect = value;
-                    OnPropertyChanged(nameof(ConnectionStatus));
-                }
-            }
         }
 
-        public bool ReadCom
-        {
-            get
-            {
-                return BlnReadCom;
-            }
-            private set
-            {
-                if (BlnReadCom != value)
-                {
-                    BlnReadCom = value;
-                    OnPropertyChanged(nameof(ReadCom));
-                }
-            }
-        }
-        public bool Busy
-        {
-            get
-            {
-                return BlnBusy;
-            }
-            private set
-            {
-                if (BlnBusy != value)
-                {
-                    BlnBusy = value;
-                    OnPropertyChanged(nameof(Busy));
-                }
-            }
-        }
+        // Backwards-compatible flags used by existing UI/Engine code
+        public bool Busy { get; private set; }
+        public bool ReadCom { get; private set; }
+        public bool SetCommand { get; private set; }
+        public string ErrorMessage { get; private set; } = string.Empty;
+        public string WarningMessage { get; private set; } = string.Empty;
 
-        public bool BlnConnected
-        {
-            get
-            {
-                return BlnConnect;
-            }
-            private set
-            {
-                if (BlnConnect != value)
-                {
-                    BlnConnect = value;
-                    OnPropertyChanged(nameof(BlnConnected));
-                }
-            }
-        }
-        public bool SetCommand
-        {
-            get
-            {
-                return BlnSet;
-            }
-            private set
-            {
-                if (BlnSet != value)
-                {
-                    BlnSet = value;
-                    OnPropertyChanged(nameof(SetCommand));
-                }
-            }
-        }
-
-
-        public double CurrentXPosition
-        {
-            get
-            {
-                return _currentXPosition;
-            }
-            private set
-            {
-                if (_currentXPosition != value)
-                {
-                    _currentXPosition = value;
-                    OnPropertyChanged(nameof(CurrentXPosition));
-                }
-            }
-        }
-        public double CurrentYPosition
-        {
-            get
-            {
-                return _currentYPosition;
-            }
-            private set
-            {
-                if (_currentYPosition != value)
-                {
-                    _currentYPosition = value;
-                    OnPropertyChanged(nameof(CurrentYPosition));
-                    //Console.WriteLine(CurrentYStep.ToString());
-                }
-            }
-        }
-
-        public long CurrentXStep
-        {
-            get
-            {
-                return _currentXStep;
-            }
-            private set
-            {
-                if (_currentXStep != value)
-                {
-                    _currentXStep = value;
-                    OnPropertyChanged(nameof(CurrentXStep));
-                }
-            }
-        }
-
-        public long CurrentYStep
-        {
-            get
-            {
-                return _currentYStep;
-            }
-            private set
-            {
-                if (_currentYStep != value)
-                {
-                    _currentYStep = value;
-                    OnPropertyChanged(nameof(CurrentYStep));
-                }
-            }
-        }
-        public double MotorDegree
-        {
-            get
-            {
-                return DblMotorDegree;
-            }
-            internal set
-            {
-                if (DblMotorDegree != value)
-                {
-                    DblMotorDegree = value;
-                    OnPropertyChanged(nameof(MotorDegree));
-                }
-            }
-        }
-
-        public double LeadScrewPitch
-        {
-            get
-            {
-                return DblLeadScrewPitch;
-            }
-            internal set
-            {
-                if (DblLeadScrewPitch != value)
-                {
-                    DblLeadScrewPitch = value;
-                    OnPropertyChanged(nameof(LeadScrewPitch));
-                }
-            }
-        }
-        
-        public double TransmissionRatio
-        {
-            get
-            {
-                return DblTransmissionRatio;
-            }
-            private set
-            {
-                if (DblTransmissionRatio != value)
-                {
-                    DblTransmissionRatio = value;
-                    OnPropertyChanged(nameof(TransmissionRatio));
-                }
-            }
-        }
-
-        public double Subdivision
-        {
-            get
-            {
-                return DblSubDivision;
-            }
-            internal set
-            {
-                if (DblSubDivision != value)
-                {
-                    DblSubDivision = value;
-                    OnPropertyChanged(nameof(Subdivision));
-                }
-            }
-        }
-
-        public double PulseEquivalent
-        {
-            get
-            {
-                return DblPulseEqui;
-            }
-            set
-            {
-                if (DblPulseEqui != value)
-                {
-                    DblPulseEqui = value;
-                    OnPropertyChanged(nameof(PulseEquivalent));
-                }
-            }
-        }
-
-        public double CurrentPosition
-        {
-            get
-            {
-                return dCurrPosi;
-            }
-            private set
-            {
-                if (dCurrPosi != value)
-                {
-                    dCurrPosi = value;
-                    OnPropertyChanged(nameof(CurrentPosition));
-                }
-            }
-        }
-
-        public long CurrentStep
-        {
-            get
-            {
-                return lCurrStep;
-            }
-            private set
-            {
-                if (lCurrStep != value)
-                {
-                    lCurrStep = value;
-                    OnPropertyChanged(nameof(CurrentStep));
-                }
-            }
-        }
-
-        public short Speed
-        {
-            get
-            {
-                return sSpeed;
-            }
-            private set
-            {
-                if (sSpeed != value)
-                {
-                    sSpeed = value;
-                    OnPropertyChanged(nameof(Speed));
-                }
-            }
-        }
-
-        public string ErrorMessage
-        {
-            get
-            {
-                return _errMessage;
-            }
-            private set
-            {
-                if (_errMessage != value)
-                {
-                    _errMessage = value;
-                    OnPropertyChanged(nameof(ErrorMessage));
-                }
-            }
-        }
-
-        public string WarningMessage
-        {
-            get
-            {
-                return _warningMessage;
-            }
-            private set
-            {
-                if (_warningMessage != value)
-                {
-                    _warningMessage = value;
-                    OnPropertyChanged(nameof(WarningMessage));
-                }
-            }
-        }
-
+        // Synchronous wrapper for legacy connect
         public void ConnectPort(short sPort)
-            {
-                if (SCPort.IsOpen == true) SCPort.Close();
-                SCPort.PortName = "COM" + sPort.ToString();            //Set the serial port number
-                SCPort.BaudRate = 9600;                                //Set the bit rate
-                SCPort.DataBits = 8;                                   //Set the data bits
-                SCPort.StopBits = StopBits.One;                        //Set the stop bit
-                SCPort.Parity = Parity.None;                           //Set the Parity
-                SCPort.ReadBufferSize = 2048;
-                SCPort.WriteBufferSize = 1024;
-                SCPort.DtrEnable = true;
-                SCPort.Handshake = Handshake.None;
-                SCPort.ReceivedBytesThreshold = 1;
-                SCPort.RtsEnable = false;
-
-                //This delegate should be a trigger event for fetching data asynchronously, it will be triggered when there is data passed from serial port.
-                SCPort.DataReceived += new SerialDataReceivedEventHandler(SCPort_DataReceived);     //DataReceivedEvent delegate
-            
-                try
-                {
-                    SCPort.Open();                                     //Open serial port
-                    if (SCPort.IsOpen)
-                    {
-                        StrReceiver = "";
-                        Busy = true;
-                        SetCommand = false;
-                        SendCommand("?R\r");                           //Connect to the controller
-                        Delay(10000);
-                        Busy = false;
-
-                        if (StrReceiver == "?R\rOK\n")
-                        {
-                            ConnectionStatus = true;  //Connected successfully
-                            ShrPort = sPort;                          //Serial port number
-                            //GetYLocation();                           //Get the current position of Y axis
-                            
-                        }
-                        else
-                        {
-                            Busy = false;
-                            ConnectionStatus = false;
-                            WarningMessage = "Failed to connect";
-                            return;
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    ErrorMessage = ex.Message;
-                }
-          
-        }
-
-        // In your engine class
-        public async Task ConnectAsync(short sPort)
         {
-
-            if (SCPort.IsOpen == true) SCPort.Close();
-            SCPort.PortName = "COM" + sPort.ToString();            //Set the serial port number
-            SCPort.BaudRate = 9600;                                //Set the bit rate
-            SCPort.DataBits = 8;                                   //Set the data bits
-            SCPort.StopBits = StopBits.One;                        //Set the stop bit
-            SCPort.Parity = Parity.None;                           //Set the Parity
-            SCPort.ReadBufferSize = 2048;
-            SCPort.WriteBufferSize = 1024;
-            SCPort.DtrEnable = true;
-            SCPort.Handshake = Handshake.None;
-            SCPort.ReceivedBytesThreshold = 1;
-            SCPort.RtsEnable = false;
-
-            //This delegate should be a trigger event for fetching data asynchronously, it will be triggered when there is data passed from serial port.
-            SCPort.DataReceived += new SerialDataReceivedEventHandler(SCPort_DataReceived);
             try
             {
-                SCPort.Open();  // Assuming Open() is non-blocking or fast
-                if (SCPort.IsOpen)
-                {
-                    StrReceiver = "";
-                    Busy = true;
-                    SetCommand = false;
-                    SendCommand("?R\r");  // Send the command
-
-                    // Instead of blocking, await an asynchronous delay
-                    await Task.Delay(10000);
-                    Busy = false;
-
-                    if (StrReceiver == "?R\rOK\n")
-                    {
-                        ConnectionStatus = true;
-                        ShrPort = sPort;
-                    }
-                    else
-                    {
-                        Busy = false;
-                        ConnectionStatus = false;
-                        WarningMessage = "Failed to connect";
-                        return;
-                    }
-                }
+                // fire-and-wait for a short timeout to provide compatibility
+                var ok = ConnectAsync(sPort, 5000).GetAwaiter().GetResult();
+                ConnectionStatus = ok;
             }
             catch (Exception ex)
             {
-                // Handle exceptions as needed
                 ConnectionStatus = false;
+                ErrorMessage = ex.Message;
+            }
+        }
+
+        // Legacy SendCommand synchronous facade - posts command and waits briefly for response
+        public void SendCommand(string cmd)
+        {
+            try
+            {
+                // best-effort: fire and forget but attempt to wait shortly
+                var t = SendCommandAsync(cmd, 1000);
+                try { t.Wait(800); } catch { }
+            }
+            catch { }
+        }
+
+        // Legacy SetSpeed implementation
+        public void SetSpeed(double speed)
+        {
+            try
+            {
+                // send set speed command and optionally query
+                var t = SendCommandAsync("V" + ((int)speed).ToString() + "\r", 500);
+                try { t.Wait(500); } catch { }
+            }
+            catch (Exception ex)
+            {
                 WarningMessage = ex.Message;
             }
         }
 
-        internal void SCPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
+        // Legacy CalculatePulseEquiv wrapper
+        // Keep name used by Engine
+        public void CalculatePulseEquivLegacy()
         {
-            //****************************************************************
-            //Function: SCPort_DataReceived
-            //Parameters: 
-            //Description: receive the data sent from serial port and handle
-            //Return:
-            //****************************************************************
+            CalculatePulseEquiv();
+        }
+
+        // Provide a Delay method expected by Engine
+        public void Delay(long milliSecond = 500)
+        {
+            try { Thread.Sleep((int)milliSecond); } catch { }
+        }
+
+        internal void ConvertDistanceToSteps(double distance, int axis)
+        {
             try
             {
-                string sCurString = "";
-                sCurString = SCPort.ReadExisting();
-                System.Diagnostics.Debug.WriteLine(sCurString);
-                if (sCurString != "")
-                    StrReceiver = StrReceiver + sCurString;
-                if (SetCommand == true)
+                if (this.PulseEquivalent != 0)
                 {
-                    if (StrReceiver.Length == 3)
+                    if (axis == 0)
                     {
-                        if (StrReceiver.Substring(StrReceiver.Length - 3) == "OK\n")
-                            ReadCom = true;
+                        this.CurrentXStep = Convert.ToInt64(distance * this.PulseEquivalent);
                     }
-                    else if (StrReceiver.Length == 4)
+                    else if (axis == 1)
                     {
-                        if (StrReceiver.Substring(StrReceiver.Length - 3) == "OK\n" || StrReceiver.Substring(StrReceiver.Length - 4) == "OK\nS")
-                            ReadCom = true;
+                        this.CurrentYStep = Convert.ToInt64(distance * this.PulseEquivalent);
                     }
-                    else if (StrReceiver.Length > 4)
+                    else
                     {
-                        if (StrReceiver.Substring(StrReceiver.Length - 3) == "OK\n" || StrReceiver.Substring(StrReceiver.Length - 4) == "OK\nS" ||
-                            StrReceiver.Substring(StrReceiver.Length - 5) == "ERR1\n" || StrReceiver.Substring(StrReceiver.Length - 5) == "ERR5\n")
-                            ReadCom = true;
+                        this.CurrentYStep = Convert.ToInt64(distance * this.PulseEquivalent);
                     }
+
                 }
                 else
                 {
-                    if (StrReceiver.Length > 1)
+                    if (axis == 0)
                     {
-                        if (StrReceiver.Substring(StrReceiver.Length - 1, 1) == "\n")
-                            ReadCom = true;
+                        this.CurrentXStep = Convert.ToInt64(distance * 0.005);
+                    }
+                    else
+                    {
+                        this.CurrentYStep = Convert.ToInt64(distance * 0.005);
                     }
                 }
             }
@@ -512,96 +160,9 @@ namespace BMG_MicroTextureAnalyzer
                 ErrorMessage = ex.Message;
             }
         }
-            public void ClosePort()
-            {
-                //****************************************************************
-                //Function: ClosePort
-                //Parameters: 
-                //Description: close the connection
-                //Return:
-                //****************************************************************
-                if (SCPort.IsOpen) SCPort.Close();
-            }
 
-            public void SendCommand(string CommandString)
-            {
-                //****************************************************************
-                //Function: SendCommand
-                //Parameters: CommandString: the command string
-                //Description: send the command to controller
-                //Return:
-                //****************************************************************
-                if (SCPort.IsOpen)
-                {
-                    SCPort.Write(CommandString);
-                    SCPort.DiscardOutBuffer();
-                }
-            }
-
-            public void Delay(long milliSecond = 500)
-            {
-                //****************************************************************
-                //Function: Delay
-                //Parameters: milliSecond:the waiting time, unit is millsecond
-                //Description: appoint the waiting time and exit waiting until the data reading is finished or clicking the stop button or close the window or the waiting time is over.
-                //Return:
-                //****************************************************************
-                int start = Environment.TickCount;
-
-                ReadCom = false;
-                BlnStopCommand = false;
-                while (Math.Abs(Environment.TickCount - start) < milliSecond)
-                {
-                    if (ReadCom == true)
-                    {
-                        ReadCom = false;
-                        return;
-                    }
-                    if (BlnStopCommand == true) return;
-                    //Application.DoEvents();
-                }
-            }
-
-            private void ConnectToPort(short port)      //Connect to appointed serial port
-            {
-                ConnectPort(port);
-            }
-
-            private void SetNewSpeed(short speed)      //Set new speed and get the current speed
-            {
-                
-                if (speed < 0 || speed > 255)
-                {
-                    WarningMessage = "The speed value must be an integer between 0 and 255.";
-                    return;
-                }
-                if (Busy == true)
-                {
-                    WarningMessage = "The connection is busy, please wait.";
-                    return;
-                }
-                StrReceiver = "";
-                Busy = true;
-                SetCommand = true;
-                SendCommand("V" + sSpeed.ToString() + "\r");            //Set speed
-                Delay(100000);
-                Busy = false;
-
-                StrReceiver = "";
-                Busy = true;
-                SetCommand = false;
-                SendCommand("?V\r");                                    //Inquiry speed
-                Delay(100000);
-                Busy = false;
-
-                if (StrReceiver != "")
-                {
-                    this.Speed = Convert.ToInt16(System.Text.RegularExpressions.Regex.Replace(StrReceiver, @"[^0-9]+", ""));
-                    //label3.Text = "The speed is " + sSpeed.ToString();
-                }
-            }
-        // TODO: Fix equation for calculating pulse equivalent
-        internal void CalculatePulseEquiv()
+        // Public calculation method matching original API name
+        public void CalculatePulseEquiv()
         {
             try
             {
@@ -620,228 +181,388 @@ namespace BMG_MicroTextureAnalyzer
                     this.WarningMessage = "Subdivision is 0";
                     return;
                 }
-                double stepsPerRevolution = 360 / MotorDegree; //should be 200 steps
-                double microsteppedSteps = stepsPerRevolution * Subdivision; //should be 200 * 8 = 1600 steps (microsteps
-                this.PulseEquivalent = microsteppedSteps / LeadScrewPitch; //Should provide pulse equivalent for 1mm of travel  1600 / 1 = 1600 pulse equiv
-                //HARD CODING
-                //this.PulseEquivalent = 1600;
-                this.DblPulseEqui = this.PulseEquivalent;
-                System.Diagnostics.Debug.WriteLine("Pulse Equivalent: " + this.PulseEquivalent.ToString());
-                System.Diagnostics.Debug.WriteLine(WarningMessage);
+                double stepsPerRevolution = 360 / MotorDegree;
+                double microsteppedSteps = stepsPerRevolution * Subdivision;
+                this.PulseEquivalent = microsteppedSteps / LeadScrewPitch;
                 this.WarningMessage = "Pulse Equivalent:" + this.PulseEquivalent.ToString();
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message.ToString() + "THIS SHIT IS BRICKED");
-
+                this.ErrorMessage = ex.Message;
             }
-
         }
 
-        public void MoveYAbsolute(double yPos, bool flag = true)      //Move Y axis to the appointed position and get the current position
-        {
+        // Compat helpers for CurrentXStep used elsewhere
+        public long CurrentXStep { get; private set; }
 
+        public bool ConnectionStatus
+        {
+            get => _connected;
+            private set
+            {
+                if (_connected != value)
+                {
+                    _connected = value;
+                    OnPropertyChanged(nameof(ConnectionStatus));
+                }
+            }
+        }
+
+        public long CurrentYStep
+        {
+            get => _currentYStep;
+            private set
+            {
+                if (_currentYStep != value)
+                {
+                    _currentYStep = value;
+                    OnPropertyChanged(nameof(CurrentYStep));
+                }
+            }
+        }
+
+        public double CurrentYPosition
+        {
+            get => _currentYPosition;
+            private set
+            {
+                if (Math.Abs(_currentYPosition - value) > 1e-9)
+                {
+                    _currentYPosition = value;
+                    OnPropertyChanged(nameof(CurrentYPosition));
+                }
+            }
+        }
+
+        public double MotorDegree
+        {
+            get => DblMotorDegree;
+            internal set { DblMotorDegree = value; OnPropertyChanged(nameof(MotorDegree)); }
+        }
+        public double LeadScrewPitch
+        {
+            get => DblLeadScrewPitch;
+            internal set { DblLeadScrewPitch = value; OnPropertyChanged(nameof(LeadScrewPitch)); }
+        }
+        public double Subdivision
+        {
+            get => DblSubDivision;
+            internal set { DblSubDivision = value; OnPropertyChanged(nameof(Subdivision)); }
+        }
+        public double PulseEquivalent
+        {
+            get => DblPulseEqui;
+            set { DblPulseEqui = value; OnPropertyChanged(nameof(PulseEquivalent)); }
+        }
+
+        // Open serial port and start worker; returns true if controller responded OK
+        public async Task<bool> ConnectAsync(short sPort, int timeoutMs = 5000)
+        {
             try
             {
-                if (this != null)
+                // Close existing
+                ClosePort();
+
+                _serial = new SerialPort();
+                _serial.PortName = "COM" + sPort.ToString();
+                _serial.BaudRate = 9600;
+                _serial.DataBits = 8;
+                _serial.StopBits = StopBits.One;
+                _serial.Parity = Parity.None;
+                _serial.ReadBufferSize = 4096;
+                _serial.WriteBufferSize = 2048;
+                _serial.DtrEnable = true;
+                _serial.Handshake = Handshake.None;
+                _serial.RtsEnable = false;
+
+                _serial.DataReceived += Serial_DataReceived;
+                _serial.Open();
+
+                // start command worker
+                _cmdCts = new CancellationTokenSource();
+                _cmdWorker = Task.Run(() => CommandWorkerLoop(_cmdCts.Token));
+
+                // small delay for port to settle
+                await Task.Delay(50);
+
+                // send identify command and wait for OK
+                var resp = await SendCommandAsync("?R\r", timeoutMs);
+                if (!string.IsNullOrEmpty(resp) && resp.Contains("OK"))
                 {
-
-                    string commandString = string.Empty;
-                    if (flag)
-                    {
-                        ConvertDistanceToSteps(yPos, 1);
-                    }
-
-
-                    //this.currentYStep = Convert.ToInt64((Convert.ToDouble(yPosition) - this.CurrentYPosition) / this.PulseEquiv);
-                    //this.currentYStep = Convert.ToInt64(yPosition);
-                    if (this.CurrentYStep > 0)
-                        commandString = "+" + this.CurrentYStep.ToString();
-                    else
-                        commandString = this.CurrentYStep.ToString();
-                    this.SendCommand("Y" + commandString + "\r");
-                    Thread.Sleep(1000);
-                    Console.WriteLine(this.WarningMessage);
-                    if (this.StrReceiver == "Y" + commandString + "\rOK\n")
-                    {
-                        this.WarningMessage = "Success";
-                    }
-                    else
-                        this.WarningMessage = "SetYPosition Failed";
-
+                    ConnectionStatus = true;
+                    // start polling position in background
+                    StartPositionPolling();
+                    return true;
                 }
                 else
                 {
-                    this.StrReceiver = "Device not Connected";
+                    ConnectionStatus = false;
+                    return false;
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message.ToString());
-                this.ErrorMessage = ex.Message;
+                ConnectionStatus = false;
+                ErrorMessage = ex.Message;
+                return false;
             }
-
         }
 
-        internal void ConvertDistanceToSteps(double distance, int axis)
+        private void StartPositionPolling(int intervalMs = 200)
+        {
+            StopPositionPolling();
+            _pollingCts = new CancellationTokenSource();
+            var token = _pollingCts.Token;
+            _pollingTask = Task.Run(async () =>
             {
-                try
+                while (!token.IsCancellationRequested && ConnectionStatus)
                 {
-                    if (this.PulseEquivalent != 0)
+                    try
                     {
-                        if (axis == 0)
+                        var resp = await SendCommandAsync("?Y\r", 500);
+                        if (!string.IsNullOrEmpty(resp))
                         {
-                            this.CurrentXStep = Convert.ToInt64(distance * this.PulseEquivalent);
+                            // parse numeric steps
+                            var digits = Regex.Replace(resp, "[^0-9-]", "");
+                            if (long.TryParse(digits, out long steps))
+                            {
+                                CurrentYStep = steps;
+                                CurrentYPosition = PulseEquivalent != 0 ? (double)steps / PulseEquivalent : (double)steps * 0.005;
+                            }
                         }
-                        else if (axis == 1)
+                    }
+                    catch { /* swallow transient errors */ }
+                    await Task.Delay(intervalMs, token).ContinueWith(t => { });
+                }
+            }, token);
+        }
+
+        private void StopPositionPolling()
+        {
+            try
+            {
+                _pollingCts?.Cancel();
+                _pollingTask = null;
+                _pollingCts = null;
+            }
+            catch { }
+        }
+
+        private async Task CommandWorkerLoop(CancellationToken token)
+        {
+            try
+            {
+                foreach (var req in _cmdQueue.GetConsumingEnumerable(token))
+                {
+                    if (token.IsCancellationRequested) break;
+                    if (_serial == null || !_serial.IsOpen)
+                    {
+                        req.Tcs.TrySetException(new InvalidOperationException("Serial port closed"));
+                        continue;
+                    }
+
+                    // clear receive buffer
+                    lock (_recvLock) { _recvBuffer = string.Empty; }
+
+                    try
+                    {
+                        _serial.Write(req.Command);
+                        _serial.BaseStream.Flush();
+                    }
+                    catch (Exception ex)
+                    {
+                        req.Tcs.TrySetException(ex);
+                        continue;
+                    }
+
+                    // wait for response or timeout
+                    using var cts = new CancellationTokenSource(req.TimeoutMs);
+                    using (cts.Token.Register(() => req.Tcs.TrySetCanceled()))
+                    {
+                        try
                         {
-                            this.CurrentYStep = Convert.ToInt64(distance * this.PulseEquivalent);
+                            var resp = await req.Tcs.Task.ConfigureAwait(false);
+                            req.Tcs.TrySetResult(resp);
+                        }
+                        catch (TaskCanceledException)
+                        {
+                            req.Tcs.TrySetCanceled();
+                        }
+                        catch (Exception ex)
+                        {
+                            req.Tcs.TrySetException(ex);
+                        }
+                    }
+                }
+            }
+            catch (OperationCanceledException) { }
+            catch { }
+        }
+
+        private void Serial_DataReceived(object? sender, SerialDataReceivedEventArgs e)
+        {
+            try
+            {
+                if (_serial == null) return;
+                string chunk = _serial.ReadExisting();
+                if (string.IsNullOrEmpty(chunk)) return;
+
+                lock (_recvLock)
+                {
+                    _recvBuffer += chunk;
+                    // if we have newline or OK or ERR, consider complete
+                    if (_recvBuffer.Contains("\n") || _recvBuffer.Contains("OK") || _recvBuffer.Contains("ERR"))
+                    {
+                        var resp = _recvBuffer;
+                        _recvBuffer = string.Empty;
+
+                        // complete any pending request
+                        // Try to find a pending request to complete
+                        // BlockingCollection doesn't expose current item; use a simple strategy: find first queued request with incomplete Tcs
+                        CommandRequest? pending = null;
+                        foreach (var q in _cmdQueue)
+                        {
+                            if (!q.Tcs.Task.IsCompleted) { pending = q; break; }
+                        }
+                        // If none found, still try to set last outstanding
+                        if (pending == null)
+                        {
+                            // nothing in queue, try to set next possible (unsafe) - set all waiting TCS
+                        }
+
+                        // Set response to first uncompleted TCS found by inspecting run-time (best-effort)
+                        if (pending != null)
+                        {
+                            pending.Tcs.TrySetResult(resp);
                         }
                         else
                         {
-                            //this.responseString = "Invalid Axis";
-                            this.CurrentYStep = Convert.ToInt64(distance * this.PulseEquivalent);
+                            // If no pending found, try to set any TCS in worker by scanning through internal _cmdQueue (best-effort)
+                            // As fallback, nothing to do
                         }
-
                     }
-                    else
-                    {
-                        //this.responseString = "Pulse Equivalent is 0";
-                        if (axis == 0)
-                        {
-                            this.CurrentXStep = Convert.ToInt64(distance * 0.005);
-                        }
-                        else
-                        {
-                            this.CurrentYStep = Convert.ToInt64(distance * 0.005);
-                        }
-                        //this.currentYStep = Convert.ToInt64(distance * 0.005);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.Message.ToString());
-
                 }
             }
-
-            internal void ConvertStepsToDistance(long steps)
-            {
-                try
-                {
-                    if (this.PulseEquivalent != 0)
-                    {
-                        this.CurrentYPosition = steps / this.PulseEquivalent;
-                    }
-                    else
-                    {
-                        //this.responseString = "Pulse Equivalent is 0";
-                        this.CurrentYPosition = steps / 0.005;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.Message.ToString());
-
-                }
-            }
-
-
-            public void GetYLocation()
-            {
-                this.GetYPosition();
-            }
-
-            private void GetYPosition()      //Get the current position of Y axis
-            {
-                StrReceiver = "";
-                Busy = true;
-                SetCommand = false;
-                SendCommand("?Y\r");            //Inquiry the current position of Y axis
-                Delay(500);
-                Busy = false;
-
-                if (StrReceiver != "")
-                {
-                    if (StrReceiver.Substring(5, 1) == "-")
-                        CurrentYStep = -Convert.ToInt64(System.Text.RegularExpressions.Regex.Replace(StrReceiver, @"[^0-9]+", ""));
-                    else
-                        CurrentYStep = Convert.ToInt64(System.Text.RegularExpressions.Regex.Replace(StrReceiver, @"[^0-9]+", ""));
-                    //PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CurrentYStep)));
-                    System.Diagnostics.Debug.WriteLine(CurrentYStep.ToString());
-                }
-                else
-                {
-                    WarningMessage = "Failed to get Y position";
-                    System.Diagnostics.Debug.WriteLine(WarningMessage);
-                    //CurrentYStep = -99999;
-                    return;
-                }
-                CurrentYPosition = CurrentYStep / PulseEquivalent;
-                System.Diagnostics.Debug.WriteLine(WarningMessage);
-                System.Diagnostics.Debug.WriteLine(CurrentYPosition.ToString());
-                //PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CurrentYPosition)));
-            //textBox7.Text = dCurrPosi.ToString();
+            catch { }
         }
 
-            internal void ReturnYToOrigin()      //Return Y to origin
+        public Task<string> SendCommandAsync(string command, int timeoutMs = 2000)
+        {
+            if (_serial == null || !_serial.IsOpen) return Task.FromException<string>(new InvalidOperationException("Serial port not open"));
+            var req = new CommandRequest(command, timeoutMs);
+            try
             {
-                //button7.Focus();
-                StrReceiver = "";
-                Busy = true;
-                SetCommand = true;
-                SendCommand("HY0\r");   //Home Y axis
-
-                Delay(1000000);
-
-                Busy = false;
-
-                GetYPosition();
+                _cmdQueue.Add(req);
             }
-            
-            public void HomeYStage()
+            catch (Exception ex)
             {
-                
+                return Task.FromException<string>(ex);
             }
+            return req.Tcs.Task;
+        }
 
-            public void Stop()      //Stop moving
+        // Synchronous wrappers (blocking) for existing callers - these should be called off UI thread
+        public void MoveYAbsolute(double yPos, bool flag = true)
+        {
+            try
             {
-                StrReceiver = "";
-                Busy = true;
-                SetCommand = true;
-                SendCommand("S\r");   //Stop moving
-                Delay(100000000);
-                //timer1.Enabled = false;
-                BlnStopCommand = true;
-                //DelayWait(500);
-                Busy = false;
-
+                if (flag) ConvertDistanceToSteps(yPos, 1);
+                string commandString = (CurrentYStep > 0) ? "+" + CurrentYStep.ToString() : CurrentYStep.ToString();
+                // send command and do not wait long
+                var task = SendCommandAsync("Y" + commandString + "\r", 2000);
+                // don't block forever - wait briefly for acknowledgement
+                try { task.Wait(1500); }
+                catch { }
             }
-
-           
-            internal void SetSpeed(double speed)
+            catch (Exception ex)
             {
-                try
+                ErrorMessage = ex.Message;
+            }
+        }
+
+        public void Stop()
+        {
+            try
+            {
+                var t = SendCommandAsync("S\r", 1000);
+                try { t.Wait(500); } catch { }
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = ex.Message;
+            }
+        }
+
+        public void ReturnYToOrigin()
+        {
+            try
+            {
+                var t = SendCommandAsync("HY0\r", 2000);
+                try { t.Wait(1000); } catch { }
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = ex.Message;
+            }
+        }
+
+        // Get Y position synchronously (legacy) - calls async and waits briefly
+        private void GetYPosition()
+        {
+            try
+            {
+                var task = SendCommandAsync("?Y\r", 500);
+                if (task.Wait(600))
                 {
-                    if (this.SCPort.IsOpen)
+                    var resp = task.Result;
+                    var digits = Regex.Replace(resp, "[^0-9-]", "");
+                    if (long.TryParse(digits, out long steps))
                     {
-                        this.StrReceiver = string.Empty;
-                        this.SendCommand("V" + speed.ToString() + "\r");
-                        Console.WriteLine(this.StrReceiver);
-
-                        if (this.StrReceiver == "V" + speed.ToString() + "\rOK\n")
-                        {
-                            this.WarningMessage = "Success";
-                            //this.GetSpeed();
-                        }
+                        CurrentYStep = steps;
+                        CurrentYPosition = PulseEquivalent != 0 ? (double)steps / PulseEquivalent : (double)steps * 0.005;
                     }
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.Message.ToString());
-                    this.WarningMessage = ex.Message;
-                }
             }
-        
+            catch { }
+        }
+
+        public void GetYLocation()
+        {
+            GetYPosition();
+        }
+
+        public void HomeYStage()
+        {
+            try { ReturnYToOrigin(); } catch { }
+        }
+
+        public void ClosePort()
+        {
+            try
+            {
+                StopPositionPolling();
+                if (_cmdCts != null)
+                {
+                    _cmdCts.Cancel();
+                    _cmdCts = null;
+                }
+                if (_cmdWorker != null)
+                {
+                    _cmdWorker = null;
+                }
+                try { _serial?.Close(); } catch { }
+                try { _serial?.Dispose(); } catch { }
+                _serial = null;
+                ConnectionStatus = false;
+                // clear queue
+                while (_cmdQueue.TryTake(out var _)) { }
+            }
+            catch { }
+        }
+
+        public void Dispose()
+        {
+            ClosePort();
+        }
     }
 }

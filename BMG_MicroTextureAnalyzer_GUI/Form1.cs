@@ -718,7 +718,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
         private async void ScanAvailableMotionControllerDevicesButton_Click(object sender, EventArgs e)
         {
             ScanAvailableMotionControllerDevicesButton.Enabled = false;
-            MTAengine.GetAvailableDevices();
+            await Task.Run(() => MTAengine.GetAvailableDevices());
             //AvailableDevicesComboBox.DataSource = MTAengine.Connection.AvailableDevices;
             ScanAvailableMotionControllerDevicesButton.Enabled = true;
 
@@ -738,11 +738,11 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 }
                 var prt = short.Parse(selection.Substring(selection.Length - 1));
                 // perform connect on background thread to avoid blocking UI
-                await Task.Run(() => MTAengine.ConnectToMotionController(prt));
+                bool ok = await MTAengine.ConnectToMotionControllerAsync(prt);
                 // verify connection status after attempting connect
                 try
                 {
-                    if (MTAengine.Stage == null || !MTAengine.Stage.ConnectionStatus)
+                    if (!ok || MTAengine.Stage == null || !MTAengine.Stage.ConnectionStatus)
                     {
                         MessageBox.Show("Failed to connect to motion controller. Check the serial port and try again.", "Connection Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }

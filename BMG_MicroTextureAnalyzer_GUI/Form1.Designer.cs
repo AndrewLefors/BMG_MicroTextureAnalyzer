@@ -29,147 +29,150 @@
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
-            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea5 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
-            System.Windows.Forms.DataVisualization.Charting.Legend legend5 = new System.Windows.Forms.DataVisualization.Charting.Legend();
-            System.Windows.Forms.DataVisualization.Charting.Series series5 = new System.Windows.Forms.DataVisualization.Charting.Series();
+            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea1 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
+            System.Windows.Forms.DataVisualization.Charting.Legend legend1 = new System.Windows.Forms.DataVisualization.Charting.Legend();
+            System.Windows.Forms.DataVisualization.Charting.Series series1 = new System.Windows.Forms.DataVisualization.Charting.Series();
             MMELogoPictureBox = new PictureBox();
             backgroundWorker1 = new System.ComponentModel.BackgroundWorker();
             contextMenuStrip1 = new ContextMenuStrip(components);
             DaqDeviceTabPage = new TabPage();
-            MonitorResponseChart = new System.Windows.Forms.DataVisualization.Charting.Chart();
-            tableLayoutPanel8 = new TableLayoutPanel();
-            ReturnProbeToMaxHeightButton = new Button();
-            DAQStopMonitoringButton = new Button();
-            StartConstantMonitorButton = new Button();
-            tableLayoutPanel9 = new TableLayoutPanel();
-            button2 = new Button();
-            FractureTestStartButton = new Button();
-            FractureDepthTextBox = new TextBox();
-            label6 = new Label();
-            tableLayoutPanel10 = new TableLayoutPanel();
-            radioButton2 = new RadioButton();
-            radioButton1 = new RadioButton();
-            tableLayoutPanel11 = new TableLayoutPanel();
-            label7 = new Label();
-            PlaneDetectionThresholdTextBox = new TextBox();
-            label4 = new Label();
-            button1 = new Button();
-            tableLayoutPanel12 = new TableLayoutPanel();
-            CollectionTimeSecondsTextBox = new TextBox();
-            tableLayoutPanel13 = new TableLayoutPanel();
-            ThreeThousandHertzRadioButton = new RadioButton();
-            TwoThousandHertzRadioButton = new RadioButton();
-            ThousandHertzRadioButton = new RadioButton();
-            CollectionTimeLabel = new Label();
-            PollingRateLabel = new Label();
+            label16 = new Label();
+            label15 = new Label();
+            tableLayoutPanel17 = new TableLayoutPanel();
+            label14 = new Label();
+            label13 = new Label();
+            tableLayoutPanel16 = new TableLayoutPanel();
+            label12 = new Label();
+            forceOffsetReadingLabel = new Label();
+            label5 = new Label();
             zero_voltage_button = new Button();
             clear_zero_button = new Button();
-            YPosLabel = new Label();
-            tableLayoutPanel14 = new TableLayoutPanel();
-            label2 = new Label();
-            DAQ_StageSpeedComboBox = new ComboBox();
             tableLayoutPanel15 = new TableLayoutPanel();
-            ForceReadingLabel = new Label();
-            label1 = new Label();
-            label3 = new Label();
-            label8 = new Label();
-            TimeReadingLabel = new Label();
-            label9 = new Label();
-            label10 = new Label();
-            RateReadingLabel = new Label();
             label11 = new Label();
-            tableLayoutPanel16 = new TableLayoutPanel();
-            label5 = new Label();
-            forceOffsetReadingLabel = new Label();
-            label12 = new Label();
+            RateReadingLabel = new Label();
+            label10 = new Label();
+            label9 = new Label();
+            TimeReadingLabel = new Label();
+            label8 = new Label();
+            label3 = new Label();
+            label1 = new Label();
+            ForceReadingLabel = new Label();
+            tableLayoutPanel14 = new TableLayoutPanel();
+            DAQ_StageSpeedComboBox = new ComboBox();
+            label2 = new Label();
+            YPosLabel = new Label();
+            tableLayoutPanel12 = new TableLayoutPanel();
+            PollingRateLabel = new Label();
+            CollectionTimeLabel = new Label();
+            tableLayoutPanel13 = new TableLayoutPanel();
+            ThousandHertzRadioButton = new RadioButton();
+            TwoThousandHertzRadioButton = new RadioButton();
+            ThreeThousandHertzRadioButton = new RadioButton();
+            CollectionTimeSecondsTextBox = new TextBox();
+            tableLayoutPanel11 = new TableLayoutPanel();
+            label4 = new Label();
+            PlaneDetectionThresholdTextBox = new TextBox();
+            label7 = new Label();
+            tableLayoutPanel10 = new TableLayoutPanel();
+            radioButton1 = new RadioButton();
+            radioButton2 = new RadioButton();
+            tableLayoutPanel9 = new TableLayoutPanel();
+            label17 = new Label();
+            label6 = new Label();
+            FractureDepthTextBox = new TextBox();
+            FractureTestStartButton = new Button();
+            button2 = new Button();
+            tableLayoutPanel8 = new TableLayoutPanel();
+            StartConstantMonitorButton = new Button();
+            DAQStopMonitoringButton = new Button();
+            ReturnProbeToMaxHeightButton = new Button();
+            button1 = new Button();
+            MonitorResponseChart = new System.Windows.Forms.DataVisualization.Charting.Chart();
             MotionControllerTabPage = new TabPage();
-            MotionControllerConnectionSettingsGroupBox = new GroupBox();
-            MotionControllerConnectionTableLayout = new TableLayoutPanel();
-            ConnectionStatusResponseLabel = new Label();
-            ConnectionStatusLabel = new Label();
-            AvailableDevicesLabel = new Label();
-            DisconnectMotionControllerButton = new Button();
-            ConnectToMotionControllerButton = new Button();
-            ScanAvailableMotionControllerDevicesButton = new Button();
-            AvailableDevicesComboBox = new ComboBox();
-            MotionControllerSettingsGroupBox = new GroupBox();
-            tableLayoutPanel1 = new TableLayoutPanel();
-            ChangeMotionControllerSpeedButton = new Button();
-            MoveYAxisButton = new Button();
-            MoveXAxisButton = new Button();
-            MotionControllerSpeedTextBox = new TextBox();
-            YAxisDisplacementTextBox = new TextBox();
-            XAxisDisplacementTextBox = new TextBox();
-            MotionControllerSpeedLabel = new Label();
-            YAxisDisplacementLabel = new Label();
-            XAxisDisplacementLabel = new Label();
+            tableLayoutPanel6 = new TableLayoutPanel();
+            YPositionLabel = new Label();
+            YStepLabel = new Label();
+            YPositionResponseLabel = new Label();
+            YStepResponseLabel = new Label();
+            tableLayoutPanel7 = new TableLayoutPanel();
+            YHomeResponseLabel = new Label();
+            SetYHomeButton = new Button();
+            YHomeLabel = new Label();
             StepperMotorSettingsGroupBox = new GroupBox();
             tableLayoutPanel2 = new TableLayoutPanel();
-            tableLayoutPanel5 = new TableLayoutPanel();
-            CalculatePulseEquivalentButton = new Button();
-            PulseEquivalentResponseLabel = new Label();
-            MotionControllerSubdivisionComboBox = new ComboBox();
-            tableLayoutPanel4 = new TableLayoutPanel();
-            LeadScrewPitch25mmRadioButton = new RadioButton();
-            LeadScrewPitch2mmRadioButton = new RadioButton();
-            LeadScrewPitch1mmRadioButton = new RadioButton();
-            LeadScrewPitch05mmRadioButton = new RadioButton();
-            tableLayoutPanel3 = new TableLayoutPanel();
-            StepperMotorAngle09RadioButton = new RadioButton();
-            StepperMotorAngle18RadioButton = new RadioButton();
-            PulseEquivalentLabel = new Label();
-            StepperMotorSubdivisionLabel = new Label();
-            LeadScrewPitchLabel = new Label();
             StepperMotorAngleLabel = new Label();
+            LeadScrewPitchLabel = new Label();
+            StepperMotorSubdivisionLabel = new Label();
+            PulseEquivalentLabel = new Label();
+            tableLayoutPanel3 = new TableLayoutPanel();
+            StepperMotorAngle18RadioButton = new RadioButton();
+            StepperMotorAngle09RadioButton = new RadioButton();
+            tableLayoutPanel4 = new TableLayoutPanel();
+            LeadScrewPitch05mmRadioButton = new RadioButton();
+            LeadScrewPitch1mmRadioButton = new RadioButton();
+            LeadScrewPitch2mmRadioButton = new RadioButton();
+            LeadScrewPitch25mmRadioButton = new RadioButton();
+            MotionControllerSubdivisionComboBox = new ComboBox();
+            tableLayoutPanel5 = new TableLayoutPanel();
+            PulseEquivalentResponseLabel = new Label();
+            CalculatePulseEquivalentButton = new Button();
+            MotionControllerSettingsGroupBox = new GroupBox();
+            tableLayoutPanel1 = new TableLayoutPanel();
+            XAxisDisplacementLabel = new Label();
+            YAxisDisplacementLabel = new Label();
+            MotionControllerSpeedLabel = new Label();
+            XAxisDisplacementTextBox = new TextBox();
+            YAxisDisplacementTextBox = new TextBox();
+            MotionControllerSpeedTextBox = new TextBox();
+            MoveXAxisButton = new Button();
+            MoveYAxisButton = new Button();
+            ChangeMotionControllerSpeedButton = new Button();
+            MotionControllerConnectionSettingsGroupBox = new GroupBox();
+            MotionControllerConnectionTableLayout = new TableLayoutPanel();
+            AvailableDevicesComboBox = new ComboBox();
+            ScanAvailableMotionControllerDevicesButton = new Button();
+            ConnectToMotionControllerButton = new Button();
+            DisconnectMotionControllerButton = new Button();
+            AvailableDevicesLabel = new Label();
+            ConnectionStatusLabel = new Label();
+            ConnectionStatusResponseLabel = new Label();
             StepperMotorValuesGroupBox = new GroupBox();
             YAxisPropertiesGroupBox = new GroupBox();
-            SendYToHomeButton = new Button();
-            StopMotionControllerButton = new Button();
             MotionControllerStatusResponseLabel = new Label();
-            tableLayoutPanel6 = new TableLayoutPanel();
-            YHomeLabel = new Label();
-            tableLayoutPanel7 = new TableLayoutPanel();
-            SetYHomeButton = new Button();
-            YHomeResponseLabel = new Label();
-            YStepResponseLabel = new Label();
-            YPositionResponseLabel = new Label();
-            YStepLabel = new Label();
-            YPositionLabel = new Label();
+            StopMotionControllerButton = new Button();
+            SendYToHomeButton = new Button();
             tabControl1 = new TabControl();
-            label13 = new Label();
-            label14 = new Label();
-            tableLayoutPanel17 = new TableLayoutPanel();
-            label15 = new Label();
-            label16 = new Label();
-            label17 = new Label();
+            label18 = new Label();
+            PositionReadingLabel = new Label();
+            label19 = new Label();
             ((System.ComponentModel.ISupportInitialize)MMELogoPictureBox).BeginInit();
             DaqDeviceTabPage.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)MonitorResponseChart).BeginInit();
-            tableLayoutPanel8.SuspendLayout();
-            tableLayoutPanel9.SuspendLayout();
-            tableLayoutPanel10.SuspendLayout();
-            tableLayoutPanel11.SuspendLayout();
+            tableLayoutPanel17.SuspendLayout();
+            tableLayoutPanel16.SuspendLayout();
+            tableLayoutPanel15.SuspendLayout();
+            tableLayoutPanel14.SuspendLayout();
             tableLayoutPanel12.SuspendLayout();
             tableLayoutPanel13.SuspendLayout();
-            tableLayoutPanel14.SuspendLayout();
-            tableLayoutPanel15.SuspendLayout();
-            tableLayoutPanel16.SuspendLayout();
+            tableLayoutPanel11.SuspendLayout();
+            tableLayoutPanel10.SuspendLayout();
+            tableLayoutPanel9.SuspendLayout();
+            tableLayoutPanel8.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)MonitorResponseChart).BeginInit();
             MotionControllerTabPage.SuspendLayout();
-            MotionControllerConnectionSettingsGroupBox.SuspendLayout();
-            MotionControllerConnectionTableLayout.SuspendLayout();
-            MotionControllerSettingsGroupBox.SuspendLayout();
-            tableLayoutPanel1.SuspendLayout();
-            StepperMotorSettingsGroupBox.SuspendLayout();
-            tableLayoutPanel2.SuspendLayout();
-            tableLayoutPanel5.SuspendLayout();
-            tableLayoutPanel4.SuspendLayout();
-            tableLayoutPanel3.SuspendLayout();
-            StepperMotorValuesGroupBox.SuspendLayout();
-            YAxisPropertiesGroupBox.SuspendLayout();
             tableLayoutPanel6.SuspendLayout();
             tableLayoutPanel7.SuspendLayout();
+            StepperMotorSettingsGroupBox.SuspendLayout();
+            tableLayoutPanel2.SuspendLayout();
+            tableLayoutPanel3.SuspendLayout();
+            tableLayoutPanel4.SuspendLayout();
+            tableLayoutPanel5.SuspendLayout();
+            MotionControllerSettingsGroupBox.SuspendLayout();
+            tableLayoutPanel1.SuspendLayout();
+            MotionControllerConnectionSettingsGroupBox.SuspendLayout();
+            MotionControllerConnectionTableLayout.SuspendLayout();
+            StepperMotorValuesGroupBox.SuspendLayout();
+            YAxisPropertiesGroupBox.SuspendLayout();
             tabControl1.SuspendLayout();
-            tableLayoutPanel17.SuspendLayout();
             SuspendLayout();
             // 
             // MMELogoPictureBox
@@ -210,344 +213,125 @@
             DaqDeviceTabPage.Text = "DAQ Device";
             DaqDeviceTabPage.UseVisualStyleBackColor = true;
             // 
-            // MonitorResponseChart
+            // label16
             // 
-            MonitorResponseChart.BackColor = Color.Silver;
-            chartArea5.Name = "ChartArea1";
-            MonitorResponseChart.ChartAreas.Add(chartArea5);
-            legend5.Name = "Legend1";
-            MonitorResponseChart.Legends.Add(legend5);
-            MonitorResponseChart.Location = new Point(8, 112);
-            MonitorResponseChart.Name = "MonitorResponseChart";
-            series5.ChartArea = "ChartArea1";
-            series5.Legend = "Legend1";
-            series5.Name = "Series1";
-            MonitorResponseChart.Series.Add(series5);
-            MonitorResponseChart.Size = new Size(476, 434);
-            MonitorResponseChart.TabIndex = 7;
-            MonitorResponseChart.Text = "chart1";
+            label16.AutoSize = true;
+            label16.Font = new Font("Segoe UI", 24F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            label16.ForeColor = Color.Olive;
+            label16.Location = new Point(716, 324);
+            label16.Name = "label16";
+            label16.Size = new Size(37, 45);
+            label16.TabIndex = 30;
+            label16.Text = "3";
             // 
-            // tableLayoutPanel8
+            // label15
             // 
-            tableLayoutPanel8.BackColor = Color.LightGray;
-            tableLayoutPanel8.ColumnCount = 1;
-            tableLayoutPanel8.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 49.4117661F));
-            tableLayoutPanel8.Controls.Add(StartConstantMonitorButton, 0, 1);
-            tableLayoutPanel8.Controls.Add(DAQStopMonitoringButton, 0, 2);
-            tableLayoutPanel8.Controls.Add(ReturnProbeToMaxHeightButton, 0, 3);
-            tableLayoutPanel8.Controls.Add(button1, 0, 0);
-            tableLayoutPanel8.Location = new Point(490, 291);
-            tableLayoutPanel8.Name = "tableLayoutPanel8";
-            tableLayoutPanel8.RowCount = 4;
-            tableLayoutPanel8.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
-            tableLayoutPanel8.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-            tableLayoutPanel8.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-            tableLayoutPanel8.RowStyles.Add(new RowStyle(SizeType.Absolute, 36F));
-            tableLayoutPanel8.Size = new Size(227, 151);
-            tableLayoutPanel8.TabIndex = 10;
+            label15.AutoSize = true;
+            label15.Font = new Font("Segoe UI", 24F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            label15.ForeColor = Color.Lime;
+            label15.Location = new Point(759, 284);
+            label15.Name = "label15";
+            label15.Size = new Size(37, 45);
+            label15.TabIndex = 29;
+            label15.Text = "2";
             // 
-            // ReturnProbeToMaxHeightButton
+            // tableLayoutPanel17
             // 
-            ReturnProbeToMaxHeightButton.Location = new Point(3, 117);
-            ReturnProbeToMaxHeightButton.Name = "ReturnProbeToMaxHeightButton";
-            ReturnProbeToMaxHeightButton.Size = new Size(221, 28);
-            ReturnProbeToMaxHeightButton.TabIndex = 12;
-            ReturnProbeToMaxHeightButton.Text = "Return Probe to Top";
-            ReturnProbeToMaxHeightButton.UseVisualStyleBackColor = true;
-            ReturnProbeToMaxHeightButton.Click += ReturnProbeToMaxHeightButton_Click;
+            tableLayoutPanel17.BackColor = Color.DarkGray;
+            tableLayoutPanel17.ColumnCount = 1;
+            tableLayoutPanel17.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+            tableLayoutPanel17.Controls.Add(label14, 0, 0);
+            tableLayoutPanel17.Location = new Point(8, 6);
+            tableLayoutPanel17.Name = "tableLayoutPanel17";
+            tableLayoutPanel17.RowCount = 1;
+            tableLayoutPanel17.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            tableLayoutPanel17.Size = new Size(267, 50);
+            tableLayoutPanel17.TabIndex = 28;
             // 
-            // DAQStopMonitoringButton
+            // label14
             // 
-            DAQStopMonitoringButton.BackColor = Color.IndianRed;
-            DAQStopMonitoringButton.ForeColor = Color.Black;
-            DAQStopMonitoringButton.Location = new Point(3, 79);
-            DAQStopMonitoringButton.Name = "DAQStopMonitoringButton";
-            DAQStopMonitoringButton.Size = new Size(221, 32);
-            DAQStopMonitoringButton.TabIndex = 4;
-            DAQStopMonitoringButton.Text = "Stop Monitoring";
-            DAQStopMonitoringButton.UseVisualStyleBackColor = false;
-            DAQStopMonitoringButton.Click += DAQStopMonitoringButton_Click;
+            label14.Anchor = AnchorStyles.None;
+            label14.AutoSize = true;
+            label14.Font = new Font("Segoe UI", 16F);
+            label14.Location = new Point(35, 10);
+            label14.Name = "label14";
+            label14.Size = new Size(196, 30);
+            label14.TabIndex = 27;
+            label14.Text = "Load Cell Selection";
             // 
-            // StartConstantMonitorButton
+            // label13
             // 
-            StartConstantMonitorButton.Location = new Point(3, 41);
-            StartConstantMonitorButton.Name = "StartConstantMonitorButton";
-            StartConstantMonitorButton.Size = new Size(221, 32);
-            StartConstantMonitorButton.TabIndex = 5;
-            StartConstantMonitorButton.Text = "Find Surface";
-            StartConstantMonitorButton.UseVisualStyleBackColor = true;
-            StartConstantMonitorButton.Click += StartConstantMonitorButton_Click;
+            label13.AutoSize = true;
+            label13.Font = new Font("Segoe UI", 24F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            label13.ForeColor = Color.Green;
+            label13.Location = new Point(716, 284);
+            label13.Name = "label13";
+            label13.Size = new Size(37, 45);
+            label13.TabIndex = 26;
+            label13.Text = "1";
             // 
-            // tableLayoutPanel9
+            // tableLayoutPanel16
             // 
-            tableLayoutPanel9.BackColor = Color.LightGray;
-            tableLayoutPanel9.ColumnCount = 4;
-            tableLayoutPanel9.ColumnStyles.Add(new ColumnStyle());
-            tableLayoutPanel9.ColumnStyles.Add(new ColumnStyle());
-            tableLayoutPanel9.ColumnStyles.Add(new ColumnStyle());
-            tableLayoutPanel9.ColumnStyles.Add(new ColumnStyle());
-            tableLayoutPanel9.Controls.Add(label17, 1, 1);
-            tableLayoutPanel9.Controls.Add(label6, 1, 0);
-            tableLayoutPanel9.Controls.Add(FractureDepthTextBox, 0, 0);
-            tableLayoutPanel9.Controls.Add(FractureTestStartButton, 0, 1);
-            tableLayoutPanel9.Controls.Add(button2, 3, 1);
-            tableLayoutPanel9.Location = new Point(490, 442);
-            tableLayoutPanel9.Name = "tableLayoutPanel9";
-            tableLayoutPanel9.RowCount = 2;
-            tableLayoutPanel9.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-            tableLayoutPanel9.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-            tableLayoutPanel9.Size = new Size(227, 100);
-            tableLayoutPanel9.TabIndex = 11;
+            tableLayoutPanel16.BackColor = Color.MistyRose;
+            tableLayoutPanel16.ColumnCount = 3;
+            tableLayoutPanel16.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 55.11811F));
+            tableLayoutPanel16.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 44.88189F));
+            tableLayoutPanel16.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 61F));
+            tableLayoutPanel16.Controls.Add(label19, 2, 1);
+            tableLayoutPanel16.Controls.Add(PositionReadingLabel, 1, 1);
+            tableLayoutPanel16.Controls.Add(label18, 0, 1);
+            tableLayoutPanel16.Controls.Add(label12, 2, 0);
+            tableLayoutPanel16.Controls.Add(forceOffsetReadingLabel, 1, 0);
+            tableLayoutPanel16.Controls.Add(label5, 0, 0);
+            tableLayoutPanel16.Controls.Add(zero_voltage_button, 0, 2);
+            tableLayoutPanel16.Controls.Add(clear_zero_button, 1, 2);
+            tableLayoutPanel16.Location = new Point(753, 112);
+            tableLayoutPanel16.Name = "tableLayoutPanel16";
+            tableLayoutPanel16.RowCount = 3;
+            tableLayoutPanel16.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            tableLayoutPanel16.RowStyles.Add(new RowStyle(SizeType.Absolute, 60F));
+            tableLayoutPanel16.RowStyles.Add(new RowStyle(SizeType.Absolute, 52F));
+            tableLayoutPanel16.Size = new Size(310, 173);
+            tableLayoutPanel16.TabIndex = 25;
             // 
-            // button2
+            // label12
             // 
-            button2.Anchor = AnchorStyles.None;
-            button2.Location = new Point(147, 63);
-            button2.Name = "button2";
-            button2.Size = new Size(75, 23);
-            button2.TabIndex = 19;
-            button2.Text = "Save Data";
-            button2.UseVisualStyleBackColor = true;
-            button2.Click += saveFileButton_Click;
+            label12.Anchor = AnchorStyles.Left;
+            label12.AutoSize = true;
+            label12.Font = new Font("Segoe UI", 16F);
+            label12.Location = new Point(251, 15);
+            label12.Name = "label12";
+            label12.Size = new Size(48, 30);
+            label12.TabIndex = 3;
+            label12.Text = "mN";
             // 
-            // FractureTestStartButton
+            // forceOffsetReadingLabel
             // 
-            FractureTestStartButton.Anchor = AnchorStyles.None;
-            FractureTestStartButton.Location = new Point(12, 63);
-            FractureTestStartButton.Name = "FractureTestStartButton";
-            FractureTestStartButton.Size = new Size(75, 23);
-            FractureTestStartButton.TabIndex = 1;
-            FractureTestStartButton.Text = "Begin Test";
-            FractureTestStartButton.UseVisualStyleBackColor = true;
-            FractureTestStartButton.Click += FractureTestStartButton_Click;
+            forceOffsetReadingLabel.Anchor = AnchorStyles.Right;
+            forceOffsetReadingLabel.AutoSize = true;
+            forceOffsetReadingLabel.Font = new Font("Segoe UI", 16F);
+            forceOffsetReadingLabel.Location = new Point(193, 15);
+            forceOffsetReadingLabel.Name = "forceOffsetReadingLabel";
+            forceOffsetReadingLabel.Size = new Size(52, 30);
+            forceOffsetReadingLabel.TabIndex = 2;
+            forceOffsetReadingLabel.Text = "N/A";
+            forceOffsetReadingLabel.Click += voltageOffsetReadingLabel_Click;
             // 
-            // FractureDepthTextBox
+            // label5
             // 
-            FractureDepthTextBox.Anchor = AnchorStyles.None;
-            FractureDepthTextBox.Location = new Point(3, 13);
-            FractureDepthTextBox.Name = "FractureDepthTextBox";
-            FractureDepthTextBox.Size = new Size(94, 23);
-            FractureDepthTextBox.TabIndex = 2;
-            // 
-            // label6
-            // 
-            label6.Anchor = AnchorStyles.Left;
-            label6.AutoSize = true;
-            label6.Location = new Point(103, 17);
-            label6.Name = "label6";
-            label6.Size = new Size(29, 15);
-            label6.TabIndex = 22;
-            label6.Text = "mm";
-            label6.Click += label6_Click;
-            // 
-            // tableLayoutPanel10
-            // 
-            tableLayoutPanel10.BackColor = Color.DarkGray;
-            tableLayoutPanel10.ColumnCount = 2;
-            tableLayoutPanel10.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50.5618F));
-            tableLayoutPanel10.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 49.4382F));
-            tableLayoutPanel10.Controls.Add(radioButton1, 0, 0);
-            tableLayoutPanel10.Controls.Add(radioButton2, 1, 0);
-            tableLayoutPanel10.Location = new Point(8, 23);
-            tableLayoutPanel10.Name = "tableLayoutPanel10";
-            tableLayoutPanel10.RowCount = 1;
-            tableLayoutPanel10.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-            tableLayoutPanel10.Size = new Size(267, 83);
-            tableLayoutPanel10.TabIndex = 14;
-            // 
-            // radioButton2
-            // 
-            radioButton2.Anchor = AnchorStyles.None;
-            radioButton2.AutoSize = true;
-            radioButton2.Location = new Point(158, 32);
-            radioButton2.Name = "radioButton2";
-            radioButton2.Size = new Size(86, 19);
-            radioButton2.TabIndex = 1;
-            radioButton2.TabStop = true;
-            radioButton2.Text = "LSB200-10g";
-            radioButton2.UseVisualStyleBackColor = true;
-            radioButton2.CheckedChanged += radioButton2_CheckedChanged;
-            // 
-            // radioButton1
-            // 
-            radioButton1.Anchor = AnchorStyles.None;
-            radioButton1.AutoSize = true;
-            radioButton1.Location = new Point(23, 32);
-            radioButton1.Name = "radioButton1";
-            radioButton1.Size = new Size(89, 19);
-            radioButton1.TabIndex = 0;
-            radioButton1.TabStop = true;
-            radioButton1.Text = "LSB200-25lb";
-            radioButton1.UseVisualStyleBackColor = true;
-            radioButton1.CheckedChanged += radioButton1_CheckedChanged;
-            // 
-            // tableLayoutPanel11
-            // 
-            tableLayoutPanel11.BackColor = Color.DarkGray;
-            tableLayoutPanel11.ColumnCount = 3;
-            tableLayoutPanel11.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 54.83871F));
-            tableLayoutPanel11.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 45.16129F));
-            tableLayoutPanel11.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 29F));
-            tableLayoutPanel11.Controls.Add(label4, 0, 0);
-            tableLayoutPanel11.Controls.Add(PlaneDetectionThresholdTextBox, 1, 0);
-            tableLayoutPanel11.Controls.Add(label7, 2, 0);
-            tableLayoutPanel11.Location = new Point(847, 6);
-            tableLayoutPanel11.Name = "tableLayoutPanel11";
-            tableLayoutPanel11.RowCount = 1;
-            tableLayoutPanel11.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-            tableLayoutPanel11.Size = new Size(216, 100);
-            tableLayoutPanel11.TabIndex = 15;
-            // 
-            // label7
-            // 
-            label7.Anchor = AnchorStyles.Left;
-            label7.AutoSize = true;
-            label7.Font = new Font("Segoe UI", 16F);
-            label7.Location = new Point(189, 35);
-            label7.Name = "label7";
-            label7.Size = new Size(24, 30);
-            label7.TabIndex = 23;
-            label7.Text = "N";
-            label7.Click += label7_Click;
-            // 
-            // PlaneDetectionThresholdTextBox
-            // 
-            PlaneDetectionThresholdTextBox.Anchor = AnchorStyles.None;
-            PlaneDetectionThresholdTextBox.Location = new Point(112, 38);
-            PlaneDetectionThresholdTextBox.Name = "PlaneDetectionThresholdTextBox";
-            PlaneDetectionThresholdTextBox.Size = new Size(63, 23);
-            PlaneDetectionThresholdTextBox.TabIndex = 1;
-            // 
-            // label4
-            // 
-            label4.Anchor = AnchorStyles.None;
-            label4.AutoSize = true;
-            label4.Font = new Font("Segoe UI", 14F);
-            label4.Location = new Point(3, 12);
-            label4.Name = "label4";
-            label4.Size = new Size(96, 75);
-            label4.TabIndex = 0;
-            label4.Text = "Plane Detection Threshold";
-            // 
-            // button1
-            // 
-            button1.Anchor = AnchorStyles.Left;
-            button1.Location = new Point(3, 7);
-            button1.Name = "button1";
-            button1.Size = new Size(221, 23);
-            button1.TabIndex = 17;
-            button1.Text = "Continuous Scan\r\n\r\n";
-            button1.UseVisualStyleBackColor = true;
-            button1.Click += button1_Click;
-            // 
-            // tableLayoutPanel12
-            // 
-            tableLayoutPanel12.BackColor = Color.DarkGray;
-            tableLayoutPanel12.ColumnCount = 2;
-            tableLayoutPanel12.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 51.94805F));
-            tableLayoutPanel12.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 48.05195F));
-            tableLayoutPanel12.Controls.Add(PollingRateLabel, 0, 0);
-            tableLayoutPanel12.Controls.Add(CollectionTimeLabel, 1, 0);
-            tableLayoutPanel12.Controls.Add(tableLayoutPanel13, 0, 1);
-            tableLayoutPanel12.Controls.Add(CollectionTimeSecondsTextBox, 1, 1);
-            tableLayoutPanel12.Location = new Point(281, 6);
-            tableLayoutPanel12.Name = "tableLayoutPanel12";
-            tableLayoutPanel12.RowCount = 2;
-            tableLayoutPanel12.RowStyles.Add(new RowStyle(SizeType.Percent, 60F));
-            tableLayoutPanel12.RowStyles.Add(new RowStyle(SizeType.Percent, 40F));
-            tableLayoutPanel12.Size = new Size(385, 100);
-            tableLayoutPanel12.TabIndex = 18;
-            // 
-            // CollectionTimeSecondsTextBox
-            // 
-            CollectionTimeSecondsTextBox.Anchor = AnchorStyles.None;
-            CollectionTimeSecondsTextBox.Location = new Point(242, 68);
-            CollectionTimeSecondsTextBox.Name = "CollectionTimeSecondsTextBox";
-            CollectionTimeSecondsTextBox.Size = new Size(100, 23);
-            CollectionTimeSecondsTextBox.TabIndex = 3;
-            // 
-            // tableLayoutPanel13
-            // 
-            tableLayoutPanel13.ColumnCount = 3;
-            tableLayoutPanel13.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-            tableLayoutPanel13.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-            tableLayoutPanel13.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 60F));
-            tableLayoutPanel13.Controls.Add(ThousandHertzRadioButton, 0, 0);
-            tableLayoutPanel13.Controls.Add(TwoThousandHertzRadioButton, 1, 0);
-            tableLayoutPanel13.Controls.Add(ThreeThousandHertzRadioButton, 2, 0);
-            tableLayoutPanel13.Location = new Point(3, 63);
-            tableLayoutPanel13.Name = "tableLayoutPanel13";
-            tableLayoutPanel13.RowCount = 1;
-            tableLayoutPanel13.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-            tableLayoutPanel13.Size = new Size(194, 34);
-            tableLayoutPanel13.TabIndex = 2;
-            // 
-            // ThreeThousandHertzRadioButton
-            // 
-            ThreeThousandHertzRadioButton.Anchor = AnchorStyles.None;
-            ThreeThousandHertzRadioButton.AutoSize = true;
-            ThreeThousandHertzRadioButton.Location = new Point(139, 7);
-            ThreeThousandHertzRadioButton.Name = "ThreeThousandHertzRadioButton";
-            ThreeThousandHertzRadioButton.Size = new Size(49, 19);
-            ThreeThousandHertzRadioButton.TabIndex = 2;
-            ThreeThousandHertzRadioButton.TabStop = true;
-            ThreeThousandHertzRadioButton.Text = "3000";
-            ThreeThousandHertzRadioButton.TextImageRelation = TextImageRelation.ImageAboveText;
-            ThreeThousandHertzRadioButton.UseVisualStyleBackColor = true;
-            ThreeThousandHertzRadioButton.CheckedChanged += radioButton6_CheckedChanged;
-            // 
-            // TwoThousandHertzRadioButton
-            // 
-            TwoThousandHertzRadioButton.Anchor = AnchorStyles.None;
-            TwoThousandHertzRadioButton.AutoSize = true;
-            TwoThousandHertzRadioButton.Location = new Point(76, 7);
-            TwoThousandHertzRadioButton.Name = "TwoThousandHertzRadioButton";
-            TwoThousandHertzRadioButton.Size = new Size(49, 19);
-            TwoThousandHertzRadioButton.TabIndex = 1;
-            TwoThousandHertzRadioButton.TabStop = true;
-            TwoThousandHertzRadioButton.Text = "2000";
-            TwoThousandHertzRadioButton.UseVisualStyleBackColor = true;
-            TwoThousandHertzRadioButton.CheckedChanged += TwoThousandHertzRadioButton_CheckedChanged;
-            // 
-            // ThousandHertzRadioButton
-            // 
-            ThousandHertzRadioButton.Anchor = AnchorStyles.None;
-            ThousandHertzRadioButton.AutoSize = true;
-            ThousandHertzRadioButton.Location = new Point(9, 7);
-            ThousandHertzRadioButton.Name = "ThousandHertzRadioButton";
-            ThousandHertzRadioButton.Size = new Size(49, 19);
-            ThousandHertzRadioButton.TabIndex = 0;
-            ThousandHertzRadioButton.TabStop = true;
-            ThousandHertzRadioButton.Text = "1000";
-            ThousandHertzRadioButton.UseVisualStyleBackColor = true;
-            ThousandHertzRadioButton.CheckedChanged += ThousandHertzRadioButton_CheckedChanged;
-            // 
-            // CollectionTimeLabel
-            // 
-            CollectionTimeLabel.Anchor = AnchorStyles.None;
-            CollectionTimeLabel.AutoSize = true;
-            CollectionTimeLabel.Font = new Font("Segoe UI", 16F);
-            CollectionTimeLabel.Location = new Point(208, 0);
-            CollectionTimeLabel.Name = "CollectionTimeLabel";
-            CollectionTimeLabel.Size = new Size(169, 60);
-            CollectionTimeLabel.TabIndex = 1;
-            CollectionTimeLabel.Text = "Collection Time (s)";
-            // 
-            // PollingRateLabel
-            // 
-            PollingRateLabel.Anchor = AnchorStyles.None;
-            PollingRateLabel.AutoSize = true;
-            PollingRateLabel.Font = new Font("Segoe UI", 16F);
-            PollingRateLabel.Location = new Point(4, 15);
-            PollingRateLabel.Name = "PollingRateLabel";
-            PollingRateLabel.Size = new Size(192, 30);
-            PollingRateLabel.TabIndex = 0;
-            PollingRateLabel.Text = "Sampling Rate(Hz)";
+            label5.Anchor = AnchorStyles.None;
+            label5.AutoSize = true;
+            label5.Font = new Font("Segoe UI", 16F);
+            label5.Location = new Point(30, 15);
+            label5.Name = "label5";
+            label5.Size = new Size(77, 30);
+            label5.TabIndex = 1;
+            label5.Text = "Offset:";
             // 
             // zero_voltage_button
             // 
             zero_voltage_button.Anchor = AnchorStyles.None;
-            zero_voltage_button.Location = new Point(32, 78);
+            zero_voltage_button.Location = new Point(31, 133);
             zero_voltage_button.Name = "zero_voltage_button";
             zero_voltage_button.Size = new Size(75, 27);
             zero_voltage_button.TabIndex = 20;
@@ -558,59 +342,13 @@
             // clear_zero_button
             // 
             clear_zero_button.Anchor = AnchorStyles.None;
-            clear_zero_button.Location = new Point(159, 80);
+            clear_zero_button.Location = new Point(155, 135);
             clear_zero_button.Name = "clear_zero_button";
             clear_zero_button.Size = new Size(75, 23);
             clear_zero_button.TabIndex = 21;
             clear_zero_button.Text = "Clear Zero";
             clear_zero_button.UseVisualStyleBackColor = true;
             clear_zero_button.Click += clear_zero_button_Click;
-            // 
-            // YPosLabel
-            // 
-            YPosLabel.Anchor = AnchorStyles.None;
-            YPosLabel.AutoSize = true;
-            YPosLabel.Location = new Point(880, 249);
-            YPosLabel.Name = "YPosLabel";
-            YPosLabel.Size = new Size(0, 15);
-            YPosLabel.TabIndex = 22;
-            // 
-            // tableLayoutPanel14
-            // 
-            tableLayoutPanel14.BackColor = Color.DarkGray;
-            tableLayoutPanel14.ColumnCount = 1;
-            tableLayoutPanel14.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-            tableLayoutPanel14.Controls.Add(DAQ_StageSpeedComboBox, 0, 1);
-            tableLayoutPanel14.Controls.Add(label2, 0, 0);
-            tableLayoutPanel14.Location = new Point(672, 6);
-            tableLayoutPanel14.Name = "tableLayoutPanel14";
-            tableLayoutPanel14.RowCount = 2;
-            tableLayoutPanel14.RowStyles.Add(new RowStyle(SizeType.Percent, 61F));
-            tableLayoutPanel14.RowStyles.Add(new RowStyle(SizeType.Percent, 39F));
-            tableLayoutPanel14.Size = new Size(185, 100);
-            tableLayoutPanel14.TabIndex = 23;
-            // 
-            // label2
-            // 
-            label2.Anchor = AnchorStyles.None;
-            label2.AutoSize = true;
-            label2.Font = new Font("Segoe UI", 16F);
-            label2.Location = new Point(22, 0);
-            label2.Name = "label2";
-            label2.Size = new Size(141, 60);
-            label2.TabIndex = 1;
-            label2.Text = "Stage Speed (um/s)";
-            label2.Click += label2_Click;
-            // 
-            // DAQ_StageSpeedComboBox
-            // 
-            DAQ_StageSpeedComboBox.Anchor = AnchorStyles.None;
-            DAQ_StageSpeedComboBox.FormattingEnabled = true;
-            DAQ_StageSpeedComboBox.Location = new Point(32, 69);
-            DAQ_StageSpeedComboBox.Name = "DAQ_StageSpeedComboBox";
-            DAQ_StageSpeedComboBox.Size = new Size(121, 23);
-            DAQ_StageSpeedComboBox.TabIndex = 0;
-            DAQ_StageSpeedComboBox.SelectedIndexChanged += DAQ_StageSpeedComboBox_SelectedIndexChanged;
             // 
             // tableLayoutPanel15
             // 
@@ -637,82 +375,16 @@
             tableLayoutPanel15.Size = new Size(263, 173);
             tableLayoutPanel15.TabIndex = 24;
             // 
-            // ForceReadingLabel
+            // label11
             // 
-            ForceReadingLabel.Anchor = AnchorStyles.Right;
-            ForceReadingLabel.AutoSize = true;
-            ForceReadingLabel.Font = new Font("Segoe UI", 16F);
-            ForceReadingLabel.Location = new Point(150, 15);
-            ForceReadingLabel.Name = "ForceReadingLabel";
-            ForceReadingLabel.Size = new Size(52, 30);
-            ForceReadingLabel.TabIndex = 1;
-            ForceReadingLabel.Text = "N/A";
-            // 
-            // label1
-            // 
-            label1.Anchor = AnchorStyles.None;
-            label1.AutoSize = true;
-            label1.Font = new Font("Segoe UI", 16F);
-            label1.Location = new Point(17, 15);
-            label1.Name = "label1";
-            label1.Size = new Size(72, 30);
-            label1.TabIndex = 0;
-            label1.Text = "Force:";
-            // 
-            // label3
-            // 
-            label3.Anchor = AnchorStyles.Left;
-            label3.AutoSize = true;
-            label3.Font = new Font("Segoe UI", 16F);
-            label3.Location = new Point(208, 15);
-            label3.Name = "label3";
-            label3.Size = new Size(48, 30);
-            label3.TabIndex = 2;
-            label3.Text = "mN";
-            // 
-            // label8
-            // 
-            label8.Anchor = AnchorStyles.None;
-            label8.AutoSize = true;
-            label8.Font = new Font("Segoe UI", 16F);
-            label8.Location = new Point(20, 76);
-            label8.Name = "label8";
-            label8.Size = new Size(66, 30);
-            label8.TabIndex = 3;
-            label8.Text = "Time:";
-            // 
-            // TimeReadingLabel
-            // 
-            TimeReadingLabel.Anchor = AnchorStyles.Right;
-            TimeReadingLabel.AutoSize = true;
-            TimeReadingLabel.Font = new Font("Segoe UI", 16F);
-            TimeReadingLabel.Location = new Point(150, 76);
-            TimeReadingLabel.Name = "TimeReadingLabel";
-            TimeReadingLabel.Size = new Size(52, 30);
-            TimeReadingLabel.TabIndex = 4;
-            TimeReadingLabel.Text = "N/A";
-            // 
-            // label9
-            // 
-            label9.Anchor = AnchorStyles.Left;
-            label9.AutoSize = true;
-            label9.Font = new Font("Segoe UI", 16F);
-            label9.Location = new Point(208, 76);
-            label9.Name = "label9";
-            label9.Size = new Size(25, 30);
-            label9.TabIndex = 5;
-            label9.Text = "S";
-            // 
-            // label10
-            // 
-            label10.Anchor = AnchorStyles.None;
-            label10.AutoSize = true;
-            label10.Font = new Font("Segoe UI", 16F);
-            label10.Location = new Point(23, 132);
-            label10.Name = "label10";
-            label10.Size = new Size(61, 30);
-            label10.TabIndex = 6;
-            label10.Text = "Rate:";
+            label11.Anchor = AnchorStyles.Left;
+            label11.AutoSize = true;
+            label11.Font = new Font("Segoe UI", 16F);
+            label11.Location = new Point(208, 132);
+            label11.Name = "label11";
+            label11.Size = new Size(39, 30);
+            label11.TabIndex = 8;
+            label11.Text = "Hz";
             // 
             // RateReadingLabel
             // 
@@ -725,70 +397,473 @@
             RateReadingLabel.TabIndex = 7;
             RateReadingLabel.Text = "N/A";
             // 
-            // label11
+            // label10
             // 
-            label11.Anchor = AnchorStyles.Left;
-            label11.AutoSize = true;
-            label11.Font = new Font("Segoe UI", 16F);
-            label11.Location = new Point(208, 132);
-            label11.Name = "label11";
-            label11.Size = new Size(39, 30);
-            label11.TabIndex = 8;
-            label11.Text = "Hz";
+            label10.Anchor = AnchorStyles.None;
+            label10.AutoSize = true;
+            label10.Font = new Font("Segoe UI", 16F);
+            label10.Location = new Point(23, 132);
+            label10.Name = "label10";
+            label10.Size = new Size(61, 30);
+            label10.TabIndex = 6;
+            label10.Text = "Rate:";
             // 
-            // tableLayoutPanel16
+            // label9
             // 
-            tableLayoutPanel16.BackColor = Color.MistyRose;
-            tableLayoutPanel16.ColumnCount = 3;
-            tableLayoutPanel16.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 55.11811F));
-            tableLayoutPanel16.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 44.88189F));
-            tableLayoutPanel16.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 55F));
-            tableLayoutPanel16.Controls.Add(label12, 2, 0);
-            tableLayoutPanel16.Controls.Add(forceOffsetReadingLabel, 1, 0);
-            tableLayoutPanel16.Controls.Add(label5, 0, 0);
-            tableLayoutPanel16.Controls.Add(zero_voltage_button, 0, 1);
-            tableLayoutPanel16.Controls.Add(clear_zero_button, 1, 1);
-            tableLayoutPanel16.Location = new Point(753, 112);
-            tableLayoutPanel16.Name = "tableLayoutPanel16";
-            tableLayoutPanel16.RowCount = 2;
-            tableLayoutPanel16.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-            tableLayoutPanel16.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
-            tableLayoutPanel16.Size = new Size(310, 123);
-            tableLayoutPanel16.TabIndex = 25;
+            label9.Anchor = AnchorStyles.Left;
+            label9.AutoSize = true;
+            label9.Font = new Font("Segoe UI", 16F);
+            label9.Location = new Point(208, 76);
+            label9.Name = "label9";
+            label9.Size = new Size(25, 30);
+            label9.TabIndex = 5;
+            label9.Text = "S";
             // 
-            // label5
+            // TimeReadingLabel
             // 
-            label5.Anchor = AnchorStyles.None;
-            label5.AutoSize = true;
-            label5.Font = new Font("Segoe UI", 16F);
-            label5.Location = new Point(31, 15);
-            label5.Name = "label5";
-            label5.Size = new Size(77, 30);
-            label5.TabIndex = 1;
-            label5.Text = "Offset:";
+            TimeReadingLabel.Anchor = AnchorStyles.Right;
+            TimeReadingLabel.AutoSize = true;
+            TimeReadingLabel.Font = new Font("Segoe UI", 16F);
+            TimeReadingLabel.Location = new Point(150, 76);
+            TimeReadingLabel.Name = "TimeReadingLabel";
+            TimeReadingLabel.Size = new Size(52, 30);
+            TimeReadingLabel.TabIndex = 4;
+            TimeReadingLabel.Text = "N/A";
             // 
-            // forceOffsetReadingLabel
+            // label8
             // 
-            forceOffsetReadingLabel.Anchor = AnchorStyles.Right;
-            forceOffsetReadingLabel.AutoSize = true;
-            forceOffsetReadingLabel.Font = new Font("Segoe UI", 16F);
-            forceOffsetReadingLabel.Location = new Point(199, 15);
-            forceOffsetReadingLabel.Name = "forceOffsetReadingLabel";
-            forceOffsetReadingLabel.Size = new Size(52, 30);
-            forceOffsetReadingLabel.TabIndex = 2;
-            forceOffsetReadingLabel.Text = "N/A";
-            forceOffsetReadingLabel.Click += voltageOffsetReadingLabel_Click;
+            label8.Anchor = AnchorStyles.None;
+            label8.AutoSize = true;
+            label8.Font = new Font("Segoe UI", 16F);
+            label8.Location = new Point(20, 76);
+            label8.Name = "label8";
+            label8.Size = new Size(66, 30);
+            label8.TabIndex = 3;
+            label8.Text = "Time:";
             // 
-            // label12
+            // label3
             // 
-            label12.Anchor = AnchorStyles.Left;
-            label12.AutoSize = true;
-            label12.Font = new Font("Segoe UI", 16F);
-            label12.Location = new Point(257, 15);
-            label12.Name = "label12";
-            label12.Size = new Size(48, 30);
-            label12.TabIndex = 3;
-            label12.Text = "mN";
+            label3.Anchor = AnchorStyles.Left;
+            label3.AutoSize = true;
+            label3.Font = new Font("Segoe UI", 16F);
+            label3.Location = new Point(208, 15);
+            label3.Name = "label3";
+            label3.Size = new Size(48, 30);
+            label3.TabIndex = 2;
+            label3.Text = "mN";
+            // 
+            // label1
+            // 
+            label1.Anchor = AnchorStyles.None;
+            label1.AutoSize = true;
+            label1.Font = new Font("Segoe UI", 16F);
+            label1.Location = new Point(17, 15);
+            label1.Name = "label1";
+            label1.Size = new Size(72, 30);
+            label1.TabIndex = 0;
+            label1.Text = "Force:";
+            // 
+            // ForceReadingLabel
+            // 
+            ForceReadingLabel.Anchor = AnchorStyles.Right;
+            ForceReadingLabel.AutoSize = true;
+            ForceReadingLabel.Font = new Font("Segoe UI", 16F);
+            ForceReadingLabel.Location = new Point(150, 15);
+            ForceReadingLabel.Name = "ForceReadingLabel";
+            ForceReadingLabel.Size = new Size(52, 30);
+            ForceReadingLabel.TabIndex = 1;
+            ForceReadingLabel.Text = "N/A";
+            // 
+            // tableLayoutPanel14
+            // 
+            tableLayoutPanel14.BackColor = Color.DarkGray;
+            tableLayoutPanel14.ColumnCount = 1;
+            tableLayoutPanel14.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+            tableLayoutPanel14.Controls.Add(DAQ_StageSpeedComboBox, 0, 1);
+            tableLayoutPanel14.Controls.Add(label2, 0, 0);
+            tableLayoutPanel14.Location = new Point(672, 6);
+            tableLayoutPanel14.Name = "tableLayoutPanel14";
+            tableLayoutPanel14.RowCount = 2;
+            tableLayoutPanel14.RowStyles.Add(new RowStyle(SizeType.Percent, 61F));
+            tableLayoutPanel14.RowStyles.Add(new RowStyle(SizeType.Percent, 39F));
+            tableLayoutPanel14.Size = new Size(185, 100);
+            tableLayoutPanel14.TabIndex = 23;
+            // 
+            // DAQ_StageSpeedComboBox
+            // 
+            DAQ_StageSpeedComboBox.Anchor = AnchorStyles.None;
+            DAQ_StageSpeedComboBox.FormattingEnabled = true;
+            DAQ_StageSpeedComboBox.Location = new Point(32, 69);
+            DAQ_StageSpeedComboBox.Name = "DAQ_StageSpeedComboBox";
+            DAQ_StageSpeedComboBox.Size = new Size(121, 23);
+            DAQ_StageSpeedComboBox.TabIndex = 0;
+            DAQ_StageSpeedComboBox.SelectedIndexChanged += DAQ_StageSpeedComboBox_SelectedIndexChanged;
+            // 
+            // label2
+            // 
+            label2.Anchor = AnchorStyles.None;
+            label2.AutoSize = true;
+            label2.Font = new Font("Segoe UI", 16F);
+            label2.Location = new Point(22, 0);
+            label2.Name = "label2";
+            label2.Size = new Size(141, 60);
+            label2.TabIndex = 1;
+            label2.Text = "Stage Speed (um/s)";
+            label2.Click += label2_Click;
+            // 
+            // YPosLabel
+            // 
+            YPosLabel.Anchor = AnchorStyles.None;
+            YPosLabel.AutoSize = true;
+            YPosLabel.Location = new Point(880, 249);
+            YPosLabel.Name = "YPosLabel";
+            YPosLabel.Size = new Size(0, 15);
+            YPosLabel.TabIndex = 22;
+            // 
+            // tableLayoutPanel12
+            // 
+            tableLayoutPanel12.BackColor = Color.DarkGray;
+            tableLayoutPanel12.ColumnCount = 2;
+            tableLayoutPanel12.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 51.94805F));
+            tableLayoutPanel12.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 48.05195F));
+            tableLayoutPanel12.Controls.Add(PollingRateLabel, 0, 0);
+            tableLayoutPanel12.Controls.Add(CollectionTimeLabel, 1, 0);
+            tableLayoutPanel12.Controls.Add(tableLayoutPanel13, 0, 1);
+            tableLayoutPanel12.Controls.Add(CollectionTimeSecondsTextBox, 1, 1);
+            tableLayoutPanel12.Location = new Point(281, 6);
+            tableLayoutPanel12.Name = "tableLayoutPanel12";
+            tableLayoutPanel12.RowCount = 2;
+            tableLayoutPanel12.RowStyles.Add(new RowStyle(SizeType.Percent, 60F));
+            tableLayoutPanel12.RowStyles.Add(new RowStyle(SizeType.Percent, 40F));
+            tableLayoutPanel12.Size = new Size(385, 100);
+            tableLayoutPanel12.TabIndex = 18;
+            // 
+            // PollingRateLabel
+            // 
+            PollingRateLabel.Anchor = AnchorStyles.None;
+            PollingRateLabel.AutoSize = true;
+            PollingRateLabel.Font = new Font("Segoe UI", 16F);
+            PollingRateLabel.Location = new Point(4, 15);
+            PollingRateLabel.Name = "PollingRateLabel";
+            PollingRateLabel.Size = new Size(192, 30);
+            PollingRateLabel.TabIndex = 0;
+            PollingRateLabel.Text = "Sampling Rate(Hz)";
+            // 
+            // CollectionTimeLabel
+            // 
+            CollectionTimeLabel.Anchor = AnchorStyles.None;
+            CollectionTimeLabel.AutoSize = true;
+            CollectionTimeLabel.Font = new Font("Segoe UI", 16F);
+            CollectionTimeLabel.Location = new Point(208, 0);
+            CollectionTimeLabel.Name = "CollectionTimeLabel";
+            CollectionTimeLabel.Size = new Size(169, 60);
+            CollectionTimeLabel.TabIndex = 1;
+            CollectionTimeLabel.Text = "Collection Time (s)";
+            // 
+            // tableLayoutPanel13
+            // 
+            tableLayoutPanel13.ColumnCount = 3;
+            tableLayoutPanel13.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+            tableLayoutPanel13.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+            tableLayoutPanel13.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 60F));
+            tableLayoutPanel13.Controls.Add(ThousandHertzRadioButton, 0, 0);
+            tableLayoutPanel13.Controls.Add(TwoThousandHertzRadioButton, 1, 0);
+            tableLayoutPanel13.Controls.Add(ThreeThousandHertzRadioButton, 2, 0);
+            tableLayoutPanel13.Location = new Point(3, 63);
+            tableLayoutPanel13.Name = "tableLayoutPanel13";
+            tableLayoutPanel13.RowCount = 1;
+            tableLayoutPanel13.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            tableLayoutPanel13.Size = new Size(194, 34);
+            tableLayoutPanel13.TabIndex = 2;
+            // 
+            // ThousandHertzRadioButton
+            // 
+            ThousandHertzRadioButton.Anchor = AnchorStyles.None;
+            ThousandHertzRadioButton.AutoSize = true;
+            ThousandHertzRadioButton.Location = new Point(9, 7);
+            ThousandHertzRadioButton.Name = "ThousandHertzRadioButton";
+            ThousandHertzRadioButton.Size = new Size(49, 19);
+            ThousandHertzRadioButton.TabIndex = 0;
+            ThousandHertzRadioButton.TabStop = true;
+            ThousandHertzRadioButton.Text = "1000";
+            ThousandHertzRadioButton.UseVisualStyleBackColor = true;
+            ThousandHertzRadioButton.CheckedChanged += ThousandHertzRadioButton_CheckedChanged;
+            // 
+            // TwoThousandHertzRadioButton
+            // 
+            TwoThousandHertzRadioButton.Anchor = AnchorStyles.None;
+            TwoThousandHertzRadioButton.AutoSize = true;
+            TwoThousandHertzRadioButton.Location = new Point(76, 7);
+            TwoThousandHertzRadioButton.Name = "TwoThousandHertzRadioButton";
+            TwoThousandHertzRadioButton.Size = new Size(49, 19);
+            TwoThousandHertzRadioButton.TabIndex = 1;
+            TwoThousandHertzRadioButton.TabStop = true;
+            TwoThousandHertzRadioButton.Text = "2000";
+            TwoThousandHertzRadioButton.UseVisualStyleBackColor = true;
+            TwoThousandHertzRadioButton.CheckedChanged += TwoThousandHertzRadioButton_CheckedChanged;
+            // 
+            // ThreeThousandHertzRadioButton
+            // 
+            ThreeThousandHertzRadioButton.Anchor = AnchorStyles.None;
+            ThreeThousandHertzRadioButton.AutoSize = true;
+            ThreeThousandHertzRadioButton.Location = new Point(139, 7);
+            ThreeThousandHertzRadioButton.Name = "ThreeThousandHertzRadioButton";
+            ThreeThousandHertzRadioButton.Size = new Size(49, 19);
+            ThreeThousandHertzRadioButton.TabIndex = 2;
+            ThreeThousandHertzRadioButton.TabStop = true;
+            ThreeThousandHertzRadioButton.Text = "3000";
+            ThreeThousandHertzRadioButton.TextImageRelation = TextImageRelation.ImageAboveText;
+            ThreeThousandHertzRadioButton.UseVisualStyleBackColor = true;
+            ThreeThousandHertzRadioButton.CheckedChanged += radioButton6_CheckedChanged;
+            // 
+            // CollectionTimeSecondsTextBox
+            // 
+            CollectionTimeSecondsTextBox.Anchor = AnchorStyles.None;
+            CollectionTimeSecondsTextBox.Location = new Point(242, 68);
+            CollectionTimeSecondsTextBox.Name = "CollectionTimeSecondsTextBox";
+            CollectionTimeSecondsTextBox.Size = new Size(100, 23);
+            CollectionTimeSecondsTextBox.TabIndex = 3;
+            // 
+            // tableLayoutPanel11
+            // 
+            tableLayoutPanel11.BackColor = Color.DarkGray;
+            tableLayoutPanel11.ColumnCount = 3;
+            tableLayoutPanel11.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 54.83871F));
+            tableLayoutPanel11.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 45.16129F));
+            tableLayoutPanel11.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 29F));
+            tableLayoutPanel11.Controls.Add(label4, 0, 0);
+            tableLayoutPanel11.Controls.Add(PlaneDetectionThresholdTextBox, 1, 0);
+            tableLayoutPanel11.Controls.Add(label7, 2, 0);
+            tableLayoutPanel11.Location = new Point(847, 6);
+            tableLayoutPanel11.Name = "tableLayoutPanel11";
+            tableLayoutPanel11.RowCount = 1;
+            tableLayoutPanel11.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            tableLayoutPanel11.Size = new Size(216, 100);
+            tableLayoutPanel11.TabIndex = 15;
+            // 
+            // label4
+            // 
+            label4.Anchor = AnchorStyles.None;
+            label4.AutoSize = true;
+            label4.Font = new Font("Segoe UI", 14F);
+            label4.Location = new Point(3, 12);
+            label4.Name = "label4";
+            label4.Size = new Size(96, 75);
+            label4.TabIndex = 0;
+            label4.Text = "Plane Detection Threshold";
+            // 
+            // PlaneDetectionThresholdTextBox
+            // 
+            PlaneDetectionThresholdTextBox.Anchor = AnchorStyles.None;
+            PlaneDetectionThresholdTextBox.Location = new Point(112, 38);
+            PlaneDetectionThresholdTextBox.Name = "PlaneDetectionThresholdTextBox";
+            PlaneDetectionThresholdTextBox.Size = new Size(63, 23);
+            PlaneDetectionThresholdTextBox.TabIndex = 1;
+            // 
+            // label7
+            // 
+            label7.Anchor = AnchorStyles.Left;
+            label7.AutoSize = true;
+            label7.Font = new Font("Segoe UI", 16F);
+            label7.Location = new Point(189, 35);
+            label7.Name = "label7";
+            label7.Size = new Size(24, 30);
+            label7.TabIndex = 23;
+            label7.Text = "N";
+            label7.Click += label7_Click;
+            // 
+            // tableLayoutPanel10
+            // 
+            tableLayoutPanel10.BackColor = Color.DarkGray;
+            tableLayoutPanel10.ColumnCount = 2;
+            tableLayoutPanel10.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50.5618F));
+            tableLayoutPanel10.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 49.4382F));
+            tableLayoutPanel10.Controls.Add(radioButton1, 0, 0);
+            tableLayoutPanel10.Controls.Add(radioButton2, 1, 0);
+            tableLayoutPanel10.Location = new Point(8, 23);
+            tableLayoutPanel10.Name = "tableLayoutPanel10";
+            tableLayoutPanel10.RowCount = 1;
+            tableLayoutPanel10.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            tableLayoutPanel10.Size = new Size(267, 83);
+            tableLayoutPanel10.TabIndex = 14;
+            // 
+            // radioButton1
+            // 
+            radioButton1.Anchor = AnchorStyles.None;
+            radioButton1.AutoSize = true;
+            radioButton1.Location = new Point(23, 32);
+            radioButton1.Name = "radioButton1";
+            radioButton1.Size = new Size(89, 19);
+            radioButton1.TabIndex = 0;
+            radioButton1.TabStop = true;
+            radioButton1.Text = "LSB200-25lb";
+            radioButton1.UseVisualStyleBackColor = true;
+            radioButton1.CheckedChanged += radioButton1_CheckedChanged;
+            // 
+            // radioButton2
+            // 
+            radioButton2.Anchor = AnchorStyles.None;
+            radioButton2.AutoSize = true;
+            radioButton2.Location = new Point(158, 32);
+            radioButton2.Name = "radioButton2";
+            radioButton2.Size = new Size(86, 19);
+            radioButton2.TabIndex = 1;
+            radioButton2.TabStop = true;
+            radioButton2.Text = "LSB200-10g";
+            radioButton2.UseVisualStyleBackColor = true;
+            radioButton2.CheckedChanged += radioButton2_CheckedChanged;
+            // 
+            // tableLayoutPanel9
+            // 
+            tableLayoutPanel9.BackColor = Color.LightGray;
+            tableLayoutPanel9.ColumnCount = 4;
+            tableLayoutPanel9.ColumnStyles.Add(new ColumnStyle());
+            tableLayoutPanel9.ColumnStyles.Add(new ColumnStyle());
+            tableLayoutPanel9.ColumnStyles.Add(new ColumnStyle());
+            tableLayoutPanel9.ColumnStyles.Add(new ColumnStyle());
+            tableLayoutPanel9.Controls.Add(label17, 1, 1);
+            tableLayoutPanel9.Controls.Add(label6, 1, 0);
+            tableLayoutPanel9.Controls.Add(FractureDepthTextBox, 0, 0);
+            tableLayoutPanel9.Controls.Add(FractureTestStartButton, 0, 1);
+            tableLayoutPanel9.Controls.Add(button2, 3, 1);
+            tableLayoutPanel9.Location = new Point(490, 442);
+            tableLayoutPanel9.Name = "tableLayoutPanel9";
+            tableLayoutPanel9.RowCount = 2;
+            tableLayoutPanel9.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            tableLayoutPanel9.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            tableLayoutPanel9.Size = new Size(227, 100);
+            tableLayoutPanel9.TabIndex = 11;
+            // 
+            // label17
+            // 
+            label17.AutoSize = true;
+            label17.Font = new Font("Segoe UI", 24F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            label17.ForeColor = Color.PaleTurquoise;
+            label17.Location = new Point(103, 50);
+            label17.Name = "label17";
+            label17.Size = new Size(37, 45);
+            label17.TabIndex = 31;
+            label17.Text = "4";
+            // 
+            // label6
+            // 
+            label6.Anchor = AnchorStyles.Left;
+            label6.AutoSize = true;
+            label6.Location = new Point(103, 17);
+            label6.Name = "label6";
+            label6.Size = new Size(29, 15);
+            label6.TabIndex = 22;
+            label6.Text = "mm";
+            label6.Click += label6_Click;
+            // 
+            // FractureDepthTextBox
+            // 
+            FractureDepthTextBox.Anchor = AnchorStyles.None;
+            FractureDepthTextBox.Location = new Point(3, 13);
+            FractureDepthTextBox.Name = "FractureDepthTextBox";
+            FractureDepthTextBox.Size = new Size(94, 23);
+            FractureDepthTextBox.TabIndex = 2;
+            // 
+            // FractureTestStartButton
+            // 
+            FractureTestStartButton.Anchor = AnchorStyles.None;
+            FractureTestStartButton.Location = new Point(12, 63);
+            FractureTestStartButton.Name = "FractureTestStartButton";
+            FractureTestStartButton.Size = new Size(75, 23);
+            FractureTestStartButton.TabIndex = 1;
+            FractureTestStartButton.Text = "Begin Test";
+            FractureTestStartButton.UseVisualStyleBackColor = true;
+            FractureTestStartButton.Click += FractureTestStartButton_Click;
+            // 
+            // button2
+            // 
+            button2.Anchor = AnchorStyles.None;
+            button2.Location = new Point(147, 63);
+            button2.Name = "button2";
+            button2.Size = new Size(75, 23);
+            button2.TabIndex = 19;
+            button2.Text = "Save Data";
+            button2.UseVisualStyleBackColor = true;
+            button2.Click += saveFileButton_Click;
+            // 
+            // tableLayoutPanel8
+            // 
+            tableLayoutPanel8.BackColor = Color.LightGray;
+            tableLayoutPanel8.ColumnCount = 1;
+            tableLayoutPanel8.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 49.4117661F));
+            tableLayoutPanel8.Controls.Add(StartConstantMonitorButton, 0, 1);
+            tableLayoutPanel8.Controls.Add(DAQStopMonitoringButton, 0, 2);
+            tableLayoutPanel8.Controls.Add(ReturnProbeToMaxHeightButton, 0, 3);
+            tableLayoutPanel8.Controls.Add(button1, 0, 0);
+            tableLayoutPanel8.Location = new Point(490, 291);
+            tableLayoutPanel8.Name = "tableLayoutPanel8";
+            tableLayoutPanel8.RowCount = 4;
+            tableLayoutPanel8.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
+            tableLayoutPanel8.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            tableLayoutPanel8.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            tableLayoutPanel8.RowStyles.Add(new RowStyle(SizeType.Absolute, 36F));
+            tableLayoutPanel8.Size = new Size(227, 151);
+            tableLayoutPanel8.TabIndex = 10;
+            // 
+            // StartConstantMonitorButton
+            // 
+            StartConstantMonitorButton.Location = new Point(3, 41);
+            StartConstantMonitorButton.Name = "StartConstantMonitorButton";
+            StartConstantMonitorButton.Size = new Size(221, 32);
+            StartConstantMonitorButton.TabIndex = 5;
+            StartConstantMonitorButton.Text = "Find Surface";
+            StartConstantMonitorButton.UseVisualStyleBackColor = true;
+            StartConstantMonitorButton.Click += StartConstantMonitorButton_Click;
+            // 
+            // DAQStopMonitoringButton
+            // 
+            DAQStopMonitoringButton.BackColor = Color.IndianRed;
+            DAQStopMonitoringButton.ForeColor = Color.Black;
+            DAQStopMonitoringButton.Location = new Point(3, 79);
+            DAQStopMonitoringButton.Name = "DAQStopMonitoringButton";
+            DAQStopMonitoringButton.Size = new Size(221, 32);
+            DAQStopMonitoringButton.TabIndex = 4;
+            DAQStopMonitoringButton.Text = "Stop Monitoring";
+            DAQStopMonitoringButton.UseVisualStyleBackColor = false;
+            DAQStopMonitoringButton.Click += DAQStopMonitoringButton_Click;
+            // 
+            // ReturnProbeToMaxHeightButton
+            // 
+            ReturnProbeToMaxHeightButton.Location = new Point(3, 117);
+            ReturnProbeToMaxHeightButton.Name = "ReturnProbeToMaxHeightButton";
+            ReturnProbeToMaxHeightButton.Size = new Size(221, 28);
+            ReturnProbeToMaxHeightButton.TabIndex = 12;
+            ReturnProbeToMaxHeightButton.Text = "Return Probe to Top";
+            ReturnProbeToMaxHeightButton.UseVisualStyleBackColor = true;
+            ReturnProbeToMaxHeightButton.Click += ReturnProbeToMaxHeightButton_Click;
+            // 
+            // button1
+            // 
+            button1.Anchor = AnchorStyles.Left;
+            button1.Location = new Point(3, 7);
+            button1.Name = "button1";
+            button1.Size = new Size(221, 23);
+            button1.TabIndex = 17;
+            button1.Text = "Continuous Scan\r\n\r\n";
+            button1.UseVisualStyleBackColor = true;
+            button1.Click += button1_Click;
+            // 
+            // MonitorResponseChart
+            // 
+            MonitorResponseChart.BackColor = Color.Silver;
+            chartArea1.Name = "ChartArea1";
+            MonitorResponseChart.ChartAreas.Add(chartArea1);
+            legend1.Name = "Legend1";
+            MonitorResponseChart.Legends.Add(legend1);
+            MonitorResponseChart.Location = new Point(8, 112);
+            MonitorResponseChart.Name = "MonitorResponseChart";
+            series1.ChartArea = "ChartArea1";
+            series1.Legend = "Legend1";
+            series1.Name = "Series1";
+            MonitorResponseChart.Series.Add(series1);
+            MonitorResponseChart.Size = new Size(476, 434);
+            MonitorResponseChart.TabIndex = 7;
+            MonitorResponseChart.Text = "chart1";
             // 
             // MotionControllerTabPage
             // 
@@ -805,104 +880,325 @@
             MotionControllerTabPage.Text = "Motion Controller";
             MotionControllerTabPage.UseVisualStyleBackColor = true;
             // 
-            // MotionControllerConnectionSettingsGroupBox
+            // tableLayoutPanel6
             // 
-            MotionControllerConnectionSettingsGroupBox.Controls.Add(MotionControllerConnectionTableLayout);
-            MotionControllerConnectionSettingsGroupBox.Location = new Point(0, 3);
-            MotionControllerConnectionSettingsGroupBox.Name = "MotionControllerConnectionSettingsGroupBox";
-            MotionControllerConnectionSettingsGroupBox.Size = new Size(383, 120);
-            MotionControllerConnectionSettingsGroupBox.TabIndex = 1;
-            MotionControllerConnectionSettingsGroupBox.TabStop = false;
-            MotionControllerConnectionSettingsGroupBox.Text = "Connection Settings";
+            tableLayoutPanel6.ColumnCount = 2;
+            tableLayoutPanel6.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 34.0694F));
+            tableLayoutPanel6.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 65.9306F));
+            tableLayoutPanel6.Controls.Add(YPositionLabel, 0, 0);
+            tableLayoutPanel6.Controls.Add(YStepLabel, 0, 1);
+            tableLayoutPanel6.Controls.Add(YPositionResponseLabel, 1, 0);
+            tableLayoutPanel6.Controls.Add(YStepResponseLabel, 1, 1);
+            tableLayoutPanel6.Controls.Add(tableLayoutPanel7, 1, 2);
+            tableLayoutPanel6.Controls.Add(YHomeLabel, 0, 2);
+            tableLayoutPanel6.Location = new Point(389, 28);
+            tableLayoutPanel6.Name = "tableLayoutPanel6";
+            tableLayoutPanel6.RowCount = 3;
+            tableLayoutPanel6.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            tableLayoutPanel6.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            tableLayoutPanel6.RowStyles.Add(new RowStyle(SizeType.Absolute, 43F));
+            tableLayoutPanel6.Size = new Size(317, 155);
+            tableLayoutPanel6.TabIndex = 0;
             // 
-            // MotionControllerConnectionTableLayout
+            // YPositionLabel
             // 
-            MotionControllerConnectionTableLayout.ColumnCount = 3;
-            MotionControllerConnectionTableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 48.8095245F));
-            MotionControllerConnectionTableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 51.1904755F));
-            MotionControllerConnectionTableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 121F));
-            MotionControllerConnectionTableLayout.Controls.Add(AvailableDevicesComboBox, 1, 0);
-            MotionControllerConnectionTableLayout.Controls.Add(ScanAvailableMotionControllerDevicesButton, 2, 0);
-            MotionControllerConnectionTableLayout.Controls.Add(ConnectToMotionControllerButton, 2, 1);
-            MotionControllerConnectionTableLayout.Controls.Add(DisconnectMotionControllerButton, 2, 2);
-            MotionControllerConnectionTableLayout.Controls.Add(AvailableDevicesLabel, 0, 0);
-            MotionControllerConnectionTableLayout.Controls.Add(ConnectionStatusLabel, 0, 1);
-            MotionControllerConnectionTableLayout.Controls.Add(ConnectionStatusResponseLabel, 1, 1);
-            MotionControllerConnectionTableLayout.Location = new Point(6, 22);
-            MotionControllerConnectionTableLayout.Name = "MotionControllerConnectionTableLayout";
-            MotionControllerConnectionTableLayout.RowCount = 3;
-            MotionControllerConnectionTableLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 51.7241364F));
-            MotionControllerConnectionTableLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 48.2758636F));
-            MotionControllerConnectionTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 31F));
-            MotionControllerConnectionTableLayout.Size = new Size(368, 92);
-            MotionControllerConnectionTableLayout.TabIndex = 0;
+            YPositionLabel.Anchor = AnchorStyles.None;
+            YPositionLabel.AutoSize = true;
+            YPositionLabel.Location = new Point(21, 20);
+            YPositionLabel.Name = "YPositionLabel";
+            YPositionLabel.Size = new Size(65, 15);
+            YPositionLabel.TabIndex = 0;
+            YPositionLabel.Text = "Y-Position:";
             // 
-            // ConnectionStatusResponseLabel
+            // YStepLabel
             // 
-            ConnectionStatusResponseLabel.Anchor = AnchorStyles.None;
-            ConnectionStatusResponseLabel.AutoSize = true;
-            ConnectionStatusResponseLabel.Location = new Point(143, 38);
-            ConnectionStatusResponseLabel.Name = "ConnectionStatusResponseLabel";
-            ConnectionStatusResponseLabel.Size = new Size(79, 15);
-            ConnectionStatusResponseLabel.TabIndex = 9;
-            ConnectionStatusResponseLabel.Text = "Disconnected";
+            YStepLabel.Anchor = AnchorStyles.None;
+            YStepLabel.AutoSize = true;
+            YStepLabel.Location = new Point(31, 76);
+            YStepLabel.Name = "YStepLabel";
+            YStepLabel.Size = new Size(45, 15);
+            YStepLabel.TabIndex = 1;
+            YStepLabel.Text = "Y-Step:";
             // 
-            // ConnectionStatusLabel
+            // YPositionResponseLabel
             // 
-            ConnectionStatusLabel.Anchor = AnchorStyles.None;
-            ConnectionStatusLabel.AutoSize = true;
-            ConnectionStatusLabel.Location = new Point(8, 38);
-            ConnectionStatusLabel.Name = "ConnectionStatusLabel";
-            ConnectionStatusLabel.Size = new Size(104, 15);
-            ConnectionStatusLabel.TabIndex = 8;
-            ConnectionStatusLabel.Text = "Connection Status";
+            YPositionResponseLabel.AutoSize = true;
+            YPositionResponseLabel.Location = new Point(111, 0);
+            YPositionResponseLabel.Name = "YPositionResponseLabel";
+            YPositionResponseLabel.Size = new Size(0, 15);
+            YPositionResponseLabel.TabIndex = 2;
             // 
-            // AvailableDevicesLabel
+            // YStepResponseLabel
             // 
-            AvailableDevicesLabel.Anchor = AnchorStyles.None;
-            AvailableDevicesLabel.AutoSize = true;
-            AvailableDevicesLabel.Location = new Point(11, 8);
-            AvailableDevicesLabel.Name = "AvailableDevicesLabel";
-            AvailableDevicesLabel.Size = new Size(98, 15);
-            AvailableDevicesLabel.TabIndex = 7;
-            AvailableDevicesLabel.Text = "Available Devices";
+            YStepResponseLabel.Anchor = AnchorStyles.None;
+            YStepResponseLabel.AutoSize = true;
+            YStepResponseLabel.Location = new Point(212, 76);
+            YStepResponseLabel.Name = "YStepResponseLabel";
+            YStepResponseLabel.Size = new Size(0, 15);
+            YStepResponseLabel.TabIndex = 3;
             // 
-            // DisconnectMotionControllerButton
+            // tableLayoutPanel7
             // 
-            DisconnectMotionControllerButton.Location = new Point(249, 63);
-            DisconnectMotionControllerButton.Name = "DisconnectMotionControllerButton";
-            DisconnectMotionControllerButton.Size = new Size(110, 23);
-            DisconnectMotionControllerButton.TabIndex = 6;
-            DisconnectMotionControllerButton.Text = "Disconnect";
-            DisconnectMotionControllerButton.UseVisualStyleBackColor = true;
+            tableLayoutPanel7.ColumnCount = 2;
+            tableLayoutPanel7.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+            tableLayoutPanel7.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+            tableLayoutPanel7.Controls.Add(YHomeResponseLabel, 0, 0);
+            tableLayoutPanel7.Controls.Add(SetYHomeButton, 1, 0);
+            tableLayoutPanel7.Location = new Point(111, 115);
+            tableLayoutPanel7.Name = "tableLayoutPanel7";
+            tableLayoutPanel7.RowCount = 1;
+            tableLayoutPanel7.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            tableLayoutPanel7.Size = new Size(200, 37);
+            tableLayoutPanel7.TabIndex = 5;
             // 
-            // ConnectToMotionControllerButton
+            // YHomeResponseLabel
             // 
-            ConnectToMotionControllerButton.Location = new Point(249, 34);
-            ConnectToMotionControllerButton.Name = "ConnectToMotionControllerButton";
-            ConnectToMotionControllerButton.Size = new Size(110, 23);
-            ConnectToMotionControllerButton.TabIndex = 5;
-            ConnectToMotionControllerButton.Text = "Connect Device";
-            ConnectToMotionControllerButton.UseVisualStyleBackColor = true;
-            ConnectToMotionControllerButton.Click += ConnectToMotionControllerButton_Click;
+            YHomeResponseLabel.Anchor = AnchorStyles.None;
+            YHomeResponseLabel.AutoSize = true;
+            YHomeResponseLabel.Location = new Point(50, 11);
+            YHomeResponseLabel.Name = "YHomeResponseLabel";
+            YHomeResponseLabel.Size = new Size(0, 15);
+            YHomeResponseLabel.TabIndex = 5;
             // 
-            // ScanAvailableMotionControllerDevicesButton
+            // SetYHomeButton
             // 
-            ScanAvailableMotionControllerDevicesButton.Location = new Point(249, 3);
-            ScanAvailableMotionControllerDevicesButton.Name = "ScanAvailableMotionControllerDevicesButton";
-            ScanAvailableMotionControllerDevicesButton.Size = new Size(110, 22);
-            ScanAvailableMotionControllerDevicesButton.TabIndex = 2;
-            ScanAvailableMotionControllerDevicesButton.Text = "Scan Devices";
-            ScanAvailableMotionControllerDevicesButton.UseVisualStyleBackColor = true;
-            ScanAvailableMotionControllerDevicesButton.Click += ScanAvailableMotionControllerDevicesButton_Click;
+            SetYHomeButton.Location = new Point(103, 3);
+            SetYHomeButton.Name = "SetYHomeButton";
+            SetYHomeButton.Size = new Size(94, 31);
+            SetYHomeButton.TabIndex = 6;
+            SetYHomeButton.Text = "Set Y-Home";
+            SetYHomeButton.UseVisualStyleBackColor = true;
             // 
-            // AvailableDevicesComboBox
+            // YHomeLabel
             // 
-            AvailableDevicesComboBox.FormattingEnabled = true;
-            AvailableDevicesComboBox.Location = new Point(123, 3);
-            AvailableDevicesComboBox.Name = "AvailableDevicesComboBox";
-            AvailableDevicesComboBox.Size = new Size(115, 23);
-            AvailableDevicesComboBox.TabIndex = 1;
+            YHomeLabel.Anchor = AnchorStyles.None;
+            YHomeLabel.AutoSize = true;
+            YHomeLabel.Location = new Point(26, 126);
+            YHomeLabel.Name = "YHomeLabel";
+            YHomeLabel.Size = new Size(55, 15);
+            YHomeLabel.TabIndex = 4;
+            YHomeLabel.Text = "Y-Home:";
+            // 
+            // StepperMotorSettingsGroupBox
+            // 
+            StepperMotorSettingsGroupBox.Controls.Add(tableLayoutPanel2);
+            StepperMotorSettingsGroupBox.Location = new Point(5, 311);
+            StepperMotorSettingsGroupBox.Name = "StepperMotorSettingsGroupBox";
+            StepperMotorSettingsGroupBox.Size = new Size(378, 232);
+            StepperMotorSettingsGroupBox.TabIndex = 3;
+            StepperMotorSettingsGroupBox.TabStop = false;
+            StepperMotorSettingsGroupBox.Text = "Stepper Motor Settings";
+            // 
+            // tableLayoutPanel2
+            // 
+            tableLayoutPanel2.ColumnCount = 2;
+            tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 23.913044F));
+            tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 76.08696F));
+            tableLayoutPanel2.Controls.Add(StepperMotorAngleLabel, 0, 0);
+            tableLayoutPanel2.Controls.Add(LeadScrewPitchLabel, 0, 1);
+            tableLayoutPanel2.Controls.Add(StepperMotorSubdivisionLabel, 0, 2);
+            tableLayoutPanel2.Controls.Add(PulseEquivalentLabel, 0, 3);
+            tableLayoutPanel2.Controls.Add(tableLayoutPanel3, 1, 0);
+            tableLayoutPanel2.Controls.Add(tableLayoutPanel4, 1, 1);
+            tableLayoutPanel2.Controls.Add(MotionControllerSubdivisionComboBox, 1, 2);
+            tableLayoutPanel2.Controls.Add(tableLayoutPanel5, 1, 3);
+            tableLayoutPanel2.Location = new Point(1, 13);
+            tableLayoutPanel2.Name = "tableLayoutPanel2";
+            tableLayoutPanel2.RowCount = 4;
+            tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Percent, 42.953022F));
+            tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Percent, 57.046978F));
+            tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
+            tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 48F));
+            tableLayoutPanel2.Size = new Size(368, 199);
+            tableLayoutPanel2.TabIndex = 0;
+            // 
+            // StepperMotorAngleLabel
+            // 
+            StepperMotorAngleLabel.Anchor = AnchorStyles.None;
+            StepperMotorAngleLabel.AutoSize = true;
+            StepperMotorAngleLabel.Location = new Point(5, 9);
+            StepperMotorAngleLabel.Name = "StepperMotorAngleLabel";
+            StepperMotorAngleLabel.Size = new Size(77, 30);
+            StepperMotorAngleLabel.TabIndex = 0;
+            StepperMotorAngleLabel.Text = "Stepper Motor Angle:";
+            // 
+            // LeadScrewPitchLabel
+            // 
+            LeadScrewPitchLabel.AllowDrop = true;
+            LeadScrewPitchLabel.Anchor = AnchorStyles.None;
+            LeadScrewPitchLabel.AutoSize = true;
+            LeadScrewPitchLabel.Location = new Point(9, 65);
+            LeadScrewPitchLabel.Name = "LeadScrewPitchLabel";
+            LeadScrewPitchLabel.Size = new Size(69, 30);
+            LeadScrewPitchLabel.TabIndex = 1;
+            LeadScrewPitchLabel.Text = "Screw Lead (Pitch):";
+            // 
+            // StepperMotorSubdivisionLabel
+            // 
+            StepperMotorSubdivisionLabel.Anchor = AnchorStyles.None;
+            StepperMotorSubdivisionLabel.AutoSize = true;
+            StepperMotorSubdivisionLabel.Location = new Point(8, 123);
+            StepperMotorSubdivisionLabel.Name = "StepperMotorSubdivisionLabel";
+            StepperMotorSubdivisionLabel.Size = new Size(71, 15);
+            StepperMotorSubdivisionLabel.TabIndex = 2;
+            StepperMotorSubdivisionLabel.Text = "Subdivision:";
+            // 
+            // PulseEquivalentLabel
+            // 
+            PulseEquivalentLabel.Anchor = AnchorStyles.None;
+            PulseEquivalentLabel.Location = new Point(6, 158);
+            PulseEquivalentLabel.Name = "PulseEquivalentLabel";
+            PulseEquivalentLabel.Size = new Size(75, 32);
+            PulseEquivalentLabel.TabIndex = 3;
+            PulseEquivalentLabel.Text = "Pulse Equivalent:";
+            // 
+            // tableLayoutPanel3
+            // 
+            tableLayoutPanel3.Anchor = AnchorStyles.None;
+            tableLayoutPanel3.ColumnCount = 2;
+            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 51.0791359F));
+            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 48.9208641F));
+            tableLayoutPanel3.Controls.Add(StepperMotorAngle18RadioButton, 0, 0);
+            tableLayoutPanel3.Controls.Add(StepperMotorAngle09RadioButton, 1, 0);
+            tableLayoutPanel3.Location = new Point(91, 3);
+            tableLayoutPanel3.Name = "tableLayoutPanel3";
+            tableLayoutPanel3.RowCount = 1;
+            tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            tableLayoutPanel3.Size = new Size(274, 42);
+            tableLayoutPanel3.TabIndex = 4;
+            // 
+            // StepperMotorAngle18RadioButton
+            // 
+            StepperMotorAngle18RadioButton.AutoSize = true;
+            StepperMotorAngle18RadioButton.Checked = true;
+            StepperMotorAngle18RadioButton.Location = new Point(3, 3);
+            StepperMotorAngle18RadioButton.Name = "StepperMotorAngle18RadioButton";
+            StepperMotorAngle18RadioButton.Size = new Size(85, 19);
+            StepperMotorAngle18RadioButton.TabIndex = 0;
+            StepperMotorAngle18RadioButton.TabStop = true;
+            StepperMotorAngle18RadioButton.Text = "1.8 Degrees";
+            StepperMotorAngle18RadioButton.UseVisualStyleBackColor = true;
+            StepperMotorAngle18RadioButton.CheckedChanged += StepperMotorAngle18RadioButton_CheckedChanged;
+            // 
+            // StepperMotorAngle09RadioButton
+            // 
+            StepperMotorAngle09RadioButton.AutoSize = true;
+            StepperMotorAngle09RadioButton.Location = new Point(142, 3);
+            StepperMotorAngle09RadioButton.Name = "StepperMotorAngle09RadioButton";
+            StepperMotorAngle09RadioButton.Size = new Size(85, 19);
+            StepperMotorAngle09RadioButton.TabIndex = 1;
+            StepperMotorAngle09RadioButton.Text = "0.9 Degrees";
+            StepperMotorAngle09RadioButton.UseVisualStyleBackColor = true;
+            StepperMotorAngle09RadioButton.CheckedChanged += StepperMotorAngle09RadioButton_CheckedChanged;
+            // 
+            // tableLayoutPanel4
+            // 
+            tableLayoutPanel4.Anchor = AnchorStyles.None;
+            tableLayoutPanel4.ColumnCount = 4;
+            tableLayoutPanel4.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+            tableLayoutPanel4.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+            tableLayoutPanel4.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 66F));
+            tableLayoutPanel4.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 67F));
+            tableLayoutPanel4.Controls.Add(LeadScrewPitch05mmRadioButton, 0, 0);
+            tableLayoutPanel4.Controls.Add(LeadScrewPitch1mmRadioButton, 1, 0);
+            tableLayoutPanel4.Controls.Add(LeadScrewPitch2mmRadioButton, 2, 0);
+            tableLayoutPanel4.Controls.Add(LeadScrewPitch25mmRadioButton, 3, 0);
+            tableLayoutPanel4.Location = new Point(91, 58);
+            tableLayoutPanel4.Name = "tableLayoutPanel4";
+            tableLayoutPanel4.RowCount = 1;
+            tableLayoutPanel4.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            tableLayoutPanel4.Size = new Size(274, 44);
+            tableLayoutPanel4.TabIndex = 5;
+            // 
+            // LeadScrewPitch05mmRadioButton
+            // 
+            LeadScrewPitch05mmRadioButton.AutoSize = true;
+            LeadScrewPitch05mmRadioButton.Location = new Point(3, 3);
+            LeadScrewPitch05mmRadioButton.Name = "LeadScrewPitch05mmRadioButton";
+            LeadScrewPitch05mmRadioButton.Size = new Size(62, 19);
+            LeadScrewPitch05mmRadioButton.TabIndex = 0;
+            LeadScrewPitch05mmRadioButton.TabStop = true;
+            LeadScrewPitch05mmRadioButton.Text = "0.5mm";
+            LeadScrewPitch05mmRadioButton.UseVisualStyleBackColor = true;
+            LeadScrewPitch05mmRadioButton.CheckedChanged += LeadScrewPitch05mmRadioButton_CheckedChanged;
+            // 
+            // LeadScrewPitch1mmRadioButton
+            // 
+            LeadScrewPitch1mmRadioButton.AutoSize = true;
+            LeadScrewPitch1mmRadioButton.Location = new Point(73, 3);
+            LeadScrewPitch1mmRadioButton.Name = "LeadScrewPitch1mmRadioButton";
+            LeadScrewPitch1mmRadioButton.Size = new Size(53, 19);
+            LeadScrewPitch1mmRadioButton.TabIndex = 1;
+            LeadScrewPitch1mmRadioButton.TabStop = true;
+            LeadScrewPitch1mmRadioButton.Text = "1mm";
+            LeadScrewPitch1mmRadioButton.UseVisualStyleBackColor = true;
+            LeadScrewPitch1mmRadioButton.CheckedChanged += LeadScrewPitch1mmRadioButton_CheckedChanged;
+            // 
+            // LeadScrewPitch2mmRadioButton
+            // 
+            LeadScrewPitch2mmRadioButton.AutoSize = true;
+            LeadScrewPitch2mmRadioButton.Location = new Point(143, 3);
+            LeadScrewPitch2mmRadioButton.Name = "LeadScrewPitch2mmRadioButton";
+            LeadScrewPitch2mmRadioButton.Size = new Size(53, 19);
+            LeadScrewPitch2mmRadioButton.TabIndex = 2;
+            LeadScrewPitch2mmRadioButton.TabStop = true;
+            LeadScrewPitch2mmRadioButton.Text = "2mm";
+            LeadScrewPitch2mmRadioButton.UseVisualStyleBackColor = true;
+            LeadScrewPitch2mmRadioButton.CheckedChanged += LeadScrewPitch2mmRadioButton_CheckedChanged;
+            // 
+            // LeadScrewPitch25mmRadioButton
+            // 
+            LeadScrewPitch25mmRadioButton.AutoSize = true;
+            LeadScrewPitch25mmRadioButton.Location = new Point(209, 3);
+            LeadScrewPitch25mmRadioButton.Name = "LeadScrewPitch25mmRadioButton";
+            LeadScrewPitch25mmRadioButton.Size = new Size(62, 19);
+            LeadScrewPitch25mmRadioButton.TabIndex = 3;
+            LeadScrewPitch25mmRadioButton.TabStop = true;
+            LeadScrewPitch25mmRadioButton.Text = "2.5mm";
+            LeadScrewPitch25mmRadioButton.UseVisualStyleBackColor = true;
+            LeadScrewPitch25mmRadioButton.CheckedChanged += LeadScrewPitch25mmRadioButton_CheckedChanged;
+            // 
+            // MotionControllerSubdivisionComboBox
+            // 
+            MotionControllerSubdivisionComboBox.Anchor = AnchorStyles.Right;
+            MotionControllerSubdivisionComboBox.FormattingEnabled = true;
+            MotionControllerSubdivisionComboBox.Location = new Point(244, 119);
+            MotionControllerSubdivisionComboBox.Name = "MotionControllerSubdivisionComboBox";
+            MotionControllerSubdivisionComboBox.Size = new Size(121, 23);
+            MotionControllerSubdivisionComboBox.TabIndex = 6;
+            MotionControllerSubdivisionComboBox.SelectedIndexChanged += MotionControllerSubdivisionComboBox_SelectedIndexChanged;
+            // 
+            // tableLayoutPanel5
+            // 
+            tableLayoutPanel5.ColumnCount = 2;
+            tableLayoutPanel5.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 37.59124F));
+            tableLayoutPanel5.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 62.40876F));
+            tableLayoutPanel5.Controls.Add(PulseEquivalentResponseLabel, 0, 0);
+            tableLayoutPanel5.Controls.Add(CalculatePulseEquivalentButton, 1, 0);
+            tableLayoutPanel5.Location = new Point(91, 153);
+            tableLayoutPanel5.Name = "tableLayoutPanel5";
+            tableLayoutPanel5.RowCount = 1;
+            tableLayoutPanel5.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            tableLayoutPanel5.Size = new Size(274, 43);
+            tableLayoutPanel5.TabIndex = 7;
+            // 
+            // PulseEquivalentResponseLabel
+            // 
+            PulseEquivalentResponseLabel.AutoSize = true;
+            PulseEquivalentResponseLabel.Location = new Point(3, 0);
+            PulseEquivalentResponseLabel.Name = "PulseEquivalentResponseLabel";
+            PulseEquivalentResponseLabel.Size = new Size(0, 15);
+            PulseEquivalentResponseLabel.TabIndex = 0;
+            // 
+            // CalculatePulseEquivalentButton
+            // 
+            CalculatePulseEquivalentButton.Location = new Point(106, 3);
+            CalculatePulseEquivalentButton.Name = "CalculatePulseEquivalentButton";
+            CalculatePulseEquivalentButton.Size = new Size(165, 37);
+            CalculatePulseEquivalentButton.TabIndex = 1;
+            CalculatePulseEquivalentButton.Text = "Calculate Pulse Equivalent";
+            CalculatePulseEquivalentButton.UseVisualStyleBackColor = true;
+            CalculatePulseEquivalentButton.Click += CalculatePulseEquivalentButton_Click;
             // 
             // MotionControllerSettingsGroupBox
             // 
@@ -938,16 +1234,69 @@
             tableLayoutPanel1.Size = new Size(365, 151);
             tableLayoutPanel1.TabIndex = 0;
             // 
-            // ChangeMotionControllerSpeedButton
+            // XAxisDisplacementLabel
             // 
-            ChangeMotionControllerSpeedButton.Anchor = AnchorStyles.None;
-            ChangeMotionControllerSpeedButton.Location = new Point(247, 116);
-            ChangeMotionControllerSpeedButton.Name = "ChangeMotionControllerSpeedButton";
-            ChangeMotionControllerSpeedButton.Size = new Size(115, 23);
-            ChangeMotionControllerSpeedButton.TabIndex = 8;
-            ChangeMotionControllerSpeedButton.Text = "Change Speed";
-            ChangeMotionControllerSpeedButton.UseVisualStyleBackColor = true;
-            ChangeMotionControllerSpeedButton.Click += ChangeMotionControllerSpeedButton_Click;
+            XAxisDisplacementLabel.Anchor = AnchorStyles.None;
+            XAxisDisplacementLabel.AutoSize = true;
+            XAxisDisplacementLabel.Location = new Point(3, 18);
+            XAxisDisplacementLabel.Name = "XAxisDisplacementLabel";
+            XAxisDisplacementLabel.Size = new Size(115, 15);
+            XAxisDisplacementLabel.TabIndex = 0;
+            XAxisDisplacementLabel.Text = "X-Axis Displacement";
+            // 
+            // YAxisDisplacementLabel
+            // 
+            YAxisDisplacementLabel.Anchor = AnchorStyles.None;
+            YAxisDisplacementLabel.AutoSize = true;
+            YAxisDisplacementLabel.Location = new Point(3, 70);
+            YAxisDisplacementLabel.Name = "YAxisDisplacementLabel";
+            YAxisDisplacementLabel.Size = new Size(115, 15);
+            YAxisDisplacementLabel.TabIndex = 1;
+            YAxisDisplacementLabel.Text = "Y-Axis Displacement";
+            // 
+            // MotionControllerSpeedLabel
+            // 
+            MotionControllerSpeedLabel.Anchor = AnchorStyles.None;
+            MotionControllerSpeedLabel.AutoSize = true;
+            MotionControllerSpeedLabel.Location = new Point(21, 120);
+            MotionControllerSpeedLabel.Name = "MotionControllerSpeedLabel";
+            MotionControllerSpeedLabel.Size = new Size(79, 15);
+            MotionControllerSpeedLabel.TabIndex = 2;
+            MotionControllerSpeedLabel.Text = "Speed (1-255)";
+            // 
+            // XAxisDisplacementTextBox
+            // 
+            XAxisDisplacementTextBox.Anchor = AnchorStyles.None;
+            XAxisDisplacementTextBox.Location = new Point(133, 14);
+            XAxisDisplacementTextBox.Name = "XAxisDisplacementTextBox";
+            XAxisDisplacementTextBox.Size = new Size(100, 23);
+            XAxisDisplacementTextBox.TabIndex = 3;
+            // 
+            // YAxisDisplacementTextBox
+            // 
+            YAxisDisplacementTextBox.Anchor = AnchorStyles.None;
+            YAxisDisplacementTextBox.Location = new Point(133, 66);
+            YAxisDisplacementTextBox.Name = "YAxisDisplacementTextBox";
+            YAxisDisplacementTextBox.Size = new Size(100, 23);
+            YAxisDisplacementTextBox.TabIndex = 4;
+            // 
+            // MotionControllerSpeedTextBox
+            // 
+            MotionControllerSpeedTextBox.Anchor = AnchorStyles.None;
+            MotionControllerSpeedTextBox.Location = new Point(133, 116);
+            MotionControllerSpeedTextBox.Name = "MotionControllerSpeedTextBox";
+            MotionControllerSpeedTextBox.Size = new Size(100, 23);
+            MotionControllerSpeedTextBox.TabIndex = 5;
+            // 
+            // MoveXAxisButton
+            // 
+            MoveXAxisButton.Anchor = AnchorStyles.None;
+            MoveXAxisButton.Location = new Point(247, 14);
+            MoveXAxisButton.Name = "MoveXAxisButton";
+            MoveXAxisButton.Size = new Size(115, 23);
+            MoveXAxisButton.TabIndex = 6;
+            MoveXAxisButton.Text = "Translate X-Axis";
+            MoveXAxisButton.UseVisualStyleBackColor = true;
             // 
             // MoveYAxisButton
             // 
@@ -960,290 +1309,115 @@
             MoveYAxisButton.UseVisualStyleBackColor = true;
             MoveYAxisButton.Click += MoveYAxisButton_Click;
             // 
-            // MoveXAxisButton
+            // ChangeMotionControllerSpeedButton
             // 
-            MoveXAxisButton.Anchor = AnchorStyles.None;
-            MoveXAxisButton.Location = new Point(247, 14);
-            MoveXAxisButton.Name = "MoveXAxisButton";
-            MoveXAxisButton.Size = new Size(115, 23);
-            MoveXAxisButton.TabIndex = 6;
-            MoveXAxisButton.Text = "Translate X-Axis";
-            MoveXAxisButton.UseVisualStyleBackColor = true;
+            ChangeMotionControllerSpeedButton.Anchor = AnchorStyles.None;
+            ChangeMotionControllerSpeedButton.Location = new Point(247, 116);
+            ChangeMotionControllerSpeedButton.Name = "ChangeMotionControllerSpeedButton";
+            ChangeMotionControllerSpeedButton.Size = new Size(115, 23);
+            ChangeMotionControllerSpeedButton.TabIndex = 8;
+            ChangeMotionControllerSpeedButton.Text = "Change Speed";
+            ChangeMotionControllerSpeedButton.UseVisualStyleBackColor = true;
+            ChangeMotionControllerSpeedButton.Click += ChangeMotionControllerSpeedButton_Click;
             // 
-            // MotionControllerSpeedTextBox
+            // MotionControllerConnectionSettingsGroupBox
             // 
-            MotionControllerSpeedTextBox.Anchor = AnchorStyles.None;
-            MotionControllerSpeedTextBox.Location = new Point(133, 116);
-            MotionControllerSpeedTextBox.Name = "MotionControllerSpeedTextBox";
-            MotionControllerSpeedTextBox.Size = new Size(100, 23);
-            MotionControllerSpeedTextBox.TabIndex = 5;
+            MotionControllerConnectionSettingsGroupBox.Controls.Add(MotionControllerConnectionTableLayout);
+            MotionControllerConnectionSettingsGroupBox.Location = new Point(0, 3);
+            MotionControllerConnectionSettingsGroupBox.Name = "MotionControllerConnectionSettingsGroupBox";
+            MotionControllerConnectionSettingsGroupBox.Size = new Size(383, 120);
+            MotionControllerConnectionSettingsGroupBox.TabIndex = 1;
+            MotionControllerConnectionSettingsGroupBox.TabStop = false;
+            MotionControllerConnectionSettingsGroupBox.Text = "Connection Settings";
             // 
-            // YAxisDisplacementTextBox
+            // MotionControllerConnectionTableLayout
             // 
-            YAxisDisplacementTextBox.Anchor = AnchorStyles.None;
-            YAxisDisplacementTextBox.Location = new Point(133, 66);
-            YAxisDisplacementTextBox.Name = "YAxisDisplacementTextBox";
-            YAxisDisplacementTextBox.Size = new Size(100, 23);
-            YAxisDisplacementTextBox.TabIndex = 4;
+            MotionControllerConnectionTableLayout.ColumnCount = 3;
+            MotionControllerConnectionTableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 48.8095245F));
+            MotionControllerConnectionTableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 51.1904755F));
+            MotionControllerConnectionTableLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 121F));
+            MotionControllerConnectionTableLayout.Controls.Add(AvailableDevicesComboBox, 1, 0);
+            MotionControllerConnectionTableLayout.Controls.Add(ScanAvailableMotionControllerDevicesButton, 2, 0);
+            MotionControllerConnectionTableLayout.Controls.Add(ConnectToMotionControllerButton, 2, 1);
+            MotionControllerConnectionTableLayout.Controls.Add(DisconnectMotionControllerButton, 2, 2);
+            MotionControllerConnectionTableLayout.Controls.Add(AvailableDevicesLabel, 0, 0);
+            MotionControllerConnectionTableLayout.Controls.Add(ConnectionStatusLabel, 0, 1);
+            MotionControllerConnectionTableLayout.Controls.Add(ConnectionStatusResponseLabel, 1, 1);
+            MotionControllerConnectionTableLayout.Location = new Point(6, 22);
+            MotionControllerConnectionTableLayout.Name = "MotionControllerConnectionTableLayout";
+            MotionControllerConnectionTableLayout.RowCount = 3;
+            MotionControllerConnectionTableLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 51.7241364F));
+            MotionControllerConnectionTableLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 48.2758636F));
+            MotionControllerConnectionTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 31F));
+            MotionControllerConnectionTableLayout.Size = new Size(368, 92);
+            MotionControllerConnectionTableLayout.TabIndex = 0;
             // 
-            // XAxisDisplacementTextBox
+            // AvailableDevicesComboBox
             // 
-            XAxisDisplacementTextBox.Anchor = AnchorStyles.None;
-            XAxisDisplacementTextBox.Location = new Point(133, 14);
-            XAxisDisplacementTextBox.Name = "XAxisDisplacementTextBox";
-            XAxisDisplacementTextBox.Size = new Size(100, 23);
-            XAxisDisplacementTextBox.TabIndex = 3;
+            AvailableDevicesComboBox.FormattingEnabled = true;
+            AvailableDevicesComboBox.Location = new Point(123, 3);
+            AvailableDevicesComboBox.Name = "AvailableDevicesComboBox";
+            AvailableDevicesComboBox.Size = new Size(115, 23);
+            AvailableDevicesComboBox.TabIndex = 1;
             // 
-            // MotionControllerSpeedLabel
+            // ScanAvailableMotionControllerDevicesButton
             // 
-            MotionControllerSpeedLabel.Anchor = AnchorStyles.None;
-            MotionControllerSpeedLabel.AutoSize = true;
-            MotionControllerSpeedLabel.Location = new Point(21, 120);
-            MotionControllerSpeedLabel.Name = "MotionControllerSpeedLabel";
-            MotionControllerSpeedLabel.Size = new Size(79, 15);
-            MotionControllerSpeedLabel.TabIndex = 2;
-            MotionControllerSpeedLabel.Text = "Speed (1-255)";
+            ScanAvailableMotionControllerDevicesButton.Location = new Point(249, 3);
+            ScanAvailableMotionControllerDevicesButton.Name = "ScanAvailableMotionControllerDevicesButton";
+            ScanAvailableMotionControllerDevicesButton.Size = new Size(110, 22);
+            ScanAvailableMotionControllerDevicesButton.TabIndex = 2;
+            ScanAvailableMotionControllerDevicesButton.Text = "Scan Devices";
+            ScanAvailableMotionControllerDevicesButton.UseVisualStyleBackColor = true;
+            ScanAvailableMotionControllerDevicesButton.Click += ScanAvailableMotionControllerDevicesButton_Click;
             // 
-            // YAxisDisplacementLabel
+            // ConnectToMotionControllerButton
             // 
-            YAxisDisplacementLabel.Anchor = AnchorStyles.None;
-            YAxisDisplacementLabel.AutoSize = true;
-            YAxisDisplacementLabel.Location = new Point(3, 70);
-            YAxisDisplacementLabel.Name = "YAxisDisplacementLabel";
-            YAxisDisplacementLabel.Size = new Size(115, 15);
-            YAxisDisplacementLabel.TabIndex = 1;
-            YAxisDisplacementLabel.Text = "Y-Axis Displacement";
+            ConnectToMotionControllerButton.Location = new Point(249, 34);
+            ConnectToMotionControllerButton.Name = "ConnectToMotionControllerButton";
+            ConnectToMotionControllerButton.Size = new Size(110, 23);
+            ConnectToMotionControllerButton.TabIndex = 5;
+            ConnectToMotionControllerButton.Text = "Connect Device";
+            ConnectToMotionControllerButton.UseVisualStyleBackColor = true;
+            ConnectToMotionControllerButton.Click += ConnectToMotionControllerButton_Click;
             // 
-            // XAxisDisplacementLabel
+            // DisconnectMotionControllerButton
             // 
-            XAxisDisplacementLabel.Anchor = AnchorStyles.None;
-            XAxisDisplacementLabel.AutoSize = true;
-            XAxisDisplacementLabel.Location = new Point(3, 18);
-            XAxisDisplacementLabel.Name = "XAxisDisplacementLabel";
-            XAxisDisplacementLabel.Size = new Size(115, 15);
-            XAxisDisplacementLabel.TabIndex = 0;
-            XAxisDisplacementLabel.Text = "X-Axis Displacement";
+            DisconnectMotionControllerButton.Location = new Point(249, 63);
+            DisconnectMotionControllerButton.Name = "DisconnectMotionControllerButton";
+            DisconnectMotionControllerButton.Size = new Size(110, 23);
+            DisconnectMotionControllerButton.TabIndex = 6;
+            DisconnectMotionControllerButton.Text = "Disconnect";
+            DisconnectMotionControllerButton.UseVisualStyleBackColor = true;
             // 
-            // StepperMotorSettingsGroupBox
+            // AvailableDevicesLabel
             // 
-            StepperMotorSettingsGroupBox.Controls.Add(tableLayoutPanel2);
-            StepperMotorSettingsGroupBox.Location = new Point(5, 311);
-            StepperMotorSettingsGroupBox.Name = "StepperMotorSettingsGroupBox";
-            StepperMotorSettingsGroupBox.Size = new Size(378, 232);
-            StepperMotorSettingsGroupBox.TabIndex = 3;
-            StepperMotorSettingsGroupBox.TabStop = false;
-            StepperMotorSettingsGroupBox.Text = "Stepper Motor Settings";
+            AvailableDevicesLabel.Anchor = AnchorStyles.None;
+            AvailableDevicesLabel.AutoSize = true;
+            AvailableDevicesLabel.Location = new Point(11, 8);
+            AvailableDevicesLabel.Name = "AvailableDevicesLabel";
+            AvailableDevicesLabel.Size = new Size(98, 15);
+            AvailableDevicesLabel.TabIndex = 7;
+            AvailableDevicesLabel.Text = "Available Devices";
             // 
-            // tableLayoutPanel2
+            // ConnectionStatusLabel
             // 
-            tableLayoutPanel2.ColumnCount = 2;
-            tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 23.913044F));
-            tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 76.08696F));
-            tableLayoutPanel2.Controls.Add(StepperMotorAngleLabel, 0, 0);
-            tableLayoutPanel2.Controls.Add(LeadScrewPitchLabel, 0, 1);
-            tableLayoutPanel2.Controls.Add(StepperMotorSubdivisionLabel, 0, 2);
-            tableLayoutPanel2.Controls.Add(PulseEquivalentLabel, 0, 3);
-            tableLayoutPanel2.Controls.Add(tableLayoutPanel3, 1, 0);
-            tableLayoutPanel2.Controls.Add(tableLayoutPanel4, 1, 1);
-            tableLayoutPanel2.Controls.Add(MotionControllerSubdivisionComboBox, 1, 2);
-            tableLayoutPanel2.Controls.Add(tableLayoutPanel5, 1, 3);
-            tableLayoutPanel2.Location = new Point(1, 13);
-            tableLayoutPanel2.Name = "tableLayoutPanel2";
-            tableLayoutPanel2.RowCount = 4;
-            tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Percent, 42.953022F));
-            tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Percent, 57.046978F));
-            tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 38F));
-            tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 48F));
-            tableLayoutPanel2.Size = new Size(368, 199);
-            tableLayoutPanel2.TabIndex = 0;
+            ConnectionStatusLabel.Anchor = AnchorStyles.None;
+            ConnectionStatusLabel.AutoSize = true;
+            ConnectionStatusLabel.Location = new Point(8, 38);
+            ConnectionStatusLabel.Name = "ConnectionStatusLabel";
+            ConnectionStatusLabel.Size = new Size(104, 15);
+            ConnectionStatusLabel.TabIndex = 8;
+            ConnectionStatusLabel.Text = "Connection Status";
             // 
-            // tableLayoutPanel5
+            // ConnectionStatusResponseLabel
             // 
-            tableLayoutPanel5.ColumnCount = 2;
-            tableLayoutPanel5.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 37.59124F));
-            tableLayoutPanel5.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 62.40876F));
-            tableLayoutPanel5.Controls.Add(PulseEquivalentResponseLabel, 0, 0);
-            tableLayoutPanel5.Controls.Add(CalculatePulseEquivalentButton, 1, 0);
-            tableLayoutPanel5.Location = new Point(91, 153);
-            tableLayoutPanel5.Name = "tableLayoutPanel5";
-            tableLayoutPanel5.RowCount = 1;
-            tableLayoutPanel5.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-            tableLayoutPanel5.Size = new Size(274, 43);
-            tableLayoutPanel5.TabIndex = 7;
-            // 
-            // CalculatePulseEquivalentButton
-            // 
-            CalculatePulseEquivalentButton.Location = new Point(106, 3);
-            CalculatePulseEquivalentButton.Name = "CalculatePulseEquivalentButton";
-            CalculatePulseEquivalentButton.Size = new Size(165, 37);
-            CalculatePulseEquivalentButton.TabIndex = 1;
-            CalculatePulseEquivalentButton.Text = "Calculate Pulse Equivalent";
-            CalculatePulseEquivalentButton.UseVisualStyleBackColor = true;
-            CalculatePulseEquivalentButton.Click += CalculatePulseEquivalentButton_Click;
-            // 
-            // PulseEquivalentResponseLabel
-            // 
-            PulseEquivalentResponseLabel.AutoSize = true;
-            PulseEquivalentResponseLabel.Location = new Point(3, 0);
-            PulseEquivalentResponseLabel.Name = "PulseEquivalentResponseLabel";
-            PulseEquivalentResponseLabel.Size = new Size(0, 15);
-            PulseEquivalentResponseLabel.TabIndex = 0;
-            // 
-            // MotionControllerSubdivisionComboBox
-            // 
-            MotionControllerSubdivisionComboBox.Anchor = AnchorStyles.Right;
-            MotionControllerSubdivisionComboBox.FormattingEnabled = true;
-            MotionControllerSubdivisionComboBox.Location = new Point(244, 119);
-            MotionControllerSubdivisionComboBox.Name = "MotionControllerSubdivisionComboBox";
-            MotionControllerSubdivisionComboBox.Size = new Size(121, 23);
-            MotionControllerSubdivisionComboBox.TabIndex = 6;
-            MotionControllerSubdivisionComboBox.SelectedIndexChanged += MotionControllerSubdivisionComboBox_SelectedIndexChanged;
-            // 
-            // tableLayoutPanel4
-            // 
-            tableLayoutPanel4.Anchor = AnchorStyles.None;
-            tableLayoutPanel4.ColumnCount = 4;
-            tableLayoutPanel4.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-            tableLayoutPanel4.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-            tableLayoutPanel4.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 66F));
-            tableLayoutPanel4.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 67F));
-            tableLayoutPanel4.Controls.Add(LeadScrewPitch05mmRadioButton, 0, 0);
-            tableLayoutPanel4.Controls.Add(LeadScrewPitch1mmRadioButton, 1, 0);
-            tableLayoutPanel4.Controls.Add(LeadScrewPitch2mmRadioButton, 2, 0);
-            tableLayoutPanel4.Controls.Add(LeadScrewPitch25mmRadioButton, 3, 0);
-            tableLayoutPanel4.Location = new Point(91, 58);
-            tableLayoutPanel4.Name = "tableLayoutPanel4";
-            tableLayoutPanel4.RowCount = 1;
-            tableLayoutPanel4.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-            tableLayoutPanel4.Size = new Size(274, 44);
-            tableLayoutPanel4.TabIndex = 5;
-            // 
-            // LeadScrewPitch25mmRadioButton
-            // 
-            LeadScrewPitch25mmRadioButton.AutoSize = true;
-            LeadScrewPitch25mmRadioButton.Location = new Point(209, 3);
-            LeadScrewPitch25mmRadioButton.Name = "LeadScrewPitch25mmRadioButton";
-            LeadScrewPitch25mmRadioButton.Size = new Size(62, 19);
-            LeadScrewPitch25mmRadioButton.TabIndex = 3;
-            LeadScrewPitch25mmRadioButton.TabStop = true;
-            LeadScrewPitch25mmRadioButton.Text = "2.5mm";
-            LeadScrewPitch25mmRadioButton.UseVisualStyleBackColor = true;
-            LeadScrewPitch25mmRadioButton.CheckedChanged += LeadScrewPitch25mmRadioButton_CheckedChanged;
-            // 
-            // LeadScrewPitch2mmRadioButton
-            // 
-            LeadScrewPitch2mmRadioButton.AutoSize = true;
-            LeadScrewPitch2mmRadioButton.Location = new Point(143, 3);
-            LeadScrewPitch2mmRadioButton.Name = "LeadScrewPitch2mmRadioButton";
-            LeadScrewPitch2mmRadioButton.Size = new Size(53, 19);
-            LeadScrewPitch2mmRadioButton.TabIndex = 2;
-            LeadScrewPitch2mmRadioButton.TabStop = true;
-            LeadScrewPitch2mmRadioButton.Text = "2mm";
-            LeadScrewPitch2mmRadioButton.UseVisualStyleBackColor = true;
-            LeadScrewPitch2mmRadioButton.CheckedChanged += LeadScrewPitch2mmRadioButton_CheckedChanged;
-            // 
-            // LeadScrewPitch1mmRadioButton
-            // 
-            LeadScrewPitch1mmRadioButton.AutoSize = true;
-            LeadScrewPitch1mmRadioButton.Location = new Point(73, 3);
-            LeadScrewPitch1mmRadioButton.Name = "LeadScrewPitch1mmRadioButton";
-            LeadScrewPitch1mmRadioButton.Size = new Size(53, 19);
-            LeadScrewPitch1mmRadioButton.TabIndex = 1;
-            LeadScrewPitch1mmRadioButton.TabStop = true;
-            LeadScrewPitch1mmRadioButton.Text = "1mm";
-            LeadScrewPitch1mmRadioButton.UseVisualStyleBackColor = true;
-            LeadScrewPitch1mmRadioButton.CheckedChanged += LeadScrewPitch1mmRadioButton_CheckedChanged;
-            // 
-            // LeadScrewPitch05mmRadioButton
-            // 
-            LeadScrewPitch05mmRadioButton.AutoSize = true;
-            LeadScrewPitch05mmRadioButton.Location = new Point(3, 3);
-            LeadScrewPitch05mmRadioButton.Name = "LeadScrewPitch05mmRadioButton";
-            LeadScrewPitch05mmRadioButton.Size = new Size(62, 19);
-            LeadScrewPitch05mmRadioButton.TabIndex = 0;
-            LeadScrewPitch05mmRadioButton.TabStop = true;
-            LeadScrewPitch05mmRadioButton.Text = "0.5mm";
-            LeadScrewPitch05mmRadioButton.UseVisualStyleBackColor = true;
-            LeadScrewPitch05mmRadioButton.CheckedChanged += LeadScrewPitch05mmRadioButton_CheckedChanged;
-            // 
-            // tableLayoutPanel3
-            // 
-            tableLayoutPanel3.Anchor = AnchorStyles.None;
-            tableLayoutPanel3.ColumnCount = 2;
-            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 51.0791359F));
-            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 48.9208641F));
-            tableLayoutPanel3.Controls.Add(StepperMotorAngle18RadioButton, 0, 0);
-            tableLayoutPanel3.Controls.Add(StepperMotorAngle09RadioButton, 1, 0);
-            tableLayoutPanel3.Location = new Point(91, 3);
-            tableLayoutPanel3.Name = "tableLayoutPanel3";
-            tableLayoutPanel3.RowCount = 1;
-            tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-            tableLayoutPanel3.Size = new Size(274, 42);
-            tableLayoutPanel3.TabIndex = 4;
-            // 
-            // StepperMotorAngle09RadioButton
-            // 
-            StepperMotorAngle09RadioButton.AutoSize = true;
-            StepperMotorAngle09RadioButton.Location = new Point(142, 3);
-            StepperMotorAngle09RadioButton.Name = "StepperMotorAngle09RadioButton";
-            StepperMotorAngle09RadioButton.Size = new Size(85, 19);
-            StepperMotorAngle09RadioButton.TabIndex = 1;
-            StepperMotorAngle09RadioButton.Text = "0.9 Degrees";
-            StepperMotorAngle09RadioButton.UseVisualStyleBackColor = true;
-            StepperMotorAngle09RadioButton.CheckedChanged += StepperMotorAngle09RadioButton_CheckedChanged;
-            // 
-            // StepperMotorAngle18RadioButton
-            // 
-            StepperMotorAngle18RadioButton.AutoSize = true;
-            StepperMotorAngle18RadioButton.Checked = true;
-            StepperMotorAngle18RadioButton.Location = new Point(3, 3);
-            StepperMotorAngle18RadioButton.Name = "StepperMotorAngle18RadioButton";
-            StepperMotorAngle18RadioButton.Size = new Size(85, 19);
-            StepperMotorAngle18RadioButton.TabIndex = 0;
-            StepperMotorAngle18RadioButton.TabStop = true;
-            StepperMotorAngle18RadioButton.Text = "1.8 Degrees";
-            StepperMotorAngle18RadioButton.UseVisualStyleBackColor = true;
-            StepperMotorAngle18RadioButton.CheckedChanged += StepperMotorAngle18RadioButton_CheckedChanged;
-            // 
-            // PulseEquivalentLabel
-            // 
-            PulseEquivalentLabel.Anchor = AnchorStyles.None;
-            PulseEquivalentLabel.Location = new Point(6, 158);
-            PulseEquivalentLabel.Name = "PulseEquivalentLabel";
-            PulseEquivalentLabel.Size = new Size(75, 32);
-            PulseEquivalentLabel.TabIndex = 3;
-            PulseEquivalentLabel.Text = "Pulse Equivalent:";
-            // 
-            // StepperMotorSubdivisionLabel
-            // 
-            StepperMotorSubdivisionLabel.Anchor = AnchorStyles.None;
-            StepperMotorSubdivisionLabel.AutoSize = true;
-            StepperMotorSubdivisionLabel.Location = new Point(8, 123);
-            StepperMotorSubdivisionLabel.Name = "StepperMotorSubdivisionLabel";
-            StepperMotorSubdivisionLabel.Size = new Size(71, 15);
-            StepperMotorSubdivisionLabel.TabIndex = 2;
-            StepperMotorSubdivisionLabel.Text = "Subdivision:";
-            // 
-            // LeadScrewPitchLabel
-            // 
-            LeadScrewPitchLabel.AllowDrop = true;
-            LeadScrewPitchLabel.Anchor = AnchorStyles.None;
-            LeadScrewPitchLabel.AutoSize = true;
-            LeadScrewPitchLabel.Location = new Point(9, 65);
-            LeadScrewPitchLabel.Name = "LeadScrewPitchLabel";
-            LeadScrewPitchLabel.Size = new Size(69, 30);
-            LeadScrewPitchLabel.TabIndex = 1;
-            LeadScrewPitchLabel.Text = "Screw Lead (Pitch):";
-            // 
-            // StepperMotorAngleLabel
-            // 
-            StepperMotorAngleLabel.Anchor = AnchorStyles.None;
-            StepperMotorAngleLabel.AutoSize = true;
-            StepperMotorAngleLabel.Location = new Point(5, 9);
-            StepperMotorAngleLabel.Name = "StepperMotorAngleLabel";
-            StepperMotorAngleLabel.Size = new Size(77, 30);
-            StepperMotorAngleLabel.TabIndex = 0;
-            StepperMotorAngleLabel.Text = "Stepper Motor Angle:";
+            ConnectionStatusResponseLabel.Anchor = AnchorStyles.None;
+            ConnectionStatusResponseLabel.AutoSize = true;
+            ConnectionStatusResponseLabel.Location = new Point(143, 38);
+            ConnectionStatusResponseLabel.Name = "ConnectionStatusResponseLabel";
+            ConnectionStatusResponseLabel.Size = new Size(79, 15);
+            ConnectionStatusResponseLabel.TabIndex = 9;
+            ConnectionStatusResponseLabel.Text = "Disconnected";
             // 
             // StepperMotorValuesGroupBox
             // 
@@ -1267,15 +1441,14 @@
             YAxisPropertiesGroupBox.TabStop = false;
             YAxisPropertiesGroupBox.Text = "Y-Stage Properties";
             // 
-            // SendYToHomeButton
+            // MotionControllerStatusResponseLabel
             // 
-            SendYToHomeButton.Location = new Point(232, 164);
-            SendYToHomeButton.Name = "SendYToHomeButton";
-            SendYToHomeButton.Size = new Size(75, 23);
-            SendYToHomeButton.TabIndex = 1;
-            SendYToHomeButton.Text = "Send Y-Home";
-            SendYToHomeButton.UseVisualStyleBackColor = true;
-            SendYToHomeButton.Click += SendYToHomeButton_Click;
+            MotionControllerStatusResponseLabel.AutoSize = true;
+            MotionControllerStatusResponseLabel.Location = new Point(3, 164);
+            MotionControllerStatusResponseLabel.Name = "MotionControllerStatusResponseLabel";
+            MotionControllerStatusResponseLabel.Size = new Size(38, 15);
+            MotionControllerStatusResponseLabel.TabIndex = 3;
+            MotionControllerStatusResponseLabel.Text = "label1";
             // 
             // StopMotionControllerButton
             // 
@@ -1287,113 +1460,15 @@
             StopMotionControllerButton.UseVisualStyleBackColor = true;
             StopMotionControllerButton.Click += StopMotionControllerButton_Click;
             // 
-            // MotionControllerStatusResponseLabel
+            // SendYToHomeButton
             // 
-            MotionControllerStatusResponseLabel.AutoSize = true;
-            MotionControllerStatusResponseLabel.Location = new Point(3, 164);
-            MotionControllerStatusResponseLabel.Name = "MotionControllerStatusResponseLabel";
-            MotionControllerStatusResponseLabel.Size = new Size(38, 15);
-            MotionControllerStatusResponseLabel.TabIndex = 3;
-            MotionControllerStatusResponseLabel.Text = "label1";
-            // 
-            // tableLayoutPanel6
-            // 
-            tableLayoutPanel6.ColumnCount = 2;
-            tableLayoutPanel6.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 34.0694F));
-            tableLayoutPanel6.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 65.9306F));
-            tableLayoutPanel6.Controls.Add(YPositionLabel, 0, 0);
-            tableLayoutPanel6.Controls.Add(YStepLabel, 0, 1);
-            tableLayoutPanel6.Controls.Add(YPositionResponseLabel, 1, 0);
-            tableLayoutPanel6.Controls.Add(YStepResponseLabel, 1, 1);
-            tableLayoutPanel6.Controls.Add(tableLayoutPanel7, 1, 2);
-            tableLayoutPanel6.Controls.Add(YHomeLabel, 0, 2);
-            tableLayoutPanel6.Location = new Point(389, 28);
-            tableLayoutPanel6.Name = "tableLayoutPanel6";
-            tableLayoutPanel6.RowCount = 3;
-            tableLayoutPanel6.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-            tableLayoutPanel6.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-            tableLayoutPanel6.RowStyles.Add(new RowStyle(SizeType.Absolute, 43F));
-            tableLayoutPanel6.Size = new Size(317, 155);
-            tableLayoutPanel6.TabIndex = 0;
-            // 
-            // YHomeLabel
-            // 
-            YHomeLabel.Anchor = AnchorStyles.None;
-            YHomeLabel.AutoSize = true;
-            YHomeLabel.Location = new Point(26, 126);
-            YHomeLabel.Name = "YHomeLabel";
-            YHomeLabel.Size = new Size(55, 15);
-            YHomeLabel.TabIndex = 4;
-            YHomeLabel.Text = "Y-Home:";
-            // 
-            // tableLayoutPanel7
-            // 
-            tableLayoutPanel7.ColumnCount = 2;
-            tableLayoutPanel7.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-            tableLayoutPanel7.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-            tableLayoutPanel7.Controls.Add(YHomeResponseLabel, 0, 0);
-            tableLayoutPanel7.Controls.Add(SetYHomeButton, 1, 0);
-            tableLayoutPanel7.Location = new Point(111, 115);
-            tableLayoutPanel7.Name = "tableLayoutPanel7";
-            tableLayoutPanel7.RowCount = 1;
-            tableLayoutPanel7.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-            tableLayoutPanel7.Size = new Size(200, 37);
-            tableLayoutPanel7.TabIndex = 5;
-            // 
-            // SetYHomeButton
-            // 
-            SetYHomeButton.Location = new Point(103, 3);
-            SetYHomeButton.Name = "SetYHomeButton";
-            SetYHomeButton.Size = new Size(94, 31);
-            SetYHomeButton.TabIndex = 6;
-            SetYHomeButton.Text = "Set Y-Home";
-            SetYHomeButton.UseVisualStyleBackColor = true;
-            // 
-            // YHomeResponseLabel
-            // 
-            YHomeResponseLabel.Anchor = AnchorStyles.None;
-            YHomeResponseLabel.AutoSize = true;
-            YHomeResponseLabel.Location = new Point(50, 11);
-            YHomeResponseLabel.Name = "YHomeResponseLabel";
-            YHomeResponseLabel.Size = new Size(0, 15);
-            YHomeResponseLabel.TabIndex = 5;
-            // 
-            // YStepResponseLabel
-            // 
-            YStepResponseLabel.Anchor = AnchorStyles.None;
-            YStepResponseLabel.AutoSize = true;
-            YStepResponseLabel.Location = new Point(212, 76);
-            YStepResponseLabel.Name = "YStepResponseLabel";
-            YStepResponseLabel.Size = new Size(0, 15);
-            YStepResponseLabel.TabIndex = 3;
-            // 
-            // YPositionResponseLabel
-            // 
-            YPositionResponseLabel.AutoSize = true;
-            YPositionResponseLabel.Location = new Point(111, 0);
-            YPositionResponseLabel.Name = "YPositionResponseLabel";
-            YPositionResponseLabel.Size = new Size(0, 15);
-            YPositionResponseLabel.TabIndex = 2;
-            // 
-            // YStepLabel
-            // 
-            YStepLabel.Anchor = AnchorStyles.None;
-            YStepLabel.AutoSize = true;
-            YStepLabel.Location = new Point(31, 76);
-            YStepLabel.Name = "YStepLabel";
-            YStepLabel.Size = new Size(45, 15);
-            YStepLabel.TabIndex = 1;
-            YStepLabel.Text = "Y-Step:";
-            // 
-            // YPositionLabel
-            // 
-            YPositionLabel.Anchor = AnchorStyles.None;
-            YPositionLabel.AutoSize = true;
-            YPositionLabel.Location = new Point(21, 20);
-            YPositionLabel.Name = "YPositionLabel";
-            YPositionLabel.Size = new Size(65, 15);
-            YPositionLabel.TabIndex = 0;
-            YPositionLabel.Text = "Y-Position:";
+            SendYToHomeButton.Location = new Point(232, 164);
+            SendYToHomeButton.Name = "SendYToHomeButton";
+            SendYToHomeButton.Size = new Size(75, 23);
+            SendYToHomeButton.TabIndex = 1;
+            SendYToHomeButton.Text = "Send Y-Home";
+            SendYToHomeButton.UseVisualStyleBackColor = true;
+            SendYToHomeButton.Click += SendYToHomeButton_Click;
             // 
             // tabControl1
             // 
@@ -1405,73 +1480,38 @@
             tabControl1.Size = new Size(1119, 580);
             tabControl1.TabIndex = 1;
             // 
-            // label13
+            // label18
             // 
-            label13.AutoSize = true;
-            label13.Font = new Font("Segoe UI", 24F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label13.ForeColor = Color.Green;
-            label13.Location = new Point(716, 284);
-            label13.Name = "label13";
-            label13.Size = new Size(37, 45);
-            label13.TabIndex = 26;
-            label13.Text = "1";
+            label18.Anchor = AnchorStyles.None;
+            label18.AutoSize = true;
+            label18.Font = new Font("Segoe UI", 16F);
+            label18.Location = new Point(22, 76);
+            label18.Name = "label18";
+            label18.Size = new Size(93, 30);
+            label18.TabIndex = 31;
+            label18.Text = "Position:";
             // 
-            // label14
+            // PositionReadingLabel
             // 
-            label14.Anchor = AnchorStyles.None;
-            label14.AutoSize = true;
-            label14.Font = new Font("Segoe UI", 16F);
-            label14.Location = new Point(35, 10);
-            label14.Name = "label14";
-            label14.Size = new Size(196, 30);
-            label14.TabIndex = 27;
-            label14.Text = "Load Cell Selection";
+            PositionReadingLabel.Anchor = AnchorStyles.Right;
+            PositionReadingLabel.AutoSize = true;
+            PositionReadingLabel.Font = new Font("Segoe UI", 16F);
+            PositionReadingLabel.Location = new Point(193, 76);
+            PositionReadingLabel.Name = "PositionReadingLabel";
+            PositionReadingLabel.Size = new Size(52, 30);
+            PositionReadingLabel.TabIndex = 32;
+            PositionReadingLabel.Text = "N/A";
             // 
-            // tableLayoutPanel17
+            // label19
             // 
-            tableLayoutPanel17.BackColor = Color.DarkGray;
-            tableLayoutPanel17.ColumnCount = 1;
-            tableLayoutPanel17.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-            tableLayoutPanel17.Controls.Add(label14, 0, 0);
-            tableLayoutPanel17.Location = new Point(8, 6);
-            tableLayoutPanel17.Name = "tableLayoutPanel17";
-            tableLayoutPanel17.RowCount = 1;
-            tableLayoutPanel17.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-            tableLayoutPanel17.Size = new Size(267, 50);
-            tableLayoutPanel17.TabIndex = 28;
-            // 
-            // label15
-            // 
-            label15.AutoSize = true;
-            label15.Font = new Font("Segoe UI", 24F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label15.ForeColor = Color.Lime;
-            label15.Location = new Point(809, 238);
-            label15.Name = "label15";
-            label15.Size = new Size(37, 45);
-            label15.TabIndex = 29;
-            label15.Text = "2";
-            // 
-            // label16
-            // 
-            label16.AutoSize = true;
-            label16.Font = new Font("Segoe UI", 24F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label16.ForeColor = Color.Olive;
-            label16.Location = new Point(716, 324);
-            label16.Name = "label16";
-            label16.Size = new Size(37, 45);
-            label16.TabIndex = 30;
-            label16.Text = "3";
-            // 
-            // label17
-            // 
-            label17.AutoSize = true;
-            label17.Font = new Font("Segoe UI", 24F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label17.ForeColor = Color.PaleTurquoise;
-            label17.Location = new Point(103, 50);
-            label17.Name = "label17";
-            label17.Size = new Size(37, 45);
-            label17.TabIndex = 31;
-            label17.Text = "4";
+            label19.Anchor = AnchorStyles.Left;
+            label19.AutoSize = true;
+            label19.Font = new Font("Segoe UI", 16F);
+            label19.Location = new Point(251, 76);
+            label19.Name = "label19";
+            label19.Size = new Size(51, 30);
+            label19.TabIndex = 33;
+            label19.Text = "mm";
             // 
             // Form1
             // 
@@ -1486,50 +1526,50 @@
             ((System.ComponentModel.ISupportInitialize)MMELogoPictureBox).EndInit();
             DaqDeviceTabPage.ResumeLayout(false);
             DaqDeviceTabPage.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)MonitorResponseChart).EndInit();
-            tableLayoutPanel8.ResumeLayout(false);
-            tableLayoutPanel9.ResumeLayout(false);
-            tableLayoutPanel9.PerformLayout();
-            tableLayoutPanel10.ResumeLayout(false);
-            tableLayoutPanel10.PerformLayout();
-            tableLayoutPanel11.ResumeLayout(false);
-            tableLayoutPanel11.PerformLayout();
+            tableLayoutPanel17.ResumeLayout(false);
+            tableLayoutPanel17.PerformLayout();
+            tableLayoutPanel16.ResumeLayout(false);
+            tableLayoutPanel16.PerformLayout();
+            tableLayoutPanel15.ResumeLayout(false);
+            tableLayoutPanel15.PerformLayout();
+            tableLayoutPanel14.ResumeLayout(false);
+            tableLayoutPanel14.PerformLayout();
             tableLayoutPanel12.ResumeLayout(false);
             tableLayoutPanel12.PerformLayout();
             tableLayoutPanel13.ResumeLayout(false);
             tableLayoutPanel13.PerformLayout();
-            tableLayoutPanel14.ResumeLayout(false);
-            tableLayoutPanel14.PerformLayout();
-            tableLayoutPanel15.ResumeLayout(false);
-            tableLayoutPanel15.PerformLayout();
-            tableLayoutPanel16.ResumeLayout(false);
-            tableLayoutPanel16.PerformLayout();
+            tableLayoutPanel11.ResumeLayout(false);
+            tableLayoutPanel11.PerformLayout();
+            tableLayoutPanel10.ResumeLayout(false);
+            tableLayoutPanel10.PerformLayout();
+            tableLayoutPanel9.ResumeLayout(false);
+            tableLayoutPanel9.PerformLayout();
+            tableLayoutPanel8.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)MonitorResponseChart).EndInit();
             MotionControllerTabPage.ResumeLayout(false);
-            MotionControllerConnectionSettingsGroupBox.ResumeLayout(false);
-            MotionControllerConnectionTableLayout.ResumeLayout(false);
-            MotionControllerConnectionTableLayout.PerformLayout();
-            MotionControllerSettingsGroupBox.ResumeLayout(false);
-            tableLayoutPanel1.ResumeLayout(false);
-            tableLayoutPanel1.PerformLayout();
-            StepperMotorSettingsGroupBox.ResumeLayout(false);
-            tableLayoutPanel2.ResumeLayout(false);
-            tableLayoutPanel2.PerformLayout();
-            tableLayoutPanel5.ResumeLayout(false);
-            tableLayoutPanel5.PerformLayout();
-            tableLayoutPanel4.ResumeLayout(false);
-            tableLayoutPanel4.PerformLayout();
-            tableLayoutPanel3.ResumeLayout(false);
-            tableLayoutPanel3.PerformLayout();
-            StepperMotorValuesGroupBox.ResumeLayout(false);
-            YAxisPropertiesGroupBox.ResumeLayout(false);
-            YAxisPropertiesGroupBox.PerformLayout();
             tableLayoutPanel6.ResumeLayout(false);
             tableLayoutPanel6.PerformLayout();
             tableLayoutPanel7.ResumeLayout(false);
             tableLayoutPanel7.PerformLayout();
+            StepperMotorSettingsGroupBox.ResumeLayout(false);
+            tableLayoutPanel2.ResumeLayout(false);
+            tableLayoutPanel2.PerformLayout();
+            tableLayoutPanel3.ResumeLayout(false);
+            tableLayoutPanel3.PerformLayout();
+            tableLayoutPanel4.ResumeLayout(false);
+            tableLayoutPanel4.PerformLayout();
+            tableLayoutPanel5.ResumeLayout(false);
+            tableLayoutPanel5.PerformLayout();
+            MotionControllerSettingsGroupBox.ResumeLayout(false);
+            tableLayoutPanel1.ResumeLayout(false);
+            tableLayoutPanel1.PerformLayout();
+            MotionControllerConnectionSettingsGroupBox.ResumeLayout(false);
+            MotionControllerConnectionTableLayout.ResumeLayout(false);
+            MotionControllerConnectionTableLayout.PerformLayout();
+            StepperMotorValuesGroupBox.ResumeLayout(false);
+            YAxisPropertiesGroupBox.ResumeLayout(false);
+            YAxisPropertiesGroupBox.PerformLayout();
             tabControl1.ResumeLayout(false);
-            tableLayoutPanel17.ResumeLayout(false);
-            tableLayoutPanel17.PerformLayout();
             ResumeLayout(false);
         }
 
@@ -1645,5 +1685,8 @@
         private Label label16;
         private Label label15;
         private Label label17;
+        private Label label19;
+        private Label PositionReadingLabel;
+        private Label label18;
     }
 }

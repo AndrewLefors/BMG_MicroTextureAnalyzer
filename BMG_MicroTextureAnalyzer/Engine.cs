@@ -1711,15 +1711,39 @@ namespace BMG_MicroTextureAnalyzer
                 this.Stage = newStage;
                 //Trying out async method -> causes stage to not respond to stop call GOING TO STOP TRYING TO FIX CONNECTION LABEL FOR NOW
                 //this.Stage.ConnectAsync(port);
-                this.Stage.ConnectPort(port);
-                this.Stage.PropertyChanged += Engine_PropertyChanged;
+                // synchronous connect (legacy) - attempt quick open
+                try { this.Stage.ConnectPort(port); } catch { }
+                 this.Stage.PropertyChanged += Engine_PropertyChanged;
 
-            }
+             }
             catch (Exception ex)
             {
                 this.ErrorString = ex.Message;
             }
 
+        }
+
+        // Async connect helper that uses the MotionController async connect and starts polling
+        public async Task<bool> ConnectToMotionControllerAsync(short port)
+        {
+            try
+            {
+                if (this.Stage != null)
+                {
+                    try { this.Stage.ClosePort(); } catch { }
+                }
+                var newStage = new MotionController();
+                this.Stage = newStage;
+                this.Stage.PropertyChanged += Engine_PropertyChanged;
+                // MotionController.ConnectAsync returns a Task<bool>
+                var result = await this.Stage.ConnectAsync(port);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                this.ErrorString = ex.Message;
+                return false;
+            }
         }
 
         public void HomeYStage()
