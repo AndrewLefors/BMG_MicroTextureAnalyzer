@@ -652,7 +652,17 @@ namespace BMG_MicroTextureAnalyzer_GUI
             //EHandle Connection event to populate combox with available devices after scan for devies button has been pressed
             if (e.PropertyName == "Connection.AvailableDevices")
             {
-                AvailableDevicesComboBox.DataSource = MTAengine.Connection.AvailableDevices;
+                // Always marshal to UI thread when updating controls
+                Action setList = () =>
+                {
+                    try
+                    {
+                        AvailableDevicesComboBox.DataSource = MTAengine.Connection.AvailableDevices;
+                        if (AvailableDevicesComboBox.Items.Count > 0) AvailableDevicesComboBox.SelectedIndex = 0;
+                    }
+                    catch { }
+                };
+                if (this.IsHandleCreated && this.InvokeRequired) this.BeginInvoke(setList); else setList();
             }
             //Check if the stage position has changed and update the label
             //  if (e.PropertyName = )
@@ -715,7 +725,16 @@ namespace BMG_MicroTextureAnalyzer_GUI
         {
             ScanAvailableMotionControllerDevicesButton.Enabled = false;
             await Task.Run(() => MTAengine.GetAvailableDevices());
-            //AvailableDevicesComboBox.DataSource = MTAengine.Connection.AvailableDevices;
+            // Ensure combo updated (GetAvailableDevices triggers PropertyChanged)
+            try
+            {
+                Action setList = () =>
+                {
+                    try { AvailableDevicesComboBox.DataSource = MTAengine.Connection.AvailableDevices; if (AvailableDevicesComboBox.Items.Count > 0) AvailableDevicesComboBox.SelectedIndex = 0; } catch { }
+                };
+                if (this.IsHandleCreated && this.InvokeRequired) this.BeginInvoke(setList); else setList();
+            }
+            catch { }
             ScanAvailableMotionControllerDevicesButton.Enabled = true;
 
         }
@@ -732,22 +751,51 @@ namespace BMG_MicroTextureAnalyzer_GUI
                     MessageBox.Show("No motion controller devices available.", "Connection", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
-                var prt = short.Parse(selection.Substring(selection.Length - 1));
-                // perform connect on background thread to avoid blocking UI
-                bool ok = await MTAengine.ConnectToMotionControllerAsync(prt);
-                // verify connection status after attempting connect
+
+                // Extract COM port name (e.g., "COM3") robustly
+                string portName = selection;
                 try
                 {
-                    if (!ok || MTAengine.Stage == null || !MTAengine.Stage.ConnectionStatus)
+                    // If item contains additional text, take first token that starts with COM
+                    var toks = selection.Split(new[] { ' ', '-' }, System.StringSplitOptions.RemoveEmptyEntries);
+                    var comTok = toks.FirstOrDefault(t => t.StartsWith("COM", System.StringComparison.OrdinalIgnoreCase));
+                    if (!string.IsNullOrEmpty(comTok)) portName = comTok;
+
+                    // parse digits
+                    var digits = System.Text.RegularExpressions.Regex.Replace(portName, "[^0-9]", "");
+                    if (!short.TryParse(digits, out short prt))
                     {
-                        MessageBox.Show("Failed to connect to motion controller. Check the serial port and try again.", "Connection Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        MessageBox.Show("Unable to parse selected COM port.", "Connection", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        ConnectToMotionControllerButton.Enabled = true;
+                        return;
                     }
-                    else
+
+                    // perform connect on background thread to avoid blocking UI
+                    bool ok = await MTAengine.ConnectToMotionControllerAsync(prt);
+                    // verify connection status after attempting connect
+                    try
                     {
-                        MessageBox.Show("Motion controller connected.", "Connection", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        if (!ok || MTAengine.Stage == null || !MTAengine.Stage.ConnectionStatus)
+                        {
+                            // Show diagnostic details from Engine/Stage to help debug why connect failed
+                            string details = string.Empty;
+                            try { if (MTAengine != null && !string.IsNullOrEmpty(MTAengine.ErrorString)) details += "Engine: " + MTAengine.ErrorString + "\n"; } catch { }
+                            try { if (MTAengine?.Stage != null && !string.IsNullOrEmpty(MTAengine.Stage.ErrorMessage)) details += "Stage: " + MTAengine.Stage.ErrorMessage + "\n"; } catch { }
+                            if (string.IsNullOrEmpty(details)) details = "No additional error information available.";
+
+                            MessageBox.Show("Failed to connect to motion controller. Check the serial port and try again.\n\nDetails:\n" + details, "Connection Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+                        else
+                        {
+                            MessageBox.Show("Motion controller connected.", "Connection", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        }
                     }
+                    catch { }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Error connecting to motion controller: " + ex.Message, "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
             ConnectToMotionControllerButton.Enabled = true;
         }
@@ -1256,7 +1304,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
         {
             if (MTAengine.IsRunning || MTAengine.IsMonitoring)
             {
-                // If engine busy, stop current operation and then continue to start a new continuous scan
+                // If engine busy, stop current operation and then proceed to start a new continuous scan
                 await Task.Run(() => MTAengine.StopAsync());
                 await Task.Delay(50);
             }

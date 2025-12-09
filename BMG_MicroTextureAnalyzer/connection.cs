@@ -1,6 +1,7 @@
 ﻿using System.IO.Ports;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 
 namespace MicroneedleAPI
 {
@@ -18,49 +19,42 @@ namespace MicroneedleAPI
         public List<string>? AvailableDevices
         {
             get { return _availableDevices; }
-            private set 
-            {      
-                    if (_availableDevices != value)
-                    {
-                        _availableDevices = value;
-                        OnPropertyChanged(nameof(AvailableDevices));
-                    }   
+            private set
+            {
+                if (_availableDevices != value)
+                {
+                    _availableDevices = value;
+                    OnPropertyChanged(nameof(AvailableDevices));
+                }
             }
         }
 
         internal void GetOpenPorts()
         {
-            List<string> result = new List<string>();
-            for (int i = 1; i <= 256; i++)
+            try
             {
-                string port = "COM" + i.ToString();
-                SerialPort sp = new SerialPort(port);
-                try
+                // Use standard API to list serial ports instead of probing every COMx
+                var ports = SerialPort.GetPortNames() ?? new string[0];
+                var portList = ports.OrderBy(p =>
                 {
-                    sp.Open();
-                    if (sp.IsOpen)
-                    {
-                        sp.Close();
-                        result.Add(port);
-                    }
-                }
-                catch (IOException) { }
-            }
-            ParsePortName(result);
-        }
+                    // Order numerically if possible (COM1, COM2, COM10)
+                    var digits = System.Text.RegularExpressions.Regex.Replace(p, "[^0-9]", "");
+                    if (int.TryParse(digits, out int n)) return n;
+                    return int.MaxValue;
+                }).Select(p => p).ToList();
 
-        private void ParsePortName(List<string> portInfo)
-        {
-            List<string> portList = new List<string>();
-            foreach (var port in portInfo)
-            {
-                portList.Add(port.Split('-').Last());
+                if (portList.Count == 0)
+                {
+                    portList.Add("No Devices Available");
+                }
+
+                this.AvailableDevices = portList;
             }
-            if (portList.Count == 0) 
+            catch
             {
-                portList.Add("No Devices Available");
+                // best-effort: if querying ports fails, surface a friendly message
+                this.AvailableDevices = new List<string> { "No Devices Available" };
             }
-            this.AvailableDevices = portList;
         }
 
     }

@@ -281,7 +281,30 @@ namespace BMG_MicroTextureAnalyzer
                 _serial.RtsEnable = false;
 
                 _serial.DataReceived += Serial_DataReceived;
-                _serial.Open();
+
+                // Open with a small retry in case port is transiently busy
+                try
+                {
+                    _serial.Open();
+                }
+                catch (UnauthorizedAccessException uaEx)
+                {
+                    ErrorMessage = "Access denied opening serial port: " + uaEx.Message;
+                    ConnectionStatus = false;
+                    return false;
+                }
+                catch (IOException ioEx)
+                {
+                    ErrorMessage = "IO error opening serial port: " + ioEx.Message;
+                    ConnectionStatus = false;
+                    return false;
+                }
+                catch (Exception ex)
+                {
+                    ErrorMessage = "Unexpected error opening serial port: " + ex.Message;
+                    ConnectionStatus = false;
+                    return false;
+                }
 
                 // start command worker
                 _cmdCts = new CancellationTokenSource();
@@ -290,9 +313,39 @@ namespace BMG_MicroTextureAnalyzer
                 // small delay for port to settle
                 await Task.Delay(50);
 
-                // send identify command and wait for OK
-                var resp = await SendCommandAsync("?R\r", timeoutMs);
-                if (!string.IsNullOrEmpty(resp) && resp.Contains("OK"))
+                // flush any pending input
+                try { _serial.DiscardInBuffer(); _serial.DiscardOutBuffer(); } catch { }
+
+                // Try a few handshake variants and timeouts to accommodate different firmware
+                string[] candidates = new[] { "?R\r", "?R\n", "?R", "ID\r", "*IDN?\r" };
+                List<string> attemptErrors = new List<string>();
+                bool handshakeOk = false;
+                foreach (var cmd in candidates)
+                {
+                    try
+                    {
+                        var resp = await SendCommandAsync(cmd, timeoutMs);
+                        if (!string.IsNullOrEmpty(resp) && (resp.Contains("OK") || resp.Trim().Length > 0))
+                        {
+                            handshakeOk = true;
+                            break;
+                        }
+                        else
+                        {
+                            attemptErrors.Add($"No response for '{cmd}'");
+                        }
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        attemptErrors.Add($"Timeout waiting for response to '{cmd}'");
+                    }
+                    catch (Exception ex)
+                    {
+                        attemptErrors.Add($"Error for '{cmd}': {ex.Message}");
+                    }
+                }
+
+                if (handshakeOk)
                 {
                     ConnectionStatus = true;
                     // start polling position in background
@@ -301,7 +354,9 @@ namespace BMG_MicroTextureAnalyzer
                 }
                 else
                 {
+                    ErrorMessage = "Handshake failed: " + string.Join("; ", attemptErrors);
                     ConnectionStatus = false;
+                    try { _serial?.Close(); } catch { }
                     return false;
                 }
             }
@@ -309,6 +364,7 @@ namespace BMG_MicroTextureAnalyzer
             {
                 ConnectionStatus = false;
                 ErrorMessage = ex.Message;
+                try { _serial?.Close(); } catch { }
                 return false;
             }
         }
@@ -415,12 +471,15 @@ namespace BMG_MicroTextureAnalyzer
 
                     try
                     {
+                        // track current request so Serial_DataReceived can complete it
+                        _currentRequest = req;
                         _serial.Write(req.Command);
                         _serial.BaseStream.Flush();
                     }
                     catch (Exception ex)
                     {
                         req.Tcs.TrySetException(ex);
+                        _currentRequest = null;
                         continue;
                     }
 
@@ -430,8 +489,10 @@ namespace BMG_MicroTextureAnalyzer
                     {
                         try
                         {
+                            // Keep a longer delay to avoid hammering device between commands
+                            await Task.Delay(200, token).ConfigureAwait(false);
                             var resp = await req.Tcs.Task.ConfigureAwait(false);
-                            req.Tcs.TrySetResult(resp);
+                            // response delivered via Serial_DataReceived; nothing more to do here
                         }
                         catch (TaskCanceledException)
                         {
@@ -441,12 +502,18 @@ namespace BMG_MicroTextureAnalyzer
                         {
                             req.Tcs.TrySetException(ex);
                         }
+                        finally
+                        {
+                            _currentRequest = null;
+                        }
                     }
                 }
             }
             catch (OperationCanceledException) { }
             catch { }
         }
+
+        private CommandRequest? _currentRequest = null;
 
         private void Serial_DataReceived(object? sender, SerialDataReceivedEventArgs e)
         {
@@ -465,29 +532,23 @@ namespace BMG_MicroTextureAnalyzer
                         var resp = _recvBuffer;
                         _recvBuffer = string.Empty;
 
-                        // complete any pending request
-                        // Try to find a pending request to complete
-                        // BlockingCollection doesn't expose current item; use a simple strategy: find first queued request with incomplete Tcs
-                        CommandRequest? pending = null;
-                        foreach (var q in _cmdQueue)
+                        // complete the current request if present
+                        if (_currentRequest != null && !_currentRequest.Tcs.Task.IsCompleted)
                         {
-                            if (!q.Tcs.Task.IsCompleted) { pending = q; break; }
-                        }
-                        // If none found, still try to set last outstanding
-                        if (pending == null)
-                        {
-                            // nothing in queue, try to set next possible (unsafe) - set all waiting TCS
-                        }
-
-                        // Set response to first uncompleted TCS found by inspecting run-time (best-effort)
-                        if (pending != null)
-                        {
-                            pending.Tcs.TrySetResult(resp);
+                            _currentRequest.Tcs.TrySetResult(resp);
                         }
                         else
                         {
-                            // If no pending found, try to set any TCS in worker by scanning through internal _cmdQueue (best-effort)
-                            // As fallback, nothing to do
+                            // Try to find a pending request to complete
+                            CommandRequest? pending = null;
+                            foreach (var q in _cmdQueue)
+                            {
+                                if (!q.Tcs.Task.IsCompleted) { pending = q; break; }
+                            }
+                            if (pending != null)
+                            {
+                                pending.Tcs.TrySetResult(resp);
+                            }
                         }
                     }
                 }
