@@ -571,6 +571,30 @@ namespace BMG_MicroTextureAnalyzer
             return req.Tcs.Task;
         }
 
+        /// <summary>
+        /// Send stop command immediately by writing directly to serial port, bypassing the command queue.
+        /// Minimal and synchronous to ensure lowest latency.
+        /// </summary>
+        public void ForceStop()
+        {
+            try
+            {
+                if (_serial != null && _serial.IsOpen)
+                {
+                    lock (_recvLock)
+                    {
+                        try
+                        {
+                            _serial.Write("S\r");
+                            try { _serial.BaseStream.Flush(); } catch { }
+                        }
+                        catch { }
+                    }
+                }
+            }
+            catch { }
+        }
+
         // Synchronous wrappers (blocking) for existing callers - these should be called off UI thread
         public void MoveYAbsolute(double yPos, bool flag = true)
         {
@@ -594,8 +618,10 @@ namespace BMG_MicroTextureAnalyzer
         {
             try
             {
-                var t = SendCommandAsync("S\r", 1000);
-                try { t.Wait(500); } catch { }
+                // Use immediate stop path instead of queuing to avoid delays
+                ForceStop();
+
+                // Do not cancel in-flight requests here to avoid leaving controller in unrecoverable state.
             }
             catch (Exception ex)
             {
@@ -674,5 +700,9 @@ namespace BMG_MicroTextureAnalyzer
         {
             ClosePort();
         }
+
+        /// <summary>
+        /// Legacy immediate stop removed — use Stop() which posts via command queue to keep behavior stable.
+        /// </summary>
     }
 }

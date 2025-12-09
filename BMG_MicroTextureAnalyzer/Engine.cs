@@ -1034,7 +1034,7 @@ namespace BMG_MicroTextureAnalyzer
          /// This matches earlier usage from UI and other processors.
          /// </summary>
          public void StopBackgroundCollection()
-         {
+        {
             try
             {
                 if (this._board != null)
@@ -1437,9 +1437,9 @@ namespace BMG_MicroTextureAnalyzer
                         if (processedData.Newtons >= this.FindPlaneThreshold)
                         {
                             this.ThresholdMet = true;
-                            this.StopBackgroundCollection();
+                            // Immediately stop stage and acquisition to prevent further motion/samples
+                            try { StopAllImmediate(); } catch { }
                         }
-
                         lock (_dataLock)
                         {
                             _processedDataList.Add(processedData);
@@ -1531,7 +1531,8 @@ namespace BMG_MicroTextureAnalyzer
                             if (processedData.Newtons >= this.FindPlaneThreshold + this.VoltageOffset)
                             {
                                 this.ThresholdMet = true;
-                                this.StopMotionController();
+                                // Stop immediately on engine side to ensure stage halts without delay
+                                try { StopAllImmediate(); } catch { }
                                 this.IsStageRunning = false;
                                 this._board.StopBackground(FunctionType.AiFunction);
                                 this.IsMonitoring = false;
@@ -1581,7 +1582,8 @@ namespace BMG_MicroTextureAnalyzer
                         if (processedData.Newtons > this.FindPlaneThreshold)
                         {
                             ThresholdMet = true;
-                            this.StopBackgroundCollection();
+                            // Immediately stop stage and DAQ
+                            try { StopAllImmediate(); } catch { }
                             this.IsMonitoring = false;
                             this.IsStageRunning = false;
                         }
@@ -1633,7 +1635,8 @@ namespace BMG_MicroTextureAnalyzer
                         if (processedData.Newtons >= this.PunctureThreshold)
                         {
                             ThresholdMet = true;
-                            this.Stage.Stop();
+                            // stop stage immediately
+                            try { StopAllImmediate(); } catch { }
                         }
                         lock (_dataLock)
                         {
@@ -1852,7 +1855,7 @@ namespace BMG_MicroTextureAnalyzer
             {
                 if (this.Stage != null)
                 {
-                    this.Stage.Stop();
+                    try { this.Stage.Stop(); } catch { }
                     this._isStageMoving = false;
                 }
             }
