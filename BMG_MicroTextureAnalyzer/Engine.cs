@@ -11,6 +11,8 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace BMG_MicroTextureAnalyzer
 {
@@ -115,6 +117,16 @@ namespace BMG_MicroTextureAnalyzer
 
         IntPtr memHandle = // allocate memory for data buffer
             MccDaq.MccService.WinBufAlloc32Ex(10000); //set for 10000 data points, so 10000/1000 = 10 seconds of data @ 1000Hz
+
+        // Stage poller and lock-free ring buffer for cached positions
+        private const int StagePollBufferSize = 4096; // power of two for fast mask
+        private readonly double[] _stagePosBuffer = new double[StagePollBufferSize];
+        private readonly double[] _stagePosTsBuffer = new double[StagePollBufferSize];
+        private long _stagePosWriteIndex = 0; // incrementing counter
+        private double _latestStagePosMm = double.NaN; // cached latest
+        private double _latestStagePosTs = 0.0;
+        private CancellationTokenSource _stagePollCts;
+        private Task _stagePollTask;
 
         public event EventHandler<ProcessedDataChangedEventArgs> DataChanged;
         public event PropertyChangedEventHandler PropertyChanged = delegate { };
@@ -1395,7 +1407,8 @@ namespace BMG_MicroTextureAnalyzer
                             break;
                         }
 
-                        var pos = GetStagePositionForSample(30);
+                        // use cached stage position lookup
+                        var pos = GetClosestCachedStagePosition(args.TimeStamp);
                         ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion, null, pos.positionMm, pos.timestampSec);
 
                         AddRecentForceSample(processedData.Newtons);
@@ -1440,7 +1453,7 @@ namespace BMG_MicroTextureAnalyzer
                             this.ErrorString = "ToEngUnits32 failed: " + ulStat.Message;
                             continue;
                         }
-                        var pos = GetStagePositionForSample(30);
+                        var pos = GetClosestCachedStagePosition(args.TimeStamp);
                         ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion, null, pos.positionMm, pos.timestampSec);
                         AddRecentForceSample(processedData.Newtons);
                         processedData.Newtons = processedData.Newtons - this.ForceOffset;
@@ -1481,7 +1494,7 @@ namespace BMG_MicroTextureAnalyzer
                             break;
                         }
 
-                        var pos = GetStagePositionForSample(30);
+                        var pos = GetClosestCachedStagePosition(args.TimeStamp);
                         ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion, this.YStagePosition, pos.positionMm, pos.timestampSec);
                         AddRecentForceSample(processedData.Newtons);
                         processedData.Newtons = processedData.Newtons - this.ForceOffset;
@@ -1533,7 +1546,7 @@ namespace BMG_MicroTextureAnalyzer
                             break;
                         }
 
-                        var pos = GetStagePositionForSample(30);
+                        var pos = GetClosestCachedStagePosition(args.TimeStamp);
                         ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion, this.YStagePosition, pos.positionMm, pos.timestampSec);
                         AddRecentForceSample(processedData.Newtons);
                         processedData.Newtons = processedData.Newtons - this.ForceOffset;
@@ -1585,7 +1598,7 @@ namespace BMG_MicroTextureAnalyzer
                             continue;
                         }
 
-                        var pos = GetStagePositionForSample(30);
+                        var pos = GetClosestCachedStagePosition(args.TimeStamp);
                         ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion, null, pos.positionMm, pos.timestampSec);
                         AddRecentForceSample(processedData.Newtons);
                         processedData.Newtons = processedData.Newtons - this.ForceOffset;
@@ -1643,8 +1656,21 @@ namespace BMG_MicroTextureAnalyzer
             {
                 if (this._stage != value)
                 {
+                    // stop poller for previous stage instance
+                    try { StopStagePoller(); } catch { }
+
                     this._stage = value;
                     this.OnPropertyChanged(nameof(Stage));
+
+                    // start poller if newly assigned stage is connected
+                    try
+                    {
+                        if (this._stage != null && this._stage.ConnectionStatus)
+                        {
+                            StartStagePoller(1, 10);
+                        }
+                    }
+                    catch { }
                 }
             }
         }
@@ -1723,6 +1749,9 @@ namespace BMG_MicroTextureAnalyzer
                 try { this.Stage.ConnectPort(port); } catch { }
                  this.Stage.PropertyChanged += Engine_PropertyChanged;
 
+                 // start poller if connected
+                 try { if (this.Stage != null && this.Stage.ConnectionStatus) StartStagePoller(1, 10); } catch { }
+
              }
             catch (Exception ex)
             {
@@ -1745,6 +1774,8 @@ namespace BMG_MicroTextureAnalyzer
                 this.Stage.PropertyChanged += Engine_PropertyChanged;
                 // MotionController.ConnectAsync returns a Task<bool>
                 var result = await this.Stage.ConnectAsync(port);
+                // if connected start poller
+                try { if (result && this.Stage.ConnectionStatus) StartStagePoller(1, 10); } catch { }
                 return result;
             }
             catch (Exception ex)
@@ -1890,7 +1921,76 @@ namespace BMG_MicroTextureAnalyzer
             }
         }
 
-        // Helper: per-sample position query with short timeout and fallback to cached/current
+        // Start/stop poller and lookup methods
+        private void StartStagePoller(int pollIntervalMs = 1, int positionTimeoutMs = 10)
+        {
+            if (_stagePollCts != null) return;
+            if (this.Stage == null) return;
+            if (!this.Stage.ConnectionStatus) return;
+
+            _stagePollCts = new CancellationTokenSource();
+            var token = _stagePollCts.Token;
+            _stagePollTask = Task.Run(async () =>
+            {
+                while (!token.IsCancellationRequested && this.Stage != null && this.Stage.ConnectionStatus)
+                {
+                    try
+                    {
+                        var t = await this.Stage.GetPositionAsync(positionTimeoutMs).ConfigureAwait(false);
+                        if (!double.IsNaN(t.positionMm))
+                        {
+                            long idx = Interlocked.Increment(ref _stagePosWriteIndex);
+                            int slot = (int)(idx & (StagePollBufferSize - 1));
+                            _stagePosBuffer[slot] = t.positionMm;
+                            _stagePosTsBuffer[slot] = t.timestampSec;
+                            _latestStagePosMm = t.positionMm;
+                            _latestStagePosTs = t.timestampSec;
+                            try { this.YStagePosition = t.positionMm; } catch { }
+                        }
+                    }
+                    catch { }
+                    try { await Task.Delay(pollIntervalMs, token).ConfigureAwait(false); } catch { break; }
+                }
+            }, token);
+        }
+
+        private void StopStagePoller()
+        {
+            try
+            {
+                if (_stagePollCts != null)
+                {
+                    try { _stagePollCts.Cancel(); } catch { }
+                    try { _stagePollTask?.Wait(200); } catch { }
+                    _stagePollTask = null;
+                    _stagePollCts.Dispose();
+                    _stagePollCts = null;
+                }
+            }
+            catch { }
+        }
+
+        public (double positionMm, double timestampSec) GetLatestCachedStagePosition() => (_latestStagePosMm, _latestStagePosTs);
+
+        public (double positionMm, double timestampSec) GetClosestCachedStagePosition(double sampleTimestamp)
+        {
+            long writeIdx = Interlocked.Read(ref _stagePosWriteIndex);
+            if (writeIdx == 0) return (_latestStagePosMm, _latestStagePosTs);
+            int entries = (int)Math.Min(writeIdx, StagePollBufferSize);
+            double bestPos = double.NaN; double bestTs = 0.0; double bestDiff = double.MaxValue;
+            for (int i = 0; i < entries; i++)
+            {
+                int slot = (int)((writeIdx - i) & (StagePollBufferSize - 1));
+                double ts = _stagePosTsBuffer[slot];
+                if (ts <= 0) continue;
+                double diff = Math.Abs(ts - sampleTimestamp);
+                if (diff < bestDiff) { bestDiff = diff; bestPos = _stagePosBuffer[slot]; bestTs = ts; if (bestDiff == 0.0) break; }
+            }
+            if (double.IsNaN(bestPos)) return (_latestStagePosMm, _latestStagePosTs);
+            return (bestPos, bestTs);
+        }
+
+        // Original synchronous fallback (kept for compatibility but not used by processors)
         private (double positionMm, double timestampSec) GetStagePositionForSample(int timeoutMs = 30)
         {
             try
@@ -1915,9 +2015,6 @@ namespace BMG_MicroTextureAnalyzer
             return (double.NaN, 0.0);
         }
 
-        //ResetEngine removed: automatic reset logic was causing instability. If a manual reset is needed implement a safe sequence in UI-side code.
-
-        //create class for event args that has timestamp and voltage
         public class ProcessedDataChangedEventArgs : EventArgs
         {
             public double TimeStamp { get; }
