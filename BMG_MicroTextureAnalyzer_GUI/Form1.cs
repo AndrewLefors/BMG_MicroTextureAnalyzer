@@ -628,58 +628,38 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
                 }
             }
-            //if (e.PropertyName == nameof(Engine.PunctureTestComplete))
-            //{
-            //    if (MTAengine.PunctureTestComplete)
-            //    {
-            //        //Take the data from the chart and add it to the datagrid
-            //        Task.Run(() => Invoke((MethodInvoker)(delegate
-            //        {
-            //            //Prompt a messagebox that asks the user if they want to save the file
-            //            SaveFileDialog saveFileDialog = new SaveFileDialog();
-            //            saveFileDialog.Filter = "CSV files (*.csv)|*.csv";
-            //            saveFileDialog.FilterIndex = 2;
-            //            saveFileDialog.RestoreDirectory = true;
-            //            //Use data from datagrid to save to a file
-            //            if (saveFileDialog.ShowDialog() == DialogResult.OK)
-            //            {
-            //                using (var writer = new StreamWriter(saveFileDialog.FileName))
-            //                {
-            //                    // Write headers
-            //                    for (int i = 0; i < DAQDataGridView.Columns.Count; i++)
-            //                    {
-            //                        writer.Write(DAQDataGridView.Columns[i].HeaderText);
-            //                        if (i < DAQDataGridView.Columns.Count - 1)
-            //                        {
-            //                            writer.Write(",");
-            //                        }
-            //                    }
-            //                    writer.WriteLine();
 
-            //                    // Write rows
-            //                    for (int i = 0; i < DAQDataGridView.Rows.Count; i++)
-            //                    {
-            //                        for (int j = 0; j < DAQDataGridView.Columns.Count; j++)
-            //                        {
-            //                            writer.Write(DAQDataGridView.Rows[i].Cells[j].Value?.ToString());
-            //                            if (j < DAQDataGridView.Columns.Count - 1)
-            //                            {
-            //                                writer.Write(",");
-            //                            }
-            //                        }
-            //                        writer.WriteLine();
-            //                    }
-            //                }
-            //                //dataListBox.Items.Add("Results saved.");
-            //            }
-            //            else
-            //            {
-            //                // dataListBox.Items.Add("Save canceled.");
-            //            }
+            // Update ForceOffset label when engine ForceOffset property changes.
+            // Accept both the direct Engine property name ("ForceOffset") and the prefixed form ("Engine.ForceOffset").
+            if (e.PropertyName == nameof(Engine.ForceOffset) || e.PropertyName == "Engine.ForceOffset")
+            {
+                Action set = () =>
+                {
+                    try
+                    {
+                        string txt = (MTAengine.ForceOffset * 1000.0).ToString("F5"); // millinewtons, 5 decimals
+                        var found = this.Controls.Find("forceOffsetReadingLabel", true);
+                        if (found.Length > 0 && found[0] is Label lbl)
+                        {
+                            lbl.Text = txt;
+                            return;
+                        }
 
-            //        })));
-            //    }
-            //}
+                        // Fallback to designer field if present
+                        try
+                        {
+                            if (forceOffsetReadingLabel != null)
+                            {
+                                forceOffsetReadingLabel.Text = txt;
+                            }
+                        }
+                        catch { }
+                    }
+                    catch { }
+                };
+
+                if (this.IsHandleCreated && this.InvokeRequired) this.BeginInvoke(set); else set();
+            }
 
             //EHandle Connection event to populate combox with available devices after scan for devies button has been pressed
             if (e.PropertyName == "Connection.AvailableDevices")
