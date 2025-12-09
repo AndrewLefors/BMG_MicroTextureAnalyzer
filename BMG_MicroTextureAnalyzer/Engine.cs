@@ -187,6 +187,8 @@ namespace BMG_MicroTextureAnalyzer
 
         public void FindPlane()
         {
+            // Use same continuous-acquisition pipeline as ContinuousScanTest,
+            // but start stage motion only after acquisition is running to avoid missed samples.
             this.GetYLocation();
             if (_isRunning)
             {
@@ -203,66 +205,84 @@ namespace BMG_MicroTextureAnalyzer
                 _newtonConversion = _punctureTestNewtonConversion;
             }
 
-            // Free the buffer and allocate a new one to Memhandle
+            // allocate DAQ buffer
             try
             {
                 _numPoints = (int)(DataCollectionTime * Rate);
-                MccDaq.MccService.WinBufFreeEx(MemHandle);
+                if (MemHandle != IntPtr.Zero) MccDaq.MccService.WinBufFreeEx(MemHandle);
                 MemHandle = MccDaq.MccService.WinBufAlloc32Ex(NumPoints);
             }
             catch (Exception ex)
             {
                 this.ErrorString = ex.Message;
-                System.Diagnostics.Debug.WriteLine("Error: " + this.ErrorString);
             }
+
+            if (MemHandle == IntPtr.Zero)
+            {
+                this.ErrorString = "Error allocating memory for data buffer";
+                return;
+            }
+
             ThresholdMet = false;
             _isRunning = true;
             _isMonitoring = true;
-            _isStageMoving = true;
+            _isStageMoving = false; // will set true when motion actually starts
             _dataQueue.Clear();
             _processedDataList.Clear();
 
+            // Start continuous acquisition workers (same as ContinuousScanTest)
             _dataCollectorWorker = new BackgroundWorker();
             _dataCollectorWorker.DoWork += DataCollectorWorker_ContinuousScan;
             _dataCollectorWorker.WorkerSupportsCancellation = true;
-            TranslateYStage(-100); // Move the stage 100mm down to get the stage on the sample
             _dataCollectorWorker.RunWorkerAsync();
-        
+
             _dataCollectorWorker2 = new BackgroundWorker();
-            // reuse the continuous-scan reader implementation for fracture test
             _dataCollectorWorker2.DoWork += DataReaderWorker_ContinuousScan;
             _dataCollectorWorker2.WorkerSupportsCancellation = true;
             _dataCollectorWorker2.RunWorkerAsync();
 
             _dataProcessorWorker = new BackgroundWorker();
-            _dataProcessorWorker.DoWork += DataProcessorWorker_FindPlane;
+            _dataProcessorWorker.DoWork += DataProcessorWorker_ContinuousScanInput;
             _dataProcessorWorker.WorkerSupportsCancellation = true;
             _dataProcessorWorker.RunWorkerAsync();
 
-            ////Adding stage worker for y stage location
-            //_stageWorker = new BackgroundWorker();
-            //_stageWorker.DoWork += StageWorker_GetStagePosition;
-            //_stageWorker.WorkerSupportsCancellation = true;
-            //_stageWorker.RunWorkerAsync();
-
-            _dataProcessorWorker.RunWorkerCompleted += (sender, e) =>
+            // After acquisition has started, move the stage so no data is missed.
+            Task.Run(() =>
             {
-                
-                
+                try
+                {
+                    // Wait briefly for acquisition to settle (ActualRate set by DataCollectorWorker)
+                    int waited = 0;
+                    while (this.ActualRate <= 0 && waited < 2000)
+                    {
+                        Thread.Sleep(20);
+                        waited += 20;
+                    }
+                    // perform stage move if available
+                    try
+                    {
+                        TranslateYStage(-100); // move toward sample
+                        _isStageMoving = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        this.ErrorString = "Stage move failed: " + ex.Message;
+                    }
+                }
+                catch { }
+            });
 
-                //this.StopAsync();
-            };
-            _dataCollectorWorker.RunWorkerCompleted += (sender, e) =>
+            // Ensure workers clear state on completion
+            _dataProcessorWorker.RunWorkerCompleted += (s, e) =>
             {
-                //_dataCollectorWorker.CancelAsync();
-                //_dataCollectorWorker.Dispose();
-                //this.IsMonitoring = false;
-                //this._isStageMoving = false;
+                // Final cleanup if threshold reached or worker finished
+                try { StopBackgroundCollection(); } catch { }
+                _isStageMoving = false;
+                _isMonitoring = false;
+                _isRunning = false;
+                ThresholdMet = false;
             };
-
-
-
-
+            _dataCollectorWorker.RunWorkerCompleted += (s, e) => { try { _dataCollectorWorker.CancelAsync(); } catch { } };
         }
 
         public void FractureTest()

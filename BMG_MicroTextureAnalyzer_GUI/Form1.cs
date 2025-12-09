@@ -108,9 +108,21 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
 
             InitializeComponent();
-            this.MotionControllerSubdivisionComboBox.DataSource = subdivisionList;
-            this.MotionControllerSubdivisionComboBox.SelectedIndex = 0;
-            this.DAQ_StageSpeedComboBox.DataSource = stageSpeedList;
+            // Attempt to load a logo image placed next to the executable named 'mme_logo.png' (user-provided).
+            try
+            {
+                var exeDir = AppDomain.CurrentDomain.BaseDirectory;
+                var logoPath = Path.Combine(exeDir, "mme_logo.png");
+                if (File.Exists(logoPath))
+                {
+                    var img = Image.FromFile(logoPath);
+                    MMELogoPictureBox.Image = img;
+                }
+            }
+            catch { /* don't fail startup if image can't be loaded */ }
+             this.MotionControllerSubdivisionComboBox.DataSource = subdivisionList;
+             this.MotionControllerSubdivisionComboBox.SelectedIndex = 0;
+             this.DAQ_StageSpeedComboBox.DataSource = stageSpeedList;
             //this.AverageWindowComboBox.DataSource = averageWindowList;
             //this.AverageWindowComboBox.SelectedIndexChanged += AverageWindowComboBox_SelectedIndexChanged;
             //DAQDataGridView.Columns.Add("Time", "Time");
