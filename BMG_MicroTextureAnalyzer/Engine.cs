@@ -1079,6 +1079,11 @@ namespace BMG_MicroTextureAnalyzer
             }
             int channel = 7;
             MccDaq.Range range = MccDaq.Range.Bip10Volts;
+            
+            // Track samples for deterministic timestamps
+            long sampleCount = 0;
+            double samplePeriod = 0.002; // ~500 Hz based on Thread.Sleep(2)
+            
             while (!_dataCollectorWorker.CancellationPending)
             {
                 try
@@ -1092,8 +1097,10 @@ namespace BMG_MicroTextureAnalyzer
                         try { this._board?.StopBackground(FunctionType.AiFunction); } catch { }
                         break;
                     }
-                    RawDataChangedEventArgs dataChangedEventArgs = new RawDataChangedEventArgs(rawData);
+                    double timestamp = sampleCount * samplePeriod;
+                    RawDataChangedEventArgs dataChangedEventArgs = new RawDataChangedEventArgs(rawData, timestamp);
                     _dataQueue.Enqueue(dataChangedEventArgs);
+                    sampleCount++;
                     Thread.Sleep(2); // Adjust sampling rate as necessary
                 }
                 catch (Exception ex)
@@ -1118,7 +1125,9 @@ namespace BMG_MicroTextureAnalyzer
             MccDaq.Range iaa300 = MccDaq.Range.Bip10Volts;
             int rate = this.Rate;
 
-            MccDaq.ErrorInfo ulStat = this._board.AInScan(channel, channel, NumPoints, ref rate, iaa300, MemHandle, ScanOptions.Background);
+            // Use Background + Continuous for true circular buffer operation
+            MccDaq.ErrorInfo ulStat = this._board.AInScan(channel, channel, NumPoints, ref rate, iaa300, MemHandle, 
+                ScanOptions.Background | ScanOptions.Continuous);
             if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
             {
                 var msg = "AInScan failed: " + ulStat.Message;
@@ -1136,11 +1145,22 @@ namespace BMG_MicroTextureAnalyzer
             try { _board?.StopBackground(FunctionType.AiFunction); } catch { }
         }
 
+        // Diagnostic: track buffer wrap events for debugging drift issues
+        private long _bufferWrapCount = 0;
+        public long BufferWrapCount => _bufferWrapCount;
+
         private void DataReaderWorker_ContinuousScan(object sender, DoWorkEventArgs e)
         {
             int lastIndex = 0;
             int[] dataBuffer = new int[Math.Max(1, this.NumPoints)];
             MccDaq.Range iaa300 = MccDaq.Range.Bip10Volts;
+
+            // Track total samples for accurate timestamping
+            long totalSamplesRead = 0;
+            double samplePeriod = 1.0 / Math.Max(1, this.ActualRate);
+            
+            // Reset wrap counter at start
+            _bufferWrapCount = 0;
 
             while (!_dataCollectorWorker2.CancellationPending && !ThresholdMet)
             {
@@ -1156,11 +1176,20 @@ namespace BMG_MicroTextureAnalyzer
                         continue;
                     }
 
+                    // Check if scan has stopped (status check for debugging)
+                    if (status == 0 && totalSamplesRead > 0)
+                    {
+                        // Scan stopped unexpectedly - log this for debugging
+                        System.Diagnostics.Debug.WriteLine($"[DRIFT DEBUG] DAQ scan stopped at sample {totalSamplesRead}, time {totalSamplesRead * samplePeriod:F3}s, wraps: {_bufferWrapCount}");
+                    }
+
                     if (currentIndex != lastIndex)
                     {
+                        int pointsToRead;
+
                         if (currentIndex > lastIndex)
                         {
-                            int pointsToRead = currentIndex - lastIndex;
+                            pointsToRead = currentIndex - lastIndex;
                             MccDaq.ErrorInfo ulStat = MccDaq.MccService.WinBufToArray32(MemHandle, dataBuffer, lastIndex, pointsToRead);
                             if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
                             {
@@ -1172,12 +1201,20 @@ namespace BMG_MicroTextureAnalyzer
 
                             for (int i = 0; i < pointsToRead; i++)
                             {
-                                RawDataChangedEventArgs dataChangedEventArgs = new RawDataChangedEventArgs(dataBuffer[i]);
+                                double timestamp = (totalSamplesRead + i) * samplePeriod;
+                                var dataChangedEventArgs = new RawDataChangedEventArgs(dataBuffer[i], timestamp);
                                 _dataQueue.Enqueue(dataChangedEventArgs);
                             }
+                            totalSamplesRead += pointsToRead;
                         }
                         else
                         {
+                            // Buffer wrapped - log this event for debugging
+                            _bufferWrapCount++;
+                            double wrapTime = totalSamplesRead * samplePeriod;
+                            System.Diagnostics.Debug.WriteLine($"[DRIFT DEBUG] Buffer wrap #{_bufferWrapCount} at sample {totalSamplesRead}, time {wrapTime:F3}s, lastIndex={lastIndex}, currentIndex={currentIndex}");
+
+                            // Buffer wrapped - handle first chunk (end of buffer)
                             int firstChunk = NumPoints - lastIndex;
                             if (firstChunk > 0)
                             {
@@ -1191,10 +1228,14 @@ namespace BMG_MicroTextureAnalyzer
                                 }
                                 for (int i = 0; i < firstChunk; i++)
                                 {
-                                    RawDataChangedEventArgs dataChangedEventArgs = new RawDataChangedEventArgs(dataBuffer[i]);
+                                    double timestamp = (totalSamplesRead + i) * samplePeriod;
+                                    var dataChangedEventArgs = new RawDataChangedEventArgs(dataBuffer[i], timestamp);
                                     _dataQueue.Enqueue(dataChangedEventArgs);
                                 }
+                                totalSamplesRead += firstChunk;
                             }
+
+                            // Handle second chunk (beginning of buffer)
                             if (currentIndex > 0)
                             {
                                 MccDaq.ErrorInfo ulStat2 = MccDaq.MccService.WinBufToArray32(MemHandle, dataBuffer, 0, currentIndex);
@@ -1207,9 +1248,11 @@ namespace BMG_MicroTextureAnalyzer
                                 }
                                 for (int i = 0; i < currentIndex; i++)
                                 {
-                                    RawDataChangedEventArgs dataChangedEventArgs = new RawDataChangedEventArgs(dataBuffer[i]);
+                                    double timestamp = (totalSamplesRead + i) * samplePeriod;
+                                    var dataChangedEventArgs = new RawDataChangedEventArgs(dataBuffer[i], timestamp);
                                     _dataQueue.Enqueue(dataChangedEventArgs);
                                 }
+                                totalSamplesRead += currentIndex;
                             }
                         }
 
@@ -1227,6 +1270,7 @@ namespace BMG_MicroTextureAnalyzer
                 Thread.Sleep(1);
             }
 
+            System.Diagnostics.Debug.WriteLine($"[DRIFT DEBUG] Reader exiting. Total samples: {totalSamplesRead}, Total wraps: {_bufferWrapCount}, Duration: {totalSamplesRead * samplePeriod:F3}s");
             try { _dataCollectorWorker2.CancelAsync(); } catch { }
         }
 
@@ -1241,8 +1285,9 @@ namespace BMG_MicroTextureAnalyzer
             MccDaq.Range range = MccDaq.Range.Bip10Volts;
 
 
-            //TranslateYStage(-100); // Move the stage 100mm down to get the stage on the sample
-
+            // Track samples for deterministic timestamps
+            long sampleCount = 0;
+            double samplePeriod = 0.001; // ~1000 Hz based on Thread.Sleep(1)
 
             while (!_dataCollectorWorker.CancellationPending && !ThresholdMet)
             {
@@ -1255,8 +1300,10 @@ namespace BMG_MicroTextureAnalyzer
                         this.ErrorString = msg;
                         break;
                     }
-                    RawDataChangedEventArgs dataChangedEventArgs = new RawDataChangedEventArgs(rawData);
+                    double timestamp = sampleCount * samplePeriod;
+                    RawDataChangedEventArgs dataChangedEventArgs = new RawDataChangedEventArgs(rawData, timestamp);
                     _dataQueue.Enqueue(dataChangedEventArgs);
+                    sampleCount++;
                     Thread.Sleep(1); // Adjust sampling rate as necessary
 
                 }
@@ -1284,7 +1331,9 @@ namespace BMG_MicroTextureAnalyzer
             int rate = this.Rate;
             try
             {
-                MccDaq.ErrorInfo ulStat = this._board.AInScan(channel, channel, NumPoints, ref rate, range, MemHandle, ScanOptions.Background);
+                // Use Background + Continuous for true circular buffer operation
+                MccDaq.ErrorInfo ulStat = this._board.AInScan(channel, channel, NumPoints, ref rate, range, MemHandle, 
+                    ScanOptions.Background | ScanOptions.Continuous);
                 if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
                 {
                     var msg = "AInScan failed: " + ulStat.Message;
@@ -1820,14 +1869,12 @@ namespace BMG_MicroTextureAnalyzer
 
             public double? Step { get; }
 
-            public RawDataChangedEventArgs(int rawData, double? step = null)
+            public RawDataChangedEventArgs(int rawData, double timeStamp, double? step = null)
             {
-                TimeStamp = DateTime.Now.TimeOfDay.TotalSeconds;
+                TimeStamp = timeStamp;
                 RawData = rawData;
                 Step = step;
             }
-
-
         }
     }
 }
