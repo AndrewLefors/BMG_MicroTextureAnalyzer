@@ -57,6 +57,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
         private BlockingCollection<string> fileWriteQueue;
         private Task fileWriterTask;
         private CancellationTokenSource chartCancellationTokenSource;
+        private Logger logger;
         
         // fracture test file writer fields
         private bool fractureSaving = false;
@@ -105,6 +106,8 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
             MTAengine = engine;
             MTAengine.PropertyChanged += MTAengine_PropertyChanged;
+            // logger initialization deferred until form is shown to ensure control handles are created
+
             var subdivisionList = new List<int> { 1, 2, 4, 8 };
             var stageSpeedList = new List<double> { 19.1, 95.5, 152.8, 190.1, 248.3, 305.6, 401.0, 496.5 }; //unts in um/s
             var averageWindowList = new List<int> { 0, 10, 25, 50, 100, 150, 200, 250, 500, 1000 };
@@ -112,8 +115,11 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
 
 
-
             InitializeComponent();
+
+            // Initialize logger when form is first shown (ensures LogTextBox handle exists)
+            this.Shown += Form1_Shown;
+
             // Attempt to load a logo image placed next to the executable named 'mme_logo.png' (user-provided).
             try
             {
@@ -141,6 +147,27 @@ namespace BMG_MicroTextureAnalyzer_GUI
             //StartChartUpdateThread();
 
         }
+
+        private void Form1_Shown(object? sender, EventArgs e)
+        {
+            try
+            {
+                // Make log textbox read-only so user cannot edit entries
+                try { LogTextBox.ReadOnly = true; } catch { }
+
+                logger = new Logger(LogTextBox, batchMs: 200, maxLines: 4000);
+                logger.MinimumLevel = LogLevel.Info;
+                logger.Start();
+            }
+            catch
+            {
+                // swallow - logging is best-effort
+            }
+
+            // unsubscribe, only initialize once
+            this.Shown -= Form1_Shown;
+        }
+
         //Convert this to event driven so that the data is updated when the event is thrown
         private async void StartChartUpdateThread()
         {
@@ -667,109 +694,21 @@ namespace BMG_MicroTextureAnalyzer_GUI
                     MotionControllerStatusResponseLabel.ForeColor = MTAengine.Stage.Busy ? Color.Red : Color.Green;
                 }
             }
+            // Forward Engine.ErrorString to log (both top-level and prefixed from Engine.PropertyChanged wrapper)
+            if (e.PropertyName == "ErrorString" || e.PropertyName == "Engine.ErrorString")
+            {
+                try { logger?.Log(MTAengine.ErrorString, LogLevel.Error, "Engine"); } catch { }
+            }
+            
+            // Forward MotionController messages
             if (e.PropertyName == "MotionController.ErrorMessage")
             {
-                MessageBox.Show(MTAengine.Stage.ErrorMessage);
+                try { logger?.Log(MTAengine.Stage.ErrorMessage, LogLevel.Error, "MotionController"); } catch { }
             }
-            if (e.PropertyName == "MotionController.PulseEquivalent")
+            if (e.PropertyName == "MotionController.WarningMessage")
             {
-                MessageBox.Show(MTAengine.Stage.PulseEquivalent.ToString());
-                PulseEquivalentResponseLabel.Text = MTAengine.Stage.PulseEquivalent.ToString();
+                try { logger?.Log(MTAengine.Stage.WarningMessage, LogLevel.Warning, "MotionController"); } catch { }
             }
-
-            // Update position reading when the MotionController reports a Y position change
-            if (e.PropertyName == "MotionController.CurrentYPosition")
-            {
-                Action updatePos = () =>
-                {
-                    try
-                    {
-                        if (MTAengine?.Stage != null)
-                        {
-                            // display in mm with 3 decimal places
-                            PositionReadingLabel.Text = MTAengine.Stage.CurrentYPosition.ToString("F3") + " mm";
-                        }
-                    }
-                    catch { }
-                };
-
-                if (InvokeRequired) BeginInvoke(updatePos); else updatePos();
-            }
-
-            if (e.PropertyName == nameof(Engine.ThresholdMet))
-            {
-
-
-                if (MTAengine.ThresholdMet)
-                {
-                    //MTAengine.StopMotionController();
-                    //MessageBox.Show("Threshold Met");
-                }
-            }
-
-            // Update UI when engine reports actual DAQ sampling rate
-            if (e.PropertyName == nameof(Engine.ActualRate))
-            {
-                Action update = () =>
-                {
-                    try
-                    {
-                        if (RateReadingLabel != null)
-                        {
-                            RateReadingLabel.Text = MTAengine.ActualRate.ToString() + " Hz";
-                            var orig = RateReadingLabel.BackColor;
-                            RateReadingLabel.BackColor = Color.LightBlue;
-                            Task.Run(async () =>
-                            {
-                                await Task.Delay(400);
-                                if (!RateReadingLabel.IsDisposed && RateReadingLabel.IsHandleCreated)
-                                {
-                                    try { RateReadingLabel.BeginInvoke(new Action(() => RateReadingLabel.BackColor = orig)); } catch { }
-                                }
-                            });
-                        }
-                    }
-                    catch { }
-                };
-                if (InvokeRequired) BeginInvoke(update); else update();
-            }
-
-            // Update UI when engine force offset changes so user always sees current zero
-            if (e.PropertyName == nameof(Engine.ForceOffset))
-            {
-                // Use BeginInvoke/Invoke to marshal to UI thread if needed
-                Action update = () =>
-                {
-                    try
-                    {
-                        if (forceOffsetReadingLabel != null)
-                        {
-                            // Display force offset in millinewtons with 5 decimal places
-                            forceOffsetReadingLabel.Text = (MTAengine.ForceOffset * 1000.0).ToString("F5");
-
-                            // Visual confirmation when resetting to zero (briefly flash background)
-                            if (Math.Abs(MTAengine.ForceOffset) < 1e-6)
-                            {
-                                var orig = forceOffsetReadingLabel.BackColor;
-                                forceOffsetReadingLabel.BackColor = Color.LightGreen;
-                                // restore color after short delay without blocking UI thread
-                                Task.Run(async () =>
-                                {
-                                    await Task.Delay(500);
-                                    if (!forceOffsetReadingLabel.IsDisposed && forceOffsetReadingLabel.IsHandleCreated)
-                                    {
-                                        try { forceOffsetReadingLabel.BeginInvoke(new Action(() => forceOffsetReadingLabel.BackColor = orig)); } catch { }
-                                    }
-                                });
-                            }
-                        }
-                    }
-                    catch { }
-                };
-
-                if (InvokeRequired) BeginInvoke(update); else update();
-            }
-
         }
 
         private async void ScanAvailableMotionControllerDevicesButton_Click(object sender, EventArgs e)
@@ -1404,7 +1343,6 @@ namespace BMG_MicroTextureAnalyzer_GUI
             // Optionally force exit if necessary.
             // Environment.Exit(0);
         }
-
 
         private void ThousandHertzRadioButton_CheckedChanged(object sender, EventArgs e)
         {

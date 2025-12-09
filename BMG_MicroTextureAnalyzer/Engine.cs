@@ -1718,14 +1718,13 @@ namespace BMG_MicroTextureAnalyzer
 
         public string ErrorString
         {
-            get { return this._errorString; }
+            get { return _errorString; }
             set
             {
-                if (this._errorString != value)
-                {
-                    this._errorString = value;
-                    this.OnPropertyChanged(nameof(ErrorString));
-                }
+                // Always update and raise notification so UI/loggers see every occurrence,
+                // even if the text is identical to the previous value.
+                _errorString = value;
+                OnPropertyChanged(nameof(ErrorString));
             }
         }
 
