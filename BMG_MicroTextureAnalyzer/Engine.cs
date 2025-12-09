@@ -115,8 +115,12 @@ namespace BMG_MicroTextureAnalyzer
         private double _dataCollectionTime = 10; //default of 10 seconds
         private int _numPoints = 10000; //default of 10000 points (10 seconds @ 1kHz)
 
+        // Use a modest default circular DAQ buffer to avoid huge allocations
+        private const int DefaultWinBufSize = 8192;
+        private int _winBufSize = DefaultWinBufSize;
+
         IntPtr memHandle = // allocate memory for data buffer
-            MccDaq.MccService.WinBufAlloc32Ex(10000); //set for 10000 data points, so 10000/1000 = 10 seconds of data @ 1000Hz
+            MccDaq.MccService.WinBufAlloc32Ex(DefaultWinBufSize); // default small buffer
 
         // Stage poller and lock-free ring buffer for cached positions
         private const int StagePollBufferSize = 4096; // power of two for fast mask
@@ -221,8 +225,10 @@ namespace BMG_MicroTextureAnalyzer
             try
             {
                 _numPoints = (int)(DataCollectionTime * Rate);
+                int allocSize = Math.Min(_numPoints, DefaultWinBufSize);
                 if (MemHandle != IntPtr.Zero) MccDaq.MccService.WinBufFreeEx(MemHandle);
-                MemHandle = MccDaq.MccService.WinBufAlloc32Ex(NumPoints);
+                MemHandle = MccDaq.MccService.WinBufAlloc32Ex(allocSize);
+                _winBufSize = allocSize;
             }
             catch (Exception ex)
             {
@@ -316,8 +322,10 @@ namespace BMG_MicroTextureAnalyzer
             try
             {
                 _numPoints = (int)(DataCollectionTime * Rate);
+                int allocSize = Math.Min(_numPoints, DefaultWinBufSize);
                 MccDaq.MccService.WinBufFreeEx(MemHandle);
-                MemHandle = MccDaq.MccService.WinBufAlloc32Ex(NumPoints);
+                MemHandle = MccDaq.MccService.WinBufAlloc32Ex(allocSize);
+                _winBufSize = allocSize;
             }
             catch (Exception ex)
             {
@@ -435,8 +443,10 @@ namespace BMG_MicroTextureAnalyzer
             try
             {
               _numPoints = (int)(DataCollectionTime * Rate);
+              int allocSize = Math.Min(_numPoints, DefaultWinBufSize);
               MccDaq.MccService.WinBufFreeEx(MemHandle);
-              MemHandle = MccDaq.MccService.WinBufAlloc32Ex(NumPoints);
+              MemHandle = MccDaq.MccService.WinBufAlloc32Ex(allocSize);
+              _winBufSize = allocSize;
             }
             catch(Exception ex)
             {
@@ -1158,8 +1168,8 @@ namespace BMG_MicroTextureAnalyzer
             int rate = this.Rate;
 
             // Use Background + Continuous for true circular buffer operation
-            MccDaq.ErrorInfo ulStat = this._board.AInScan(channel, channel, NumPoints, ref rate, iaa300, MemHandle, 
-                ScanOptions.Background | ScanOptions.Continuous);
+            MccDaq.ErrorInfo ulStat = this._board.AInScan(channel, channel, _winBufSize, ref rate, iaa300, MemHandle, 
+                 ScanOptions.Background | ScanOptions.Continuous);
             if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
             {
                 var msg = "AInScan failed: " + ulStat.Message;
@@ -1184,8 +1194,8 @@ namespace BMG_MicroTextureAnalyzer
         private void DataReaderWorker_ContinuousScan(object sender, DoWorkEventArgs e)
         {
             int lastIndex = 0;
-            int[] dataBuffer = new int[Math.Max(1, this.NumPoints)];
-            MccDaq.Range iaa300 = MccDaq.Range.Bip10Volts;
+            int[] dataBuffer = new int[Math.Max(1, this._winBufSize)];
+             MccDaq.Range iaa300 = MccDaq.Range.Bip10Volts;
 
             // Track total samples for accurate timestamping
             long totalSamplesRead = 0;
@@ -1247,7 +1257,7 @@ namespace BMG_MicroTextureAnalyzer
                             System.Diagnostics.Debug.WriteLine($"[DRIFT DEBUG] Buffer wrap #{_bufferWrapCount} at sample {totalSamplesRead}, time {wrapTime:F3}s, lastIndex={lastIndex}, currentIndex={currentIndex}");
 
                             // Buffer wrapped - handle first chunk (end of buffer)
-                            int firstChunk = NumPoints - lastIndex;
+                            int firstChunk = _winBufSize - lastIndex;
                             if (firstChunk > 0)
                             {
                                 MccDaq.ErrorInfo ulStat = MccDaq.MccService.WinBufToArray32(MemHandle, dataBuffer, lastIndex, firstChunk);
@@ -1364,7 +1374,7 @@ namespace BMG_MicroTextureAnalyzer
             try
             {
                 // Use Background + Continuous for true circular buffer operation
-                MccDaq.ErrorInfo ulStat = this._board.AInScan(channel, channel, NumPoints, ref rate, range, MemHandle, 
+                MccDaq.ErrorInfo ulStat = this._board.AInScan(channel, channel, _winBufSize, ref rate, range, MemHandle, 
                     ScanOptions.Background | ScanOptions.Continuous);
                 if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
                 {

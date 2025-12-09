@@ -1149,6 +1149,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 Task.Run(() => MessageBox.Show("Minimum Fracture Collection Time is 60 seconds, setting to minumum"));
             }
             MTAengine.DataCollectionTime = result;
+            //set this to 100mN so it stops reliably
             MTAengine.FindPlaneThreshold = 100 + voltageOffset;
             if (double.TryParse(FractureDepthTextBox.Text, out var depth))
             {
@@ -1208,7 +1209,8 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 }
                 else
                 {
-                    MessageBox.Show("Motion controller is not connected. Cannot start fracture test.", "Not Connected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MTAengine.FractureTest();
+                    MessageBox.Show("Motion controller is not connected. Starting fracture test without movement.", "Not Connected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
                 StartChartUpdateThread();
 
