@@ -72,6 +72,22 @@ namespace BMG_MicroTextureAnalyzer
         public string ErrorMessage { get; private set; } = string.Empty;
         public string WarningMessage { get; private set; } = string.Empty;
 
+        // Logging callbacks
+        private Action<string, string> _logInfo;
+        private Action<string, string> _logWarning;
+        private Action<string, string> _logError;
+
+        public void SetLoggers(Action<string, string> logInfo, Action<string, string> logWarning, Action<string, string> logError)
+        {
+            _logInfo = logInfo;
+            _logWarning = logWarning;
+            _logError = logError;
+        }
+
+        private void LogInfo(string message, string source) => _logInfo?.Invoke(message, source);
+        private void LogWarning(string message, string source) => _logWarning?.Invoke(message, source);
+        private void LogError(string message, string source) => _logError?.Invoke(message, source);
+
         // Synchronous wrapper for legacy connect
         public void ConnectPort(short sPort)
         {
@@ -105,6 +121,7 @@ namespace BMG_MicroTextureAnalyzer
         {
             try
             {
+                LogInfo($"Stage speed set: {speed}", "Stage.Config");
                 // send set speed command and optionally query
                 var t = SendCommandAsync("V" + ((int)speed).ToString() + "\r", 500);
                 try { t.Wait(500); } catch { }
@@ -190,6 +207,7 @@ namespace BMG_MicroTextureAnalyzer
                 double microsteppedSteps = stepsPerRevolution * Subdivision;
                 this.PulseEquivalent = microsteppedSteps / LeadScrewPitch;
                 this.WarningMessage = "Pulse Equivalent:" + this.PulseEquivalent.ToString();
+                LogInfo($"Pulse equivalent calculated: {this.PulseEquivalent:F6}", "Stage.Config");
             }
             catch (Exception ex)
             {
@@ -263,6 +281,8 @@ namespace BMG_MicroTextureAnalyzer
         // Open serial port and start worker; returns true if controller responded OK
         public async Task<bool> ConnectAsync(short sPort, int timeoutMs = 5000)
         {
+            LogInfo($"Connecting to motion controller: COM{sPort}...", "Connection.Event");
+
             try
             {
                 // Close existing
@@ -291,18 +311,21 @@ namespace BMG_MicroTextureAnalyzer
                 {
                     ErrorMessage = "Access denied opening serial port: " + uaEx.Message;
                     ConnectionStatus = false;
+                    LogError($"Connection failed: Access denied - {uaEx.Message}", "Connection.Event");
                     return false;
                 }
                 catch (IOException ioEx)
                 {
                     ErrorMessage = "IO error opening serial port: " + ioEx.Message;
                     ConnectionStatus = false;
+                    LogError($"Connection failed: IO error - {ioEx.Message}", "Connection.Event");
                     return false;
                 }
                 catch (Exception ex)
                 {
                     ErrorMessage = "Unexpected error opening serial port: " + ex.Message;
                     ConnectionStatus = false;
+                    LogError($"Connection failed: {ex.Message}", "Connection.Event");
                     return false;
                 }
 
@@ -348,14 +371,15 @@ namespace BMG_MicroTextureAnalyzer
                 if (handshakeOk)
                 {
                     ConnectionStatus = true;
-                    // start polling position in background
                     StartPositionPolling();
+                    LogInfo("Motion controller connected successfully", "Connection.Event");
                     return true;
                 }
                 else
                 {
                     ErrorMessage = "Handshake failed: " + string.Join("; ", attemptErrors);
                     ConnectionStatus = false;
+                    LogError($"Connection failed: Handshake failed", "Connection.Event");
                     try { _serial?.Close(); } catch { }
                     return false;
                 }
@@ -364,6 +388,7 @@ namespace BMG_MicroTextureAnalyzer
             {
                 ConnectionStatus = false;
                 ErrorMessage = ex.Message;
+                LogError($"Connection error: {ex.Message}", "Connection.Event");
                 try { _serial?.Close(); } catch { }
                 return false;
             }
@@ -602,6 +627,7 @@ namespace BMG_MicroTextureAnalyzer
             {
                 if (flag) ConvertDistanceToSteps(yPos, 1);
                 string commandString = (CurrentYStep > 0) ? "+" + CurrentYStep.ToString() : CurrentYStep.ToString();
+                LogInfo($"Stage move commanded: {yPos:F3} mm ({CurrentYStep} steps)", "Stage.Event");
                 // send command and do not wait long
                 var task = SendCommandAsync("Y" + commandString + "\r", 2000);
                 // don't block forever - wait briefly for acknowledgement
@@ -618,10 +644,9 @@ namespace BMG_MicroTextureAnalyzer
         {
             try
             {
+                LogInfo("Stage stop commanded", "Stage.Event");
                 // Use immediate stop path instead of queuing to avoid delays
                 ForceStop();
-
-                // Do not cancel in-flight requests here to avoid leaving controller in unrecoverable state.
             }
             catch (Exception ex)
             {
@@ -633,6 +658,7 @@ namespace BMG_MicroTextureAnalyzer
         {
             try
             {
+                LogInfo("Stage homing commanded", "Stage.Event");
                 var t = SendCommandAsync("HY0\r", 2000);
                 try { t.Wait(1000); } catch { }
             }

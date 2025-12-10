@@ -158,6 +158,25 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 logger = new Logger(LogTextBox, batchMs: 200, maxLines: 4000);
                 logger.MinimumLevel = LogLevel.Info;
                 logger.Start();
+
+                // Wire up Engine logging callbacks
+                MTAengine.SetLoggers(
+                    (msg, src) => logger?.Log(msg, LogLevel.Info, src),
+                    (msg, src) => logger?.Log(msg, LogLevel.Warning, src),
+                    (msg, src) => logger?.Log(msg, LogLevel.Error, src)
+                );
+
+                // Wire up MotionController logging callbacks
+                if (MTAengine.Stage != null)
+                {
+                    MTAengine.Stage.SetLoggers(
+                        (msg, src) => logger?.Log(msg, LogLevel.Info, src),
+                        (msg, src) => logger?.Log(msg, LogLevel.Warning, src),
+                        (msg, src) => logger?.Log(msg, LogLevel.Error, src)
+                    );
+                }
+
+                logger?.Log("Application started", LogLevel.Info, "System");
             }
             catch
             {
@@ -871,6 +890,21 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
                     // perform connect on background thread to avoid blocking UI
                     bool ok = await MTAengine.ConnectToMotionControllerAsync(prt);
+
+                    // Wire up logging for the newly connected stage
+                    if (ok && MTAengine.Stage != null)
+                    {
+                        try
+                        {
+                            MTAengine.Stage.SetLoggers(
+                                (msg, src) => logger?.Log(msg, LogLevel.Info, src),
+                                (msg, src) => logger?.Log(msg, LogLevel.Warning, src),
+                                (msg, src) => logger?.Log(msg, LogLevel.Error, src)
+                            );
+                        }
+                        catch { }
+                    }
+
                     // verify connection status after attempting connect
                     try
                     {
@@ -1247,28 +1281,38 @@ namespace BMG_MicroTextureAnalyzer_GUI
                     }
                     
                     // Set up ONLY the fracture file writer - do NOT use chartSaveToFile
-                    chartSaveToFile = false;  // Disable chart file writer to prevent duplicate writes
+                    chartSaveToFile = false;
                     fileSavePath = null;
                     
                     fractureFileSavePath = sfd.FileName;
                     fractureSaving = true;
                     fractureFileWriteQueue = new BlockingCollection<string>(new ConcurrentQueue<string>());
                     var path = fractureFileSavePath;
+
+                    try { logger?.Log($"Fracture data file created: {System.IO.Path.GetFileName(path)}", LogLevel.Info, "File.Event"); } catch { }
+
                     fractureFileWriterTask = Task.Run(() =>
                     {
+                        int linesWritten = 0;
                         try
                         {
                             using (var sw = new StreamWriter(path, false))
                             {
                                 sw.WriteLine("Time,Newtons,Position_mm");
+                                linesWritten++;
                                 foreach (var line in fractureFileWriteQueue.GetConsumingEnumerable())
                                 {
                                     sw.WriteLine(line);
+                                    linesWritten++;
                                     if (fractureFileWriteQueue.Count == 0) sw.Flush();
                                 }
                             }
+                            try { logger?.Log($"Fracture file closed: {linesWritten} lines written", LogLevel.Info, "File.Event"); } catch { }
                         }
-                        catch { }
+                        catch (Exception ex)
+                        {
+                            try { logger?.Log($"File write error: {ex.Message}", LogLevel.Error, "File.Event"); } catch { }
+                        }
                     });
                 }
 

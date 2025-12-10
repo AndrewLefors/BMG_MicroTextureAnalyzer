@@ -180,6 +180,8 @@ namespace BMG_MicroTextureAnalyzer
                 return;
             }
 
+            LogInfo("Basic monitoring started", "Engine.Event");
+
             _isRunning = true;
             ThresholdMet = false;
             _processedDataList.Clear();
@@ -188,8 +190,6 @@ namespace BMG_MicroTextureAnalyzer
             _dataCollectorWorker.WorkerSupportsCancellation = true;
             _dataCollectorWorker.RunWorkerAsync();
 
-         
-
             _dataProcessorWorker = new BackgroundWorker();
             _dataProcessorWorker.DoWork += DataProcessorWorker_DoWork;
             _dataProcessorWorker.WorkerSupportsCancellation = true;
@@ -197,13 +197,14 @@ namespace BMG_MicroTextureAnalyzer
 
             _dataProcessorWorker.RunWorkerCompleted += (sender, e) =>
             {
-                
                 //this.StopAsync();
             };
         }
 
         public void FindPlane()
         {
+            LogInfo($"Find plane started: threshold={FindPlaneThreshold:F6} N, time={DataCollectionTime:F1} s", "Engine.Event");
+
             // Use same continuous-acquisition pipeline as ContinuousScanTest,
             // but start stage motion only after acquisition is running to avoid missed samples.
             this.GetYLocation();
@@ -310,6 +311,9 @@ namespace BMG_MicroTextureAnalyzer
             {
                 return;
             }
+
+            LogInfo($"Fracture test started: depth={FractureDistance:F3} mm, time={DataCollectionTime:F1} s, threshold={FindPlaneThreshold:F3} N", "Engine.Event");
+
             _fractureTestComplete = false;
             ThresholdMet = false;
             _isRunning = true;
@@ -429,6 +433,9 @@ namespace BMG_MicroTextureAnalyzer
             {
                 return;
             }
+
+            LogInfo($"Continuous scan started: time={DataCollectionTime:F1} s, rate={Rate} Hz", "Engine.Event");
+
             if (this._isFractureTest)
             {
                 _voltageConversion = _fractureTestPoundConversion;
@@ -554,6 +561,7 @@ namespace BMG_MicroTextureAnalyzer
                 {
                     _findPlaneThreshold = value;
                     OnPropertyChanged(nameof(FindPlaneThreshold));
+                    LogInfo($"Threshold changed: {_findPlaneThreshold:F6} N", "Engine.Config");
                 }
             }
         }
@@ -565,9 +573,11 @@ namespace BMG_MicroTextureAnalyzer
             {
                 if (_rate != value)
                 {
+                    int oldRate = _rate;
                     _rate = value;
                     _numPoints = (int)(DataCollectionTime * Rate);
                     OnPropertyChanged(nameof(Rate));
+                    LogInfo($"Sampling rate changed: {oldRate} Hz → {_rate} Hz", "DAQ.Config");
                 }
             }
         }
@@ -587,11 +597,14 @@ namespace BMG_MicroTextureAnalyzer
                 newRate = _maxSampleRate;
             }
 
+            LogInfo($"Changing sampling rate to {newRate} Hz...", "DAQ.Config");
+
             // If currently monitoring, stop first (but do NOT auto-restart)
             if (this.IsMonitoring)
             {
                 try
                 {
+                    LogWarning("Stopping active acquisition to change sampling rate", "DAQ.Config");
                     this.StopBackgroundCollection();
                     if (_dataCollectorWorker != null && _dataCollectorWorker.IsBusy) _dataCollectorWorker.CancelAsync();
                     if (_dataCollectorWorker2 != null && _dataCollectorWorker2.IsBusy) _dataCollectorWorker2.CancelAsync();
@@ -637,6 +650,7 @@ namespace BMG_MicroTextureAnalyzer
                     this.ErrorString = $"Failed to allocate DAQ buffer for rate={newRate} Hz, bufSize={bufSize}";
                     return;
                 }
+                LogInfo($"DAQ buffer allocated: size={bufSize} samples", "DAQ.Config");
                 System.Diagnostics.Debug.WriteLine($"[RATE] SetSamplingRate: newRate={newRate}, bufSize={bufSize}");
             }
             catch (Exception ex)
@@ -664,6 +678,7 @@ namespace BMG_MicroTextureAnalyzer
                     _dataCollectionTime = value;
                     _numPoints = (int)(DataCollectionTime * Rate);
                     OnPropertyChanged(nameof(DataCollectionTime));
+                    LogInfo($"Collection time set: {_dataCollectionTime:F2} s", "Engine.Config");
                 }
             }
         }
@@ -964,6 +979,8 @@ namespace BMG_MicroTextureAnalyzer
         {
             if (!_isRunning) return;
 
+            LogInfo("Engine stopping...", "Engine.Event");
+
             if (IsStageRunning)
             {
                 _stage.Stop();
@@ -995,13 +1012,11 @@ namespace BMG_MicroTextureAnalyzer
             _isRunning = false;
             _isMonitoring = false;
             _isStageMoving = false;
-            // Ensure test mode flags are cleared so subsequent scans use correct conversions
             _isFractureTest = false;
             _isPunctureTest = false;
-             //cancel the continuous scan
-             //check if invoke required
-             ThresholdMet = false;
+            ThresholdMet = false;
 
+            LogInfo("Engine stopped", "Engine.Event");
          }
 
          /// <summary>
@@ -1149,6 +1164,7 @@ namespace BMG_MicroTextureAnalyzer
             int rate = this.Rate;
 
             System.Diagnostics.Debug.WriteLine($"[RATE] DataCollectorWorker_ContinuousScan starting. Requested rate={rate} Hz, bufSize={_winBufSize}");
+            LogInfo($"DAQ acquisition starting: requested rate={rate} Hz, buffer={_winBufSize} samples", "DAQ.Event");
 
             // Use Background + Continuous for true circular buffer operation
             MccDaq.ErrorInfo ulStat = this._board.AInScan(channel, channel, _winBufSize, ref rate, iaa300, MemHandle,
@@ -1163,6 +1179,7 @@ namespace BMG_MicroTextureAnalyzer
             // Store actual rate negotiated by hardware
             this.ActualRate = rate;
             System.Diagnostics.Debug.WriteLine($"[RATE] AInScan returned ActualRate={rate} Hz (requested={this.Rate} Hz)");
+            LogInfo($"DAQ acquisition started: actual rate={rate} Hz", "DAQ.Event");
 
             // Log warning if hardware rate differs significantly from requested
             if (Math.Abs(rate - this.Rate) > 10)
@@ -1316,6 +1333,7 @@ namespace BMG_MicroTextureAnalyzer
             }
 
             System.Diagnostics.Debug.WriteLine($"[TIMESTAMP] Reader exiting. TotalSamples={totalSamplesRead}, Duration={stopwatch.Elapsed.TotalSeconds:F3}s, Expected={(double)totalSamplesRead/actualRate:F3}s, Wraps={_bufferWrapCount}");
+            LogInfo($"DAQ acquisition complete: {totalSamplesRead} samples, {stopwatch.Elapsed.TotalSeconds:F3} s, {_bufferWrapCount} buffer wraps", "DAQ.Data");
             try { _dataCollectorWorker2.CancelAsync(); } catch { }
         }
 
@@ -1726,6 +1744,25 @@ namespace BMG_MicroTextureAnalyzer
                 OnPropertyChanged(nameof(ErrorString));
             }
         }
+
+        // Logging callbacks - injected by UI layer to avoid direct dependency
+        private Action<string, string> _logInfo;    // (message, source)
+        private Action<string, string> _logWarning; // (message, source)
+        private Action<string, string> _logError;   // (message, source)
+
+        /// <summary>
+        /// Set logging callbacks so Engine can log without direct UI dependency.
+        /// </summary>
+        public void SetLoggers(Action<string, string> logInfo, Action<string, string> logWarning, Action<string, string> logError)
+        {
+            _logInfo = logInfo;
+            _logWarning = logWarning;
+            _logError = logError;
+        }
+
+        private void LogInfo(string message, string source) => _logInfo?.Invoke(message, source);
+        private void LogWarning(string message, string source) => _logWarning?.Invoke(message, source);
+        private void LogError(string message, string source) => _logError?.Invoke(message, source);
 
         public Engine()
         {
