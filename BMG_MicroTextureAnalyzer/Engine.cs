@@ -1116,7 +1116,7 @@ namespace BMG_MicroTextureAnalyzer
         {
             if (this._board == null)
             {
-                this._board = new MccBoard(0);
+                this._board = new MccBoard(1);
             }
             int channel = 7;
             MccDaq.Range range = MccDaq.Range.Bip10Volts;
@@ -1156,7 +1156,7 @@ namespace BMG_MicroTextureAnalyzer
         {
             if (this._board == null)
             {
-                this._board = new MccBoard(0);
+                this._board = new MccBoard(1);
             }
             int channel = 7;
 
@@ -1341,7 +1341,7 @@ namespace BMG_MicroTextureAnalyzer
         {
             if (this._board == null)
             {
-                this._board = new MccBoard(0);
+                this._board = new MccBoard(1);
             }
 
             int channel = 7;
@@ -1382,7 +1382,7 @@ namespace BMG_MicroTextureAnalyzer
         {
             if (this._board == null)
             {
-                this._board = new MccBoard(0);
+                this._board = new MccBoard(1);
             }
             int channel = 7;
 
@@ -1776,7 +1776,7 @@ namespace BMG_MicroTextureAnalyzer
             _isMonitoring = false;
             _isStageMoving = false;
             _dataLock = new object();
-            this._board = new MccBoard(0);
+            this._board = new MccBoard(1);
 
 
         }

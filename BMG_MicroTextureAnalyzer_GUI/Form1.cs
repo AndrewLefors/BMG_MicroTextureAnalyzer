@@ -486,6 +486,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 {
                     MonitorResponseChart.Series.Add(new Series { ChartType = SeriesChartType.FastLine, XValueType = ChartValueType.Double, YValueType = ChartValueType.Double });
                 }
+
                 var s = MonitorResponseChart.Series[0];
                 
                 // Verify series is still valid
@@ -509,7 +510,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
                     {
                         // Use the continuous window size for sliding
                         double windowSec = Math.Max(1, displayWindowSecondsContinuous);
-                        double leftBound = rightBound - windowSec;
+                        double leftBound = Math.Max(0.0, rightBound - windowSec);  // ? Clamp to 0 - never negative
 
                         // Directly set axis min/max so it always follows the newest entry.
                         area.AxisX.Minimum = leftBound;
@@ -1184,12 +1185,15 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
         private async void StartConstantMonitorButton_Click(object sender, EventArgs e)
         {
-            // Clear chart and buffers FIRST before any other operations
+            // Stop any existing test FIRST
+            await MTAengine.StopAsync();
+            await Task.Delay(100);
+            
+            // Clear chart and buffers
             ClearChartAndBuffers();
 
             chartSaveToFile = false;
             fileSavePath = null;
-            await Task.Run(() => MTAengine.StopAsync());
             
             // Chart already cleared by ClearChartAndBuffers, but create new series
             MonitorResponseChart.Series.Clear();
@@ -1248,16 +1252,13 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
         async private void backgroundWorkerStartButton_Click(object sender, EventArgs e)
         {
-            // Clear chart and buffers FIRST
+            // Stop any existing test FIRST
+            await MTAengine.StopAsync();
+            await Task.Delay(100);
+            
+            // Clear chart and buffers
             ClearChartAndBuffers();
 
-            if (MTAengine.IsRunning || MTAengine.IsMonitoring)
-            {
-                // If engine busy, stop current operation then proceed to start a new monitor
-                await Task.Run(() => MTAengine.StopAsync());
-                // give workers a moment to unwind
-                await Task.Delay(50);
-            }
             MonitorResponseChart.Series.Clear();
             Series series = new Series
             {
@@ -1275,14 +1276,12 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
         private async void FractureTestStartButton_Click(object sender, EventArgs e)
         {
-            // Clear chart and buffers FIRST
+            // Stop any existing test FIRST
+            await MTAengine.StopAsync();
+            await Task.Delay(100);
+            
+            // Clear chart and buffers
             ClearChartAndBuffers();
-
-            if (MTAengine.IsRunning || MTAengine.IsMonitoring)
-            {
-                await Task.Run(() => MTAengine.StopAsync());
-                await Task.Delay(50);
-            }
 
             MonitorResponseChart.Series.Clear();
             this.relativeStartTime = double.NaN;
@@ -1469,19 +1468,15 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
         private async void button1_Click(object sender, EventArgs e)
         {
-            // Clear chart and buffers FIRST
+            // Stop any existing test FIRST
+            await MTAengine.StopAsync();
+            await Task.Delay(100);
+            
+            // Clear chart and buffers
             ClearChartAndBuffers();
 
-            if (MTAengine.IsRunning || MTAengine.IsMonitoring)
-            {
-                // If engine busy, stop current operation and then proceed to start a new continuous scan
-                await Task.Run(() => MTAengine.StopAsync());
-                await Task.Delay(50);
-            }
             chartSaveToFile = false;
             fileSavePath = null;
-            await Task.Run(() => MTAengine.StopAsync());
-            Thread.Sleep(10);
             
             MonitorResponseChart.Series.Clear();
             this.relativeStartTime = double.NaN;
@@ -1515,134 +1510,6 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
             MTAengine.ContinuousScanTest();
             StartChartUpdateThread();
-        }
-
-        protected override void OnFormClosing(FormClosingEventArgs e)
-        {
-
-            if (MTAengine.Stage.ConnectionStatus)
-            {
-                MTAengine.StopMotionController();
-            }
-            //Stop the engine and wait for it to finish if it's running.
-            if (MTAengine.IsMonitoring)
-            {
-                // If StopAsync returns a Task, wait for its completion.
-                MTAengine.StopBackgroundCollection();
-            }
-
-            // finalize fracture writer if active
-            try
-            {
-                if (fractureSaving && fractureFileWriteQueue != null)
-                {
-                    var q = fractureFileWriteQueue;
-                    fractureSaving = false;
-                    fractureFileWriteQueue = null;
-                    q.CompleteAdding();
-                    fractureFileWriterTask?.Wait(500);
-                }
-            }
-            catch { }
-
-            //// Ensure chartUpdateThread exists and is alive before joining.
-            //if (chartUpdateThread != null && chartUpdateThread.IsAlive)
-            //{
-            //    chartUpdateThread.Join();
-            //}
-
-            base.OnFormClosing(e);
-            Environment.Exit(0);
-            // Optionally force exit if necessary.
-            // Environment.Exit(0);
-        }
-
-        private void ThousandHertzRadioButton_CheckedChanged(object sender, EventArgs e)
-        {
-            if (ThousandHertzRadioButton.Checked)
-            {
-                MTAengine.SetSamplingRate(1000);
-            }
-        }
-
-        private void TwoThousandHertzRadioButton_CheckedChanged(object sender, EventArgs e)
-        {
-            if (TwoThousandHertzRadioButton.Checked)
-            {
-                MTAengine.SetSamplingRate(2000);
-            }
-        }
-
-        private void radioButton6_CheckedChanged(object sender, EventArgs e)
-        {
-            if (ThreeThousandHertzRadioButton.Checked)
-            {
-                MTAengine.SetSamplingRate(3000);
-            }
-        }
-
-        private void saveFileButton_Click(object sender, EventArgs e)
-        {
-            PromptUserToSave();
-        }
-
-        private void zero_voltage_button_Click(object sender, EventArgs e)
-        {
-            this.MTAengine.ComputeAndSetForceOffset();
-        }
-
-        private void clear_zero_button_Click(object sender, EventArgs e)
-        {
-            this.MTAengine.SetForceOffset(0);
-        }
-
-        private void label6_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void label7_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void Form1_Load(object sender, EventArgs e)
-        {
-
-        }
-
-        private void label2_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void DAQ_StageSpeedComboBox_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            //change the selected index of the combo box to the selected index of the list
-            int selectedIndex = DAQ_StageSpeedComboBox.SelectedIndex;
-            // Validate the index is within bounds
-            if (selectedIndex >= 0 && selectedIndex < stageSpeedConversionSpeedList.Count)
-            {
-                short controllerSpeedValue = (short)stageSpeedConversionSpeedList[selectedIndex];
-                MTAengine.SetStageSpeed(controllerSpeedValue);
-                MessageBox.Show("Stage Speed Set to: " + controllerSpeedValue.ToString() + ": " + DAQ_StageSpeedComboBox.SelectedItem?.ToString() + "um/s");
-            }
-        }
-
-        private void AverageWindowComboBox_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            //int selectedIndex = AverageWindowComboBox.SelectedIndex;
-            //if (selectedIndex >= 0 && selectedIndex < averageWindowList.Count)
-            //{
-            //    int averageWindowValue = averageWindowList[selectedIndex];
-            //   // MTAengine.AverageWindow = averageWindowValue;
-            //    MessageBox.Show("Average Window Set to: " + averageWindowValue.ToString() + " samples");
-            //}
-        }
-
-        private void voltageOffsetReadingLabel_Click(object sender, EventArgs e)
-        {
-
         }
 
         private void resetEngineButton_Click(object sender, EventArgs e)
@@ -1741,6 +1608,116 @@ namespace BMG_MicroTextureAnalyzer_GUI
             {
                 try { logger?.Log($"Error during chart cleanup: {ex.Message}", LogLevel.Error, "Chart.Cleanup"); } catch { }
             }
+        }
+
+
+        private void voltageOffsetReadingLabel_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void zero_voltage_button_Click(object sender, EventArgs e)
+        {
+            this.MTAengine.ComputeAndSetForceOffset();
+        }
+
+        private void clear_zero_button_Click(object sender, EventArgs e)
+        {
+            this.MTAengine.SetForceOffset(0);
+        }
+
+        private void label6_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void label7_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+
+        }
+
+        private void label2_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void DAQ_StageSpeedComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            //change the selected index of the combo box to the selected index of the list
+            int selectedIndex = DAQ_StageSpeedComboBox.SelectedIndex;
+            // Validate the index is within bounds
+            if (selectedIndex >= 0 && selectedIndex < stageSpeedConversionSpeedList.Count)
+            {
+                short controllerSpeedValue = (short)stageSpeedConversionSpeedList[selectedIndex];
+                MTAengine.SetStageSpeed(controllerSpeedValue);
+                MessageBox.Show("Stage Speed Set to: " + controllerSpeedValue.ToString() + ": " + DAQ_StageSpeedComboBox.SelectedItem?.ToString() + "um/s");
+            }
+        }
+
+        private void saveFileButton_Click(object sender, EventArgs e)
+        {
+            PromptUserToSave();
+        }
+
+        private void ThousandHertzRadioButton_CheckedChanged(object sender, EventArgs e)
+        {
+            if (ThousandHertzRadioButton.Checked)
+            {
+                MTAengine.SetSamplingRate(1000);
+            }
+        }
+
+        private void TwoThousandHertzRadioButton_CheckedChanged(object sender, EventArgs e)
+        {
+            if (TwoThousandHertzRadioButton.Checked)
+            {
+                MTAengine.SetSamplingRate(1500);
+            }
+        }
+
+        private void radioButton6_CheckedChanged(object sender, EventArgs e)
+        {
+            if (ThreeThousandHertzRadioButton.Checked)
+            {
+                MTAengine.SetSamplingRate(3000);
+            }
+        }
+
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+
+            if (MTAengine.Stage.ConnectionStatus)
+            {
+                MTAengine.StopMotionController();
+            }
+            //Stop the engine and wait for it to finish if it's running.
+            if (MTAengine.IsMonitoring)
+            {
+                // If StopAsync returns a Task, wait for its completion.
+                MTAengine.StopBackgroundCollection();
+            }
+
+            // finalize fracture writer if active
+            try
+            {
+                if (fractureSaving && fractureFileWriteQueue != null)
+                {
+                    var q = fractureFileWriteQueue;
+                    fractureSaving = false;
+                    fractureFileWriteQueue = null;
+                    q.CompleteAdding();
+                    fractureFileWriterTask?.Wait(500);
+                }
+            }
+            catch { }
+
+            base.OnFormClosing(e);
+            Environment.Exit(0);
         }
     }
 }
