@@ -275,7 +275,15 @@ namespace BMG_MicroTextureAnalyzer
         public double PulseEquivalent
         {
             get => DblPulseEqui;
-            set { DblPulseEqui = value; OnPropertyChanged(nameof(PulseEquivalent)); }
+            set 
+            { 
+                if (Math.Abs(DblPulseEqui - value) > 1e-9)
+                {
+                    DblPulseEqui = value;
+                    OnPropertyChanged(nameof(PulseEquivalent));
+                    LogInfo($"Pulse equivalent set: {DblPulseEqui:F6}", "Stage.Config");
+                }
+            }
         }
 
         // Open serial port and start worker; returns true if controller responded OK

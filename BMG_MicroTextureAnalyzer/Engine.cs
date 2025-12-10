@@ -1958,6 +1958,7 @@ namespace BMG_MicroTextureAnalyzer
             {
                 if (this.Stage != null)
                 {
+                    LogInfo($"Setting stage speed: {speed}", "Stage.Config");
                     this.Stage.SetSpeed(speed);
                 }
             }

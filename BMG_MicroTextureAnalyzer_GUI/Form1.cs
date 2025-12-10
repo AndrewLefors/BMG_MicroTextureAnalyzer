@@ -786,6 +786,27 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 try { logger?.Log(MTAengine.Stage.WarningMessage, LogLevel.Warning, "MotionController"); } catch { }
             }
 
+            // Log MotionController configuration changes
+            if (e.PropertyName == "MotionController.PulseEquivalent")
+            {
+                try 
+                { 
+                    logger?.Log($"Pulse equivalent changed: {MTAengine.Stage.PulseEquivalent:F6}", LogLevel.Info, "Stage.Config"); 
+                } 
+                catch { }
+            }
+
+            if (e.PropertyName == "MotionController.MotorDegree" ||
+                e.PropertyName == "MotionController.LeadScrewPitch" ||
+                e.PropertyName == "MotionController.Subdivision")
+            {
+                try 
+                { 
+                    logger?.Log($"Stage config changed: Motor={MTAengine.Stage.MotorDegree}°, Pitch={MTAengine.Stage.LeadScrewPitch}mm, Subdiv={MTAengine.Stage.Subdivision}", LogLevel.Info, "Stage.Config"); 
+                } 
+                catch { }
+            }
+
             // Log start/stop and state transitions for user visibility
             if (e.PropertyName == "IsRunning")
             {
