@@ -51,7 +51,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
         private bool chartSaveToFile = false;
         private string fileSavePath = null;
         private int displayWindowSeconds = 30; // seconds of data to keep in circular buffer
-        private int displayWindowSecondsContinuous = 5; // small sliding window for live display (seconds)
+        private int displayWindowSecondsContinuous = 10; // 10-second sliding window for live display
         private int maxDisplayPoints = 1200; // maximum points to display (approx pixels)
         private CircularBuffer<(double X, double Y)> displayBuffer;
         private BlockingCollection<string> fileWriteQueue;
@@ -182,22 +182,30 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 try { chartUpdateThread.Join(200); } catch { }
             }
 
-            // prepare circular buffer: always keep only a small recent window for live display
-            int rate = Math.Max(1, MTAengine.Rate);
-            int windowSec = Math.Max(1, displayWindowSecondsContinuous);
+            // prepare circular buffer: use ActualRate for 10 seconds of data
+            // Wait briefly for ActualRate to be set if engine is starting
+            int waitedMs = 0;
+            while (MTAengine.ActualRate <= 0 && waitedMs < 500)
+            {
+                await Task.Delay(50);
+                waitedMs += 50;
+            }
+            
+            int rate = Math.Max(1, MTAengine.ActualRate > 0 ? MTAengine.ActualRate : MTAengine.Rate);
+            int windowSec = 10; // Always 10 seconds of data
             int capacity = Math.Max(1000, rate * windowSec);
             lock (_displayLock) { displayBuffer = new CircularBuffer<(double X, double Y)>(capacity); }
 
             // reset relative start time so chart X axis will show time since this run started
             relativeStartTime = double.NaN;
 
-            // prepare file writer if saving mode and path provided
+            // prepare file writer if saving mode and path provided (for non-fracture tests)
             if (chartSaveToFile && !string.IsNullOrEmpty(fileSavePath))
             {
                 try
                 {
                     fileWriteQueue = new BlockingCollection<string>(new ConcurrentQueue<string>());
-                    var path = fileSavePath; // capture
+                    var path = fileSavePath;
                     fileWriterTask = Task.Run(() =>
                     {
                         try
@@ -271,7 +279,6 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
             while (!token.IsCancellationRequested)
             {
-                // If no data queued, wait briefly to avoid busy loop
                 if (dataQueue.IsEmpty)
                 {
                     Thread.Sleep(10);
@@ -297,6 +304,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
                 if (chartSaveToFile && fileWriteQueue != null)
                 {
+                    // Write absolute timestamps to file
                     foreach (var d in batch)
                     {
                         try { fileWriteQueue.Add($"{d.TimeStamp:F6},{d.Newtons:F6}"); } catch { }
@@ -307,7 +315,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
                     // Update force reading label with most recent sample in batch
                     try { UpdateForceReadingLabel(batch.Last().Newtons); } catch { }
 
-                    // Add samples to displayBuffer (bounded by circular buffer) and optionally queue to file
+                    // Add samples to displayBuffer and compute relative time for chart display
                     lock (_displayLock)
                     {
                         foreach (var d in batch)
@@ -315,15 +323,10 @@ namespace BMG_MicroTextureAnalyzer_GUI
                             if (double.IsNaN(relativeStartTime)) relativeStartTime = d.TimeStamp;
                             double t = d.TimeStamp - relativeStartTime;
                             displayBuffer.Add((t, d.Newtons));
-
-                            if (chartSaveToFile && fileWriteQueue != null)
-                            {
-                                try { fileWriteQueue.Add($"{t:F6},{d.Newtons:F6}"); } catch { }
-                            }
                         }
                     }
 
-                    // prepare downsampled arrays from circular buffer
+                    // Prepare downsampled arrays from circular buffer
                     double[][] snapshot;
                     lock (_displayLock)
                     {
@@ -334,30 +337,32 @@ namespace BMG_MicroTextureAnalyzer_GUI
                     int total = raw.Length;
                     if (total == 0) continue;
 
-                    // Compute sliding window bounds based on latest time and desired window size (use continuous window)
-                    int plotWindowSec = Math.Max(1, displayWindowSecondsContinuous);
+                    // Compute sliding window bounds based on latest time and 10-second window
                     double rightAll = raw[total - 1].X;
-                    double leftWindow = rightAll - plotWindowSec;
+                    double leftWindow = Math.Max(0, rightAll - 10.0);
 
-                    // Only keep points inside the visible window to avoid plotting older points.
+                    // Only keep points inside the visible 10-second window
                     var windowed = raw.Where(p => p.X >= leftWindow).ToArray();
                     if (windowed.Length == 0) continue;
 
-                    // Use windowed data for downsampling / plotting
                     raw = windowed;
                     total = raw.Length;
 
-                    int target = Math.Min(maxDisplayPoints, MonitorResponseChart?.Width > 0 ? MonitorResponseChart.Width : maxDisplayPoints);
-                    if (target <= 0) target = Math.Min(maxDisplayPoints, 1000);
+                    // Target points: use chart width or a reasonable default, ensuring we can handle high sample counts
+                    int chartWidth = 1200;
+                    try { if (MonitorResponseChart != null && MonitorResponseChart.Width > 0) chartWidth = MonitorResponseChart.Width; } catch { }
+                    int target = Math.Min(Math.Max(chartWidth, 1000), 2000);
 
                     double[] xs, ys;
                     if (total <= target)
                     {
-                        xs = new double[total]; ys = new double[total];
+                        xs = new double[total];
+                        ys = new double[total];
                         for (int i = 0; i < total; i++) { xs[i] = raw[i].X; ys[i] = raw[i].Y; }
                     }
                     else
                     {
+                        // Downsample using min/max binning to preserve peaks/valleys
                         int bins = Math.Max(1, target / 2);
                         int pointsPerBin = (int)Math.Ceiling((double)total / bins);
                         var xsList = new List<double>(bins * 2);
@@ -379,15 +384,13 @@ namespace BMG_MicroTextureAnalyzer_GUI
                             xsList.Add(minX); ysList.Add(minY);
                             if (maxY != minY) { xsList.Add(maxX); ysList.Add(maxY); }
                         }
-                        xs = xsList.ToArray(); ys = ysList.ToArray();
+                        xs = xsList.ToArray();
+                        ys = ysList.ToArray();
                     }
 
-                    // marshal update to UI
                     try
                     {
-                        // Pass the desired visible window bounds so UpdateChartWithArrays can keep fixed width
                         this.BeginInvoke(new Action<double[], double[], double>((a, b, right) => UpdateChartWithArrays(a, b, right)), xs, ys, rightAll);
-                        // Also update time label with most recent relative time
                         try { this.BeginInvoke(new Action(() => UpdateTimeReadingLabel(rightAll))); } catch { }
                     }
                     catch { }
@@ -542,29 +545,20 @@ namespace BMG_MicroTextureAnalyzer_GUI
         {
             dataQueue.Enqueue(e);
 
-            // Log threshold event if exceeded (once per run)
+            // Track last processed sample for logging
             try
             {
-                _lastProcessedSample = e; // track last sample for property-changed logging
-                if (!_thresholdEventLogged && MTAengine != null)
-                {
-                    double thresh = MTAengine.FindPlaneThreshold;
-                    if (e.Newtons >= thresh)
-                    {
-                        _thresholdEventLogged = true;
-                        try { logger?.Log($"Threshold met: {e.Newtons:F6} N at t={e.TimeStamp:F6} s", LogLevel.Info, "Stage.Event"); } catch { }
-                    }
-                }
+                _lastProcessedSample = e;
             }
             catch { }
 
-            // If a fracture test file writer is active, enqueue a CSV line: Time,Newtons,Position_mm
+            // If a fracture test file writer is active, write absolute timestamp (not relative)
             if (fractureSaving && fractureFileWriteQueue != null)
             {
                 try
                 {
-                    // Use per-sample aligned position provided by the engine in the event args
                     double pos = double.IsNaN(e.PositionMm) ? double.NaN : e.PositionMm;
+                    // Write absolute timestamp from engine (seconds since start of acquisition)
                     fractureFileWriteQueue.Add($"{e.TimeStamp:F6},{e.Newtons:F6},{pos:F6}");
                 }
                 catch { }
@@ -790,6 +784,38 @@ namespace BMG_MicroTextureAnalyzer_GUI
                     logger?.Log($"Stage moving: {(MTAengine.IsStageRunning ? "Yes" : "No")}", LogLevel.Info, "Stage.Event");
                 }
                 catch { }
+            }
+
+            // Handle ActualRate changes to update the rate display label
+            // Match both unprefixed "ActualRate" (raised directly by Engine) and prefixed "Engine.ActualRate"
+            if (e.PropertyName == nameof(Engine.ActualRate) || e.PropertyName == "ActualRate" || e.PropertyName == "Engine.ActualRate")
+            {
+                Action set = () =>
+                {
+                    try
+                    {
+                        string txt = $"{MTAengine.ActualRate} Hz";
+                        // Try to find RateReadingLabel by name
+                        var found = this.Controls.Find("RateReadingLabel", true);
+                        if (found.Length > 0 && found[0] is Label lbl)
+                        {
+                            lbl.Text = txt;
+                            return;
+                        }
+                        // Fallback to designer field if present
+                        try
+                        {
+                            if (RateReadingLabel != null)
+                            {
+                                RateReadingLabel.Text = txt;
+                            }
+                        }
+                        catch { }
+                    }
+                    catch { }
+                };
+                if (this.IsHandleCreated && this.InvokeRequired) this.BeginInvoke(set); else set();
+                try { logger?.Log($"Actual sample rate: {MTAengine.ActualRate} Hz", LogLevel.Info, "DAQ"); } catch { }
             }
 
         }
@@ -1183,12 +1209,10 @@ namespace BMG_MicroTextureAnalyzer_GUI
         {
             if (MTAengine.IsRunning || MTAengine.IsMonitoring)
             {
-                // If engine busy, stop current operation and then continue to start fracture test
                 await Task.Run(() => MTAengine.StopAsync());
                 await Task.Delay(50);
             }
 
-            // previously awaited StopAsync here; continue with setup
             MonitorResponseChart.Series.Clear();
             this.relativeStartTime = double.NaN;
             Series series = new Series
@@ -1196,12 +1220,11 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 ChartType = SeriesChartType.Line
             };
             MonitorResponseChart.Series.Add(series);
-            //MTAengine.SetStageSpeed(0);
+            
             double.TryParse(CollectionTimeSecondsTextBox.Text, out double result);
             if (result == 0)
             {
                 await Task.Run(() => MessageBox.Show("Please enter a valid collection time"));
-
                 return;
             }
             else if (result < 60)
@@ -1210,55 +1233,48 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 Task.Run(() => MessageBox.Show("Minimum Fracture Collection Time is 60 seconds, setting to minumum"));
             }
             MTAengine.DataCollectionTime = result;
-            //set this to 100mN so it stops reliably
             MTAengine.FindPlaneThreshold = 100 + voltageOffset;
+            
             if (double.TryParse(FractureDepthTextBox.Text, out var depth))
             {
-                // Prompt user for file path before starting fracture test
                 using (var sfd = new SaveFileDialog())
                 {
                     sfd.Filter = "CSV files (*.csv)|*.csv";
                     sfd.FileName = $"fracture_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
                     if (sfd.ShowDialog() != DialogResult.OK)
                     {
-                        // user cancelled - do not start test
                         return;
                     }
-                    fileSavePath = sfd.FileName;
-                    chartSaveToFile = true;
-
-                    // Start fracture CSV writer (separate from chart writer)
-                    try
+                    
+                    // Set up ONLY the fracture file writer - do NOT use chartSaveToFile
+                    chartSaveToFile = false;  // Disable chart file writer to prevent duplicate writes
+                    fileSavePath = null;
+                    
+                    fractureFileSavePath = sfd.FileName;
+                    fractureSaving = true;
+                    fractureFileWriteQueue = new BlockingCollection<string>(new ConcurrentQueue<string>());
+                    var path = fractureFileSavePath;
+                    fractureFileWriterTask = Task.Run(() =>
                     {
-                        fractureFileSavePath = fileSavePath;
-                        fractureSaving = true;
-                        fractureFileWriteQueue = new BlockingCollection<string>(new ConcurrentQueue<string>());
-                        var path = fractureFileSavePath; // capture
-                        fractureFileWriterTask = Task.Run(() =>
+                        try
                         {
-                            try
+                            using (var sw = new StreamWriter(path, false))
                             {
-                                using (var sw = new StreamWriter(path, false))
+                                sw.WriteLine("Time,Newtons,Position_mm");
+                                foreach (var line in fractureFileWriteQueue.GetConsumingEnumerable())
                                 {
-                                    sw.WriteLine("Time,Newtons,Position_mm");
-                                    foreach (var line in fractureFileWriteQueue.GetConsumingEnumerable())
-                                    {
-                                        sw.WriteLine(line);
-                                        if (fractureFileWriteQueue.Count == 0) sw.Flush();
-                                    }
+                                    sw.WriteLine(line);
+                                    if (fractureFileWriteQueue.Count == 0) sw.Flush();
                                 }
                             }
-                            catch { }
-                        });
-                    }
-                    catch { }
+                        }
+                        catch { }
+                    });
                 }
 
                 MTAengine.FractureDistance = depth;
                 DialogResult dresult = MessageBox.Show("Current Fracture Depth:" + MTAengine.FractureDistance);
-                //MTAengine.SetStageSpeed(1);
-                //MTAengine.TranslateYStage(MTAengine.FractureDistance);
-                // verify stage connection before starting fracture
+                
                 if (MTAengine.Stage != null && MTAengine.Stage.ConnectionStatus)
                 {
                     MTAengine.FractureTest();
@@ -1275,18 +1291,12 @@ namespace BMG_MicroTextureAnalyzer_GUI
                     StartChartUpdateThread();
                     MessageBox.Show("Motion controller is not connected. Starting fracture test without movement.", "Not Connected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
-                
-
             }
             else
             {
                 MTAengine.FractureDistance = 0;
                 MessageBox.Show("Please enter a valid depth value");
             }
-
-
-
-
         }
 
         private void radioButton1_CheckedChanged(object sender, EventArgs e)

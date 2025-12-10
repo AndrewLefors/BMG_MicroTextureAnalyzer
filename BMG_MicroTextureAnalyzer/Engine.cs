@@ -573,8 +573,9 @@ namespace BMG_MicroTextureAnalyzer
         }
 
         /// <summary>
-        /// Safely change the sampling rate at runtime. If a continuous scan is active this will stop it,
-        /// reallocate the DAQ buffer for the new rate, then restart the continuous-scan workers.
+        /// Safely change the sampling rate. Only updates the Rate property and reallocates
+        /// the DAQ buffer. Does NOT start or restart any acquisition - user must explicitly
+        /// start a test routine by pressing a button.
         /// </summary>
         public void SetSamplingRate(int newRate)
         {
@@ -586,11 +587,8 @@ namespace BMG_MicroTextureAnalyzer
                 newRate = _maxSampleRate;
             }
 
-            bool wasMonitoring = this.IsMonitoring;
-            bool wasRunning = this.IsRunning;
-
-            // Stop background acquisition if running
-            if (wasMonitoring)
+            // If currently monitoring, stop first (but do NOT auto-restart)
+            if (this.IsMonitoring)
             {
                 try
                 {
@@ -613,6 +611,10 @@ namespace BMG_MicroTextureAnalyzer
                     Thread.Sleep(50);
                     wait += 50;
                 }
+                
+                // Clear running flags - user must explicitly start a new test
+                _isMonitoring = false;
+                _isRunning = false;
             }
 
             // Set new rate
@@ -627,7 +629,6 @@ namespace BMG_MicroTextureAnalyzer
                     MccDaq.MccService.WinBufFreeEx(MemHandle);
                     MemHandle = IntPtr.Zero;
                 }
-                // Use a buffer size appropriate for the rate (at least 1 second of data, up to 8192)
                 int bufSize = Math.Min(Math.Max(newRate, DefaultWinBufSize), 65536);
                 MemHandle = MccDaq.MccService.WinBufAlloc32Ex(bufSize);
                 _winBufSize = bufSize;
@@ -644,37 +645,7 @@ namespace BMG_MicroTextureAnalyzer
                 return;
             }
 
-            // If we were monitoring, restart workers
-            if (wasMonitoring || wasRunning)
-            {
-                try
-                {
-                    _dataQueue.Clear();
-                    _processedDataList.Clear();
-
-                    _dataCollectorWorker = new BackgroundWorker();
-                    _dataCollectorWorker.DoWork += DataCollectorWorker_ContinuousScan;
-                    _dataCollectorWorker.WorkerSupportsCancellation = true;
-                    _dataCollectorWorker.RunWorkerAsync();
-
-                    _dataCollectorWorker2 = new BackgroundWorker();
-                    _dataCollectorWorker2.DoWork += DataReaderWorker_ContinuousScan;
-                    _dataCollectorWorker2.WorkerSupportsCancellation = true;
-                    _dataCollectorWorker2.RunWorkerAsync();
-
-                    _dataProcessorWorker = new BackgroundWorker();
-                    _dataProcessorWorker.DoWork += DataProcessorWorker_ContinuousScanInput;
-                    _dataProcessorWorker.WorkerSupportsCancellation = true;
-                    _dataProcessorWorker.RunWorkerAsync();
-
-                    this.IsMonitoring = true;
-                    this._isRunning = true;
-                }
-                catch (Exception ex)
-                {
-                    this.ErrorString = "Failed to restart acquisition after rate change: " + ex.Message;
-                }
-            }
+            // DO NOT restart workers - user must explicitly start a test routine
         }
 
         public int NumPoints
@@ -1220,7 +1191,6 @@ namespace BMG_MicroTextureAnalyzer
         {
             int lastIndex = 0;
             int[] dataBuffer = new int[Math.Max(1, this._winBufSize)];
-            MccDaq.Range iaa300 = MccDaq.Range.Bip10Volts;
 
             // Wait for ActualRate to be set by the collector worker before proceeding
             int waitedForRate = 0;
@@ -1230,15 +1200,23 @@ namespace BMG_MicroTextureAnalyzer
                 waitedForRate += 10;
             }
 
-            // Use high-resolution stopwatch for real timestamps
+            if (this.ActualRate <= 0)
+            {
+                this.ErrorString = "ActualRate not set - cannot compute timestamps";
+                return;
+            }
+
+            double actualRate = (double)this.ActualRate;
+            long totalSamplesRead = 0;
+
+            // Start stopwatch to provide absolute start time
             var stopwatch = Stopwatch.StartNew();
-            double previousReadTimeSec = 0.0;
+            double startTime = stopwatch.Elapsed.TotalSeconds;
 
             // Reset wrap counter at start
             _bufferWrapCount = 0;
 
-            // Log actual rate for debugging
-            System.Diagnostics.Debug.WriteLine($"[TIMESTAMP] DataReaderWorker starting. ActualRate={this.ActualRate} Hz");
+            System.Diagnostics.Debug.WriteLine($"[TIMESTAMP] DataReaderWorker starting. ActualRate={actualRate} Hz");
 
             while (!_dataCollectorWorker2.CancellationPending && !ThresholdMet)
             {
@@ -1254,16 +1232,8 @@ namespace BMG_MicroTextureAnalyzer
                         continue;
                     }
 
-                    // Check if scan has stopped (status check for debugging)
-                    if (status == 0 && stopwatch.Elapsed.TotalSeconds > 0.1)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[TIMESTAMP] DAQ scan stopped at {stopwatch.Elapsed.TotalSeconds:F3}s, wraps: {_bufferWrapCount}");
-                    }
-
                     if (currentIndex != lastIndex)
                     {
-                        // Capture current wall-clock time for this batch
-                        double currentTimeSec = stopwatch.Elapsed.TotalSeconds;
                         int pointsToRead;
 
                         if (currentIndex > lastIndex)
@@ -1272,46 +1242,43 @@ namespace BMG_MicroTextureAnalyzer
                             MccDaq.ErrorInfo ulStat = MccDaq.MccService.WinBufToArray32(MemHandle, dataBuffer, lastIndex, pointsToRead);
                             if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
                             {
-                                var msg = "WinBufToArray32 failed: " + ulStat.Message;
-                                this.ErrorString = msg;
+                                this.ErrorString = "WinBufToArray32 failed: " + ulStat.Message;
                                 try { _board.StopBackground(FunctionType.AiFunction); } catch { }
                                 break;
                             }
 
-                            // Interpolate timestamps across the batch using real wall-clock time
+                            // Compute timestamp for each sample based on sample index and actual rate
                             for (int i = 0; i < pointsToRead; i++)
                             {
-                                // Linearly interpolate timestamp within the batch
-                                double t = previousReadTimeSec + (currentTimeSec - previousReadTimeSec) * ((double)(i + 1) / pointsToRead);
+                                double t = startTime + ((double)totalSamplesRead / actualRate);
                                 var dataChangedEventArgs = new RawDataChangedEventArgs(dataBuffer[i], t);
                                 _dataQueue.Enqueue(dataChangedEventArgs);
+                                totalSamplesRead++;
                             }
                         }
                         else
                         {
                             // Buffer wrapped
                             _bufferWrapCount++;
-                            System.Diagnostics.Debug.WriteLine($"[TIMESTAMP] Buffer wrap #{_bufferWrapCount} at {currentTimeSec:F3}s, lastIndex={lastIndex}, currentIndex={currentIndex}");
 
                             // First chunk (end of buffer)
                             int firstChunk = _winBufSize - lastIndex;
-                            int totalPointsInWrap = firstChunk + currentIndex;
 
                             if (firstChunk > 0)
                             {
                                 MccDaq.ErrorInfo ulStat = MccDaq.MccService.WinBufToArray32(MemHandle, dataBuffer, lastIndex, firstChunk);
                                 if (ulStat.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
                                 {
-                                    var msg = "WinBufToArray32 failed (first chunk): " + ulStat.Message;
-                                    this.ErrorString = msg;
+                                    this.ErrorString = "WinBufToArray32 failed (first chunk): " + ulStat.Message;
                                     try { _board.StopBackground(FunctionType.AiFunction); } catch { }
                                     break;
                                 }
                                 for (int i = 0; i < firstChunk; i++)
                                 {
-                                    double t = previousReadTimeSec + (currentTimeSec - previousReadTimeSec) * ((double)(i + 1) / totalPointsInWrap);
+                                    double t = startTime + ((double)totalSamplesRead / actualRate);
                                     var dataChangedEventArgs = new RawDataChangedEventArgs(dataBuffer[i], t);
                                     _dataQueue.Enqueue(dataChangedEventArgs);
+                                    totalSamplesRead++;
                                 }
                             }
 
@@ -1321,28 +1288,26 @@ namespace BMG_MicroTextureAnalyzer
                                 MccDaq.ErrorInfo ulStat2 = MccDaq.MccService.WinBufToArray32(MemHandle, dataBuffer, 0, currentIndex);
                                 if (ulStat2.Value != MccDaq.ErrorInfo.ErrorCode.NoErrors)
                                 {
-                                    var msg = "WinBufToArray32 failed (second chunk): " + ulStat2.Message;
-                                    this.ErrorString = msg;
+                                    this.ErrorString = "WinBufToArray32 failed (second chunk): " + ulStat2.Message;
                                     try { _board.StopBackground(FunctionType.AiFunction); } catch { }
                                     break;
                                 }
                                 for (int i = 0; i < currentIndex; i++)
                                 {
-                                    double t = previousReadTimeSec + (currentTimeSec - previousReadTimeSec) * ((double)(firstChunk + i + 1) / totalPointsInWrap);
+                                    double t = startTime + ((double)totalSamplesRead / actualRate);
                                     var dataChangedEventArgs = new RawDataChangedEventArgs(dataBuffer[i], t);
                                     _dataQueue.Enqueue(dataChangedEventArgs);
+                                    totalSamplesRead++;
                                 }
                             }
                         }
 
-                        previousReadTimeSec = currentTimeSec;
                         lastIndex = currentIndex;
                     }
                 }
                 catch (Exception ex)
                 {
-                    var msg = "DataReaderWorker error: " + ex.Message;
-                    this.ErrorString = msg;
+                    this.ErrorString = "DataReaderWorker error: " + ex.Message;
                     try { _board.StopBackground(FunctionType.AiFunction); } catch { }
                     break;
                 }
@@ -1350,7 +1315,7 @@ namespace BMG_MicroTextureAnalyzer
                 Thread.Sleep(1);
             }
 
-            System.Diagnostics.Debug.WriteLine($"[TIMESTAMP] Reader exiting. Duration: {stopwatch.Elapsed.TotalSeconds:F3}s, Total wraps: {_bufferWrapCount}");
+            System.Diagnostics.Debug.WriteLine($"[TIMESTAMP] Reader exiting. TotalSamples={totalSamplesRead}, Duration={stopwatch.Elapsed.TotalSeconds:F3}s, Expected={(double)totalSamplesRead/actualRate:F3}s, Wraps={_bufferWrapCount}");
             try { _dataCollectorWorker2.CancelAsync(); } catch { }
         }
 
