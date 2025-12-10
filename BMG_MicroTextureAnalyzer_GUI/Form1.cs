@@ -190,15 +190,31 @@ namespace BMG_MicroTextureAnalyzer_GUI
         //Convert this to event driven so that the data is updated when the event is thrown
         private async void StartChartUpdateThread()
         {
-            // Start chart thread regardless of engine running state so UI will display incoming data
-            // and file writers will be created. Guard against multiple starts.
-            if (chartUpdateThread != null && chartUpdateThread.IsAlive) return;
+            // Stop any previous chart thread FIRST before checking if we should start
+            try
+            {
+                chartCancellationTokenSource?.Cancel();
+            }
+            catch { }
 
-            // stop any previous chart thread
-            try { chartCancellationTokenSource?.Cancel(); } catch { }
+            // Wait for previous thread to exit with increased timeout
             if (chartUpdateThread != null && chartUpdateThread.IsAlive)
             {
-                try { chartUpdateThread.Join(200); } catch { }
+                try
+                {
+                    if (!chartUpdateThread.Join(500))
+                    {
+                        try { logger?.Log("Previous chart thread did not exit in time", LogLevel.Warning, "Chart"); } catch { }
+                    }
+                }
+                catch { }
+            }
+
+            // Now check if we should start - after old thread is stopped
+            if (chartUpdateThread != null && chartUpdateThread.IsAlive)
+            {
+                try { logger?.Log("Chart update thread already running, skipping start", LogLevel.Warning, "Chart"); } catch { }
+                return;
             }
 
             // prepare circular buffer: use ActualRate for 10 seconds of data
@@ -213,7 +229,12 @@ namespace BMG_MicroTextureAnalyzer_GUI
             int rate = Math.Max(1, MTAengine.ActualRate > 0 ? MTAengine.ActualRate : MTAengine.Rate);
             int windowSec = 10; // Always 10 seconds of data
             int capacity = Math.Max(1000, rate * windowSec);
-            lock (_displayLock) { displayBuffer = new CircularBuffer<(double X, double Y)>(capacity); }
+            
+            // Create new buffer with lock to prevent access during creation
+            lock (_displayLock)
+            {
+                displayBuffer = new CircularBuffer<(double X, double Y)>(capacity);
+            }
 
             // reset relative start time so chart X axis will show time since this run started
             relativeStartTime = double.NaN;
@@ -252,19 +273,28 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 {
                     MonitorResponseChart.Invoke(new Action(() =>
                     {
-                        MonitorResponseChart.Series.Clear();
-                        var s = new Series { ChartType = SeriesChartType.FastLine, XValueType = ChartValueType.Double, YValueType = ChartValueType.Double };
-                        MonitorResponseChart.Series.Add(s);
-                        try { typeof(Control).GetProperty("DoubleBuffered", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?.SetValue(MonitorResponseChart, true, null); } catch { }
+                        try
+                        {
+                            MonitorResponseChart.SuspendLayout();
+                            MonitorResponseChart.Series.Clear();
+                            var s = new Series { ChartType = SeriesChartType.FastLine, XValueType = ChartValueType.Double, YValueType = ChartValueType.Double };
+                            MonitorResponseChart.Series.Add(s);
+                            MonitorResponseChart.ResumeLayout();
+                            try { typeof(Control).GetProperty("DoubleBuffered", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?.SetValue(MonitorResponseChart, true, null); } catch { }
+                        }
+                        catch { }
                     }));
                 }
             }
             catch { }
 
+            // Create new cancellation token
             chartCancellationTokenSource = new CancellationTokenSource();
             chartUpdateThread = new Thread(ProcessDataQueue) { IsBackground = true };
             chartUpdateThreadRunning = true;
             chartUpdateThread.Start();
+
+            try { logger?.Log("Chart update thread started", LogLevel.Info, "Chart"); } catch { }
         }
 
         //This function is under-cooked and should not be used until heavy revisions
@@ -445,12 +475,22 @@ namespace BMG_MicroTextureAnalyzer_GUI
         {
             try
             {
-                if (MonitorResponseChart == null) return;
+                // Safety check: ensure cancellation hasn't been requested
+                if (chartCancellationTokenSource?.IsCancellationRequested == true)
+                {
+                    return;
+                }
+
+                if (MonitorResponseChart == null || MonitorResponseChart.IsDisposed) return;
                 if (MonitorResponseChart.Series.Count == 0)
                 {
                     MonitorResponseChart.Series.Add(new Series { ChartType = SeriesChartType.FastLine, XValueType = ChartValueType.Double, YValueType = ChartValueType.Double });
                 }
                 var s = MonitorResponseChart.Series[0];
+                
+                // Verify series is still valid
+                if (s == null || s.Points == null) return;
+
                 s.Points.DataBindXY(xs, ys);
 
                 if (xs.Length > 0 && MonitorResponseChart.ChartAreas.Count > 0)
@@ -1144,9 +1184,14 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
         private async void StartConstantMonitorButton_Click(object sender, EventArgs e)
         {
+            // Clear chart and buffers FIRST before any other operations
+            ClearChartAndBuffers();
+
             chartSaveToFile = false;
             fileSavePath = null;
             await Task.Run(() => MTAengine.StopAsync());
+            
+            // Chart already cleared by ClearChartAndBuffers, but create new series
             MonitorResponseChart.Series.Clear();
             this.relativeStartTime = double.NaN;
             Series series = new Series
@@ -1154,14 +1199,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 ChartType = SeriesChartType.Line
             };
             MonitorResponseChart.Series.Add(series);
-            // DAQDataGridView.Rows.Clear();
-            //MTAengine.SetStageSpeed(0);
-            //double.TryParse(CollectionTimeSecondsTextBox.Text, out double result);
-            //if (result == 0)
-            //{
-            //    MessageBox.Show("Please enter a valid collection time");
-            //    return;
-            //}
+
             MTAengine.DataCollectionTime = 600;
             if (double.TryParse(PlaneDetectionThresholdTextBox.Text, out var planeThresh))
             {
@@ -1170,8 +1208,6 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 MTAengine.FindPlaneThreshold = planeThresh + this.MTAengine.ForceOffset;
                 if (MTAengine.Stage != null && MTAengine.Stage.ConnectionStatus)
                 {
-                    //make this delay for 1 second to allow time for the stage to set speed
-
                     MTAengine.TranslateYStage(-1000);
                 }
                 else
@@ -1184,9 +1220,6 @@ namespace BMG_MicroTextureAnalyzer_GUI
             {
                 MessageBox.Show("Please enter a valid threshold value");
             }
-
-
-
         }
 
         private void ZeroVoltageButton_Click(object sender, EventArgs e)
@@ -1215,6 +1248,9 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
         async private void backgroundWorkerStartButton_Click(object sender, EventArgs e)
         {
+            // Clear chart and buffers FIRST
+            ClearChartAndBuffers();
+
             if (MTAengine.IsRunning || MTAengine.IsMonitoring)
             {
                 // If engine busy, stop current operation then proceed to start a new monitor
@@ -1228,9 +1264,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 ChartType = SeriesChartType.Line
             };
             MonitorResponseChart.Series.Add(series);
-            // DAQDataGridView.Rows.Clear();
             MTAengine.StartMonitor();
-
         }
 
         private void stopBackgroundWorkerButton_Click(object sender, EventArgs e)
@@ -1241,6 +1275,9 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
         private async void FractureTestStartButton_Click(object sender, EventArgs e)
         {
+            // Clear chart and buffers FIRST
+            ClearChartAndBuffers();
+
             if (MTAengine.IsRunning || MTAengine.IsMonitoring)
             {
                 await Task.Run(() => MTAengine.StopAsync());
@@ -1432,6 +1469,9 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
         private async void button1_Click(object sender, EventArgs e)
         {
+            // Clear chart and buffers FIRST
+            ClearChartAndBuffers();
+
             if (MTAengine.IsRunning || MTAengine.IsMonitoring)
             {
                 // If engine busy, stop current operation and then proceed to start a new continuous scan
@@ -1442,7 +1482,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
             fileSavePath = null;
             await Task.Run(() => MTAengine.StopAsync());
             Thread.Sleep(10);
-            //await Task.Run(() => MTAengine.Stage.Stop());
+            
             MonitorResponseChart.Series.Clear();
             this.relativeStartTime = double.NaN;
             Series series = new Series
@@ -1450,7 +1490,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 ChartType = SeriesChartType.Line
             };
             MonitorResponseChart.Series.Add(series);
-            // MTAengine.SetStageSpeed(1);
+            
             if (PlaneDetectionThresholdTextBox.Text != "")
             {
                 MTAengine.FindPlaneThreshold = double.Parse(PlaneDetectionThresholdTextBox.Text);
@@ -1465,8 +1505,6 @@ namespace BMG_MicroTextureAnalyzer_GUI
             if (double.TryParse(FractureDepthTextBox.Text, out var depth))
             {
                 MTAengine.FractureDistance = depth;
-
-
             }
             else
             {
@@ -1477,9 +1515,6 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
             MTAengine.ContinuousScanTest();
             StartChartUpdateThread();
-            //StartPositionUpdateThread();
-
-
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
@@ -1619,6 +1654,94 @@ namespace BMG_MicroTextureAnalyzer_GUI
         private bool _thresholdEventLogged = false;
         private Engine.ProcessedDataChangedEventArgs _lastProcessedSample = null;
         private readonly object _displayLock = new object();
+
+        /// <summary>
+        /// Comprehensive cleanup of chart, buffers, and threads before starting a new test.
+        /// Ensures no residual data or threads interfere with the new test.
+        /// </summary>
+        private void ClearChartAndBuffers()
+        {
+            try
+            {
+                // Step 1: Cancel and wait for chart update thread to fully exit
+                try
+                {
+                    chartCancellationTokenSource?.Cancel();
+                }
+                catch { }
+
+                // Wait for thread to exit (increased timeout to 500ms for reliability)
+                if (chartUpdateThread != null && chartUpdateThread.IsAlive)
+                {
+                    try
+                    {
+                        if (!chartUpdateThread.Join(500))
+                        {
+                            // Thread didn't exit gracefully, log warning
+                            try { logger?.Log("Chart update thread did not exit in time", LogLevel.Warning, "Chart.Cleanup"); } catch { }
+                        }
+                    }
+                    catch { }
+                }
+
+                // Step 2: Clear data queue
+                while (dataQueue.TryDequeue(out _)) { }
+
+                // Step 3: Clear display buffer with lock
+                lock (_displayLock)
+                {
+                    displayBuffer?.Clear();
+                }
+
+                // Step 4: Reset relative start time
+                relativeStartTime = double.NaN;
+
+                // Step 5: Clear chart series on UI thread with suspend/resume layout
+                try
+                {
+                    if (MonitorResponseChart != null && !MonitorResponseChart.IsDisposed)
+                    {
+                        if (MonitorResponseChart.InvokeRequired)
+                        {
+                            MonitorResponseChart.Invoke(new Action(() =>
+                            {
+                                try
+                                {
+                                    MonitorResponseChart.SuspendLayout();
+                                    MonitorResponseChart.Series.Clear();
+                                    MonitorResponseChart.ResumeLayout();
+                                    MonitorResponseChart.Invalidate();
+                                }
+                                catch { }
+                            }));
+                        }
+                        else
+                        {
+                            MonitorResponseChart.SuspendLayout();
+                            MonitorResponseChart.Series.Clear();
+                            MonitorResponseChart.ResumeLayout();
+                            MonitorResponseChart.Invalidate();
+                        }
+                    }
+                }
+                catch { }
+
+                // Step 6: Dispose old cancellation token source
+                try
+                {
+                    chartCancellationTokenSource?.Dispose();
+                    chartCancellationTokenSource = null;
+                }
+                catch { }
+
+                // Small delay to ensure UI updates complete
+                Thread.Sleep(50);
+            }
+            catch (Exception ex)
+            {
+                try { logger?.Log($"Error during chart cleanup: {ex.Message}", LogLevel.Error, "Chart.Cleanup"); } catch { }
+            }
+        }
     }
 }
 
