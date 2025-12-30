@@ -1228,9 +1228,20 @@ namespace BMG_MicroTextureAnalyzer_GUI
             MTAengine.DataCollectionTime = 600;
             if (double.TryParse(PlaneDetectionThresholdTextBox.Text, out var planeThresh))
             {
-                MTAengine.FindPlane();
+                // SET THRESHOLD DIRECTLY - do NOT add ForceOffset here
+                // The ForceOffset is already applied to the measured force in the Engine,
+                // so the threshold should be the raw user-entered value
+                MTAengine.FindPlaneThreshold = planeThresh;
+                
+                // START CHART THREAD FIRST (before engine starts collecting data)
                 StartChartUpdateThread();
-                MTAengine.FindPlaneThreshold = planeThresh + this.MTAengine.ForceOffset;
+                
+                // WAIT for chart thread to be ready
+                await Task.Delay(200);  // Give chart thread time to initialize
+                
+                // NOW start the engine
+                MTAengine.FindPlane();
+                
                 if (MTAengine.Stage != null && MTAengine.Stage.ConnectionStatus)
                 {
                     MTAengine.TranslateYStage(-1000);
@@ -1239,7 +1250,6 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 {
                     MessageBox.Show("Motion controller is not connected. Skipping stage move.", "Not Connected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
-                
             }
             else
             {

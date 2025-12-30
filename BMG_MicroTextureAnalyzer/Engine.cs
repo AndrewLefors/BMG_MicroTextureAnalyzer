@@ -212,13 +212,16 @@ namespace BMG_MicroTextureAnalyzer
             {
                 return;
             }
+            
+            // Set conversion factors based on test mode, defaulting to puncture test (10g load cell)
             if (this._isFractureTest)
             {
                 _voltageConversion = _fractureTestPoundConversion;
                 _newtonConversion = _fractureTestNewtonConversion;
             }
-            else if (this._isPunctureTest)
+            else
             {
+                // Default to puncture test conversions for 10g load cell
                 _voltageConversion = _punctureTestKilogramConversion;
                 _newtonConversion = _punctureTestNewtonConversion;
             }
@@ -436,13 +439,15 @@ namespace BMG_MicroTextureAnalyzer
 
             LogInfo($"Continuous scan started: time={DataCollectionTime:F1} s, rate={Rate} Hz", "Engine.Event");
 
+            // Set conversion factors based on test mode, defaulting to puncture test (10g load cell)
             if (this._isFractureTest)
             {
                 _voltageConversion = _fractureTestPoundConversion;
                 _newtonConversion = _fractureTestNewtonConversion;
             }
-            else if (this._isPunctureTest)
+            else
             {
+                // Default to puncture test conversions for 10g load cell
                 _voltageConversion = _punctureTestKilogramConversion;
                 _newtonConversion = _punctureTestNewtonConversion;
             }
@@ -1522,6 +1527,8 @@ namespace BMG_MicroTextureAnalyzer
         {
             MccDaq.Range iaa300 = MccDaq.Range.Bip10Volts;
             MccDaq.Range range = MccDaq.Range.Bip10Volts;
+            long samplesProcessed = 0;  // Track sample count to allow chart to populate
+            
             while (!((BackgroundWorker)sender).CancellationPending && !ThresholdMet)
             {
                 try
@@ -1540,18 +1547,27 @@ namespace BMG_MicroTextureAnalyzer
                         ProcessedDataChangedEventArgs processedData = new ProcessedDataChangedEventArgs(voltage, args.TimeStamp, this.VoltageConversion, this.NewtonConversion, this.YStagePosition, pos.positionMm, pos.timestampSec);
                         AddRecentForceSample(processedData.Newtons);
                         processedData.Newtons = processedData.Newtons - this.ForceOffset;
-                        Task.Run(() =>
+                        
+                        samplesProcessed++;  // Increment counter
+                        
+                        // Only check threshold after minimum samples collected (allow chart to populate)
+                        if (samplesProcessed > 100)
                         {
-                            if (processedData.Newtons >= this.FindPlaneThreshold + this.VoltageOffset)
+                            Task.Run(() =>
                             {
-                                this.ThresholdMet = true;
-                                // Stop immediately on engine side to ensure stage halts without delay
-                                try { StopAllImmediate(); } catch { }
-                                this.IsStageRunning = false;
-                                this._board.StopBackground(FunctionType.AiFunction);
-                                this.IsMonitoring = false;
-                            }
-                        });
+                                // Compare offset-corrected force against unmodified threshold (no VoltageOffset)
+                                if (processedData.Newtons >= this.FindPlaneThreshold)
+                                {
+                                    this.ThresholdMet = true;
+                                    // Stop immediately on engine side to ensure stage halts without delay
+                                    try { StopAllImmediate(); } catch { }
+                                    this.IsStageRunning = false;
+                                    this._board.StopBackground(FunctionType.AiFunction);
+                                    this.IsMonitoring = false;
+                                }
+                            });
+                        }
+                        
                         lock (_dataLock)
                         {
                             _processedDataList.Add(processedData);
