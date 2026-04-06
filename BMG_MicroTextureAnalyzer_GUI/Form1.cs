@@ -58,7 +58,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
         private Task fileWriterTask;
         private CancellationTokenSource chartCancellationTokenSource;
         private Logger logger;
-        
+
         // fracture test file writer fields
         private bool fractureSaving = false;
         private string fractureFileSavePath = null;
@@ -103,7 +103,9 @@ namespace BMG_MicroTextureAnalyzer_GUI
             MTAengine.DataChanged += MTAengine_DataChanged;
             board = new MccDaq.MccBoard(1);
 
-
+            engine.xpsPositionChanged += pos => lblPosition.Invoke(() => lblPosition.Text = $"{pos:F4} mm");
+            engine.StateChanged += state => lblStatus.Invoke(() => lblStatus.Text = state.ToString());
+            engine.ErrorOccurred += msg => logger?.Log(msg, LogLevel.Error, "Engine");
             MTAengine = engine;
             MTAengine.PropertyChanged += MTAengine_PropertyChanged;
             // logger initialization deferred until form is shown to ensure control handles are created
@@ -132,9 +134,9 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 }
             }
             catch { /* don't fail startup if image can't be loaded */ }
-             this.MotionControllerSubdivisionComboBox.DataSource = subdivisionList;
-             this.MotionControllerSubdivisionComboBox.SelectedIndex = 0;
-             this.DAQ_StageSpeedComboBox.DataSource = stageSpeedList;
+            this.MotionControllerSubdivisionComboBox.DataSource = subdivisionList;
+            this.MotionControllerSubdivisionComboBox.SelectedIndex = 0;
+            this.DAQ_StageSpeedComboBox.DataSource = stageSpeedList;
             //this.AverageWindowComboBox.DataSource = averageWindowList;
             //this.AverageWindowComboBox.SelectedIndexChanged += AverageWindowComboBox_SelectedIndexChanged;
             //DAQDataGridView.Columns.Add("Time", "Time");
@@ -225,11 +227,11 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 await Task.Delay(50);
                 waitedMs += 50;
             }
-            
+
             int rate = Math.Max(1, MTAengine.ActualRate > 0 ? MTAengine.ActualRate : MTAengine.Rate);
             int windowSec = 10; // Always 10 seconds of data
             int capacity = Math.Max(1000, rate * windowSec);
-            
+
             // Create new buffer with lock to prevent access during creation
             lock (_displayLock)
             {
@@ -488,7 +490,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 }
 
                 var s = MonitorResponseChart.Series[0];
-                
+
                 // Verify series is still valid
                 if (s == null || s.Points == null) return;
 
@@ -775,7 +777,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
             {
                 try { logger?.Log(MTAengine.ErrorString, LogLevel.Error, "Engine"); } catch { }
             }
-            
+
             // Forward MotionController messages
             if (e.PropertyName == "MotionController.ErrorMessage")
             {
@@ -789,10 +791,10 @@ namespace BMG_MicroTextureAnalyzer_GUI
             // Log MotionController configuration changes
             if (e.PropertyName == "MotionController.PulseEquivalent")
             {
-                try 
-                { 
-                    logger?.Log($"Pulse equivalent changed: {MTAengine.Stage.PulseEquivalent:F6}", LogLevel.Info, "Stage.Config"); 
-                } 
+                try
+                {
+                    logger?.Log($"Pulse equivalent changed: {MTAengine.Stage.PulseEquivalent:F6}", LogLevel.Info, "Stage.Config");
+                }
                 catch { }
             }
 
@@ -800,10 +802,10 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 e.PropertyName == "MotionController.LeadScrewPitch" ||
                 e.PropertyName == "MotionController.Subdivision")
             {
-                try 
-                { 
-                    logger?.Log($"Stage config changed: Motor={MTAengine.Stage.MotorDegree}°, Pitch={MTAengine.Stage.LeadScrewPitch}mm, Subdiv={MTAengine.Stage.Subdivision}", LogLevel.Info, "Stage.Config"); 
-                } 
+                try
+                {
+                    logger?.Log($"Stage config changed: Motor={MTAengine.Stage.MotorDegree}°, Pitch={MTAengine.Stage.LeadScrewPitch}mm, Subdiv={MTAengine.Stage.Subdivision}", LogLevel.Info, "Stage.Config");
+                }
                 catch { }
             }
 
@@ -1209,13 +1211,13 @@ namespace BMG_MicroTextureAnalyzer_GUI
             // Stop any existing test FIRST
             await MTAengine.StopAsync();
             await Task.Delay(100);
-            
+
             // Clear chart and buffers
             ClearChartAndBuffers();
 
             chartSaveToFile = false;
             fileSavePath = null;
-            
+
             // Chart already cleared by ClearChartAndBuffers, but create new series
             MonitorResponseChart.Series.Clear();
             this.relativeStartTime = double.NaN;
@@ -1232,16 +1234,16 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 // The ForceOffset is already applied to the measured force in the Engine,
                 // so the threshold should be the raw user-entered value
                 MTAengine.FindPlaneThreshold = planeThresh;
-                
+
                 // START CHART THREAD FIRST (before engine starts collecting data)
                 StartChartUpdateThread();
-                
+
                 // WAIT for chart thread to be ready
                 await Task.Delay(200);  // Give chart thread time to initialize
-                
+
                 // NOW start the engine
                 MTAengine.FindPlane();
-                
+
                 if (MTAengine.Stage != null && MTAengine.Stage.ConnectionStatus)
                 {
                     MTAengine.TranslateYStage(-1000);
@@ -1286,7 +1288,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
             // Stop any existing test FIRST
             await MTAengine.StopAsync();
             await Task.Delay(100);
-            
+
             // Clear chart and buffers
             ClearChartAndBuffers();
 
@@ -1310,7 +1312,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
             // Stop any existing test FIRST
             await MTAengine.StopAsync();
             await Task.Delay(100);
-            
+
             // Clear chart and buffers
             ClearChartAndBuffers();
 
@@ -1321,7 +1323,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 ChartType = SeriesChartType.Line
             };
             MonitorResponseChart.Series.Add(series);
-            
+
             double.TryParse(CollectionTimeSecondsTextBox.Text, out double result);
             if (result == 0)
             {
@@ -1335,7 +1337,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
             }
             MTAengine.DataCollectionTime = result;
             MTAengine.FindPlaneThreshold = 100 + voltageOffset;
-            
+
             if (double.TryParse(FractureDepthTextBox.Text, out var depth))
             {
                 using (var sfd = new SaveFileDialog())
@@ -1346,11 +1348,11 @@ namespace BMG_MicroTextureAnalyzer_GUI
                     {
                         return;
                     }
-                    
+
                     // Set up ONLY the fracture file writer - do NOT use chartSaveToFile
                     chartSaveToFile = false;
                     fileSavePath = null;
-                    
+
                     fractureFileSavePath = sfd.FileName;
                     fractureSaving = true;
                     fractureFileWriteQueue = new BlockingCollection<string>(new ConcurrentQueue<string>());
@@ -1385,7 +1387,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
                 MTAengine.FractureDistance = depth;
                 DialogResult dresult = MessageBox.Show("Current Fracture Depth:" + MTAengine.FractureDistance);
-                
+
                 if (MTAengine.Stage != null && MTAengine.Stage.ConnectionStatus)
                 {
                     MTAengine.FractureTest();
@@ -1502,13 +1504,13 @@ namespace BMG_MicroTextureAnalyzer_GUI
             // Stop any existing test FIRST
             await MTAengine.StopAsync();
             await Task.Delay(100);
-            
+
             // Clear chart and buffers
             ClearChartAndBuffers();
 
             chartSaveToFile = false;
             fileSavePath = null;
-            
+
             MonitorResponseChart.Series.Clear();
             this.relativeStartTime = double.NaN;
             Series series = new Series
@@ -1516,7 +1518,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 ChartType = SeriesChartType.Line
             };
             MonitorResponseChart.Series.Add(series);
-            
+
             if (PlaneDetectionThresholdTextBox.Text != "")
             {
                 MTAengine.FindPlaneThreshold = double.Parse(PlaneDetectionThresholdTextBox.Text);
@@ -1749,6 +1751,24 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
             base.OnFormClosing(e);
             Environment.Exit(0);
+        }
+
+        private void groupBox1_Enter(object sender, EventArgs e)
+        {
+
+        }
+
+        private async void XPSTestMove_Click(object sender, EventArgs e)
+        {
+
+            await MTAengine.MoveRelativeAsync(1.0);
+
+        }
+
+        private async void button3_Click(object sender, EventArgs e)
+        {
+            await MTAengine.ConnectAsync();
+            await MTAengine.InitializeAsync();
         }
     }
 }

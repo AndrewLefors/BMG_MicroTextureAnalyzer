@@ -29,9 +29,9 @@
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
-            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea2 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
-            System.Windows.Forms.DataVisualization.Charting.Legend legend2 = new System.Windows.Forms.DataVisualization.Charting.Legend();
-            System.Windows.Forms.DataVisualization.Charting.Series series2 = new System.Windows.Forms.DataVisualization.Charting.Series();
+            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea1 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
+            System.Windows.Forms.DataVisualization.Charting.Legend legend1 = new System.Windows.Forms.DataVisualization.Charting.Legend();
+            System.Windows.Forms.DataVisualization.Charting.Series series1 = new System.Windows.Forms.DataVisualization.Charting.Series();
             MMELogoPictureBox = new PictureBox();
             backgroundWorker1 = new System.ComponentModel.BackgroundWorker();
             contextMenuStrip1 = new ContextMenuStrip(components);
@@ -138,6 +138,12 @@
             ConnectionStatusLabel = new Label();
             ConnectionStatusResponseLabel = new Label();
             StepperMotorValuesGroupBox = new GroupBox();
+            groupBox1 = new GroupBox();
+            groupBox2 = new GroupBox();
+            lblStatus = new Label();
+            lblPosition = new Label();
+            button3 = new Button();
+            xpsTestMove = new Button();
             YAxisPropertiesGroupBox = new GroupBox();
             MotionControllerStatusResponseLabel = new Label();
             StopMotionControllerButton = new Button();
@@ -169,6 +175,8 @@
             MotionControllerConnectionSettingsGroupBox.SuspendLayout();
             MotionControllerConnectionTableLayout.SuspendLayout();
             StepperMotorValuesGroupBox.SuspendLayout();
+            groupBox1.SuspendLayout();
+            groupBox2.SuspendLayout();
             YAxisPropertiesGroupBox.SuspendLayout();
             tabControl1.SuspendLayout();
             SuspendLayout();
@@ -858,16 +866,16 @@
             // MonitorResponseChart
             // 
             MonitorResponseChart.BackColor = Color.Silver;
-            chartArea2.Name = "ChartArea1";
-            MonitorResponseChart.ChartAreas.Add(chartArea2);
-            legend2.Name = "Legend1";
-            MonitorResponseChart.Legends.Add(legend2);
+            chartArea1.Name = "ChartArea1";
+            MonitorResponseChart.ChartAreas.Add(chartArea1);
+            legend1.Name = "Legend1";
+            MonitorResponseChart.Legends.Add(legend1);
             MonitorResponseChart.Location = new Point(8, 112);
             MonitorResponseChart.Name = "MonitorResponseChart";
-            series2.ChartArea = "ChartArea1";
-            series2.Legend = "Legend1";
-            series2.Name = "Series1";
-            MonitorResponseChart.Series.Add(series2);
+            series1.ChartArea = "ChartArea1";
+            series1.Legend = "Legend1";
+            series1.Name = "Series1";
+            MonitorResponseChart.Series.Add(series1);
             MonitorResponseChart.Size = new Size(476, 434);
             MonitorResponseChart.TabIndex = 7;
             MonitorResponseChart.Text = "chart1";
@@ -1428,13 +1436,76 @@
             // 
             // StepperMotorValuesGroupBox
             // 
+            StepperMotorValuesGroupBox.Controls.Add(groupBox1);
             StepperMotorValuesGroupBox.Controls.Add(YAxisPropertiesGroupBox);
             StepperMotorValuesGroupBox.Location = new Point(389, 3);
             StepperMotorValuesGroupBox.Name = "StepperMotorValuesGroupBox";
-            StepperMotorValuesGroupBox.Size = new Size(404, 540);
+            StepperMotorValuesGroupBox.Size = new Size(719, 540);
             StepperMotorValuesGroupBox.TabIndex = 4;
             StepperMotorValuesGroupBox.TabStop = false;
             StepperMotorValuesGroupBox.Text = "Motion Controller Values";
+            // 
+            // groupBox1
+            // 
+            groupBox1.Controls.Add(groupBox2);
+            groupBox1.Location = new Point(318, 0);
+            groupBox1.Name = "groupBox1";
+            groupBox1.Size = new Size(404, 540);
+            groupBox1.TabIndex = 5;
+            groupBox1.TabStop = false;
+            groupBox1.Text = "XPSMotion Controller Values";
+            groupBox1.Enter += groupBox1_Enter;
+            // 
+            // groupBox2
+            // 
+            groupBox2.Controls.Add(lblStatus);
+            groupBox2.Controls.Add(lblPosition);
+            groupBox2.Controls.Add(button3);
+            groupBox2.Controls.Add(xpsTestMove);
+            groupBox2.Location = new Point(1, 22);
+            groupBox2.Name = "groupBox2";
+            groupBox2.Size = new Size(316, 235);
+            groupBox2.TabIndex = 0;
+            groupBox2.TabStop = false;
+            groupBox2.Text = "Y-Stage Properties";
+            // 
+            // lblStatus
+            // 
+            lblStatus.AutoSize = true;
+            lblStatus.Location = new Point(4, 183);
+            lblStatus.Name = "lblStatus";
+            lblStatus.Size = new Size(38, 15);
+            lblStatus.TabIndex = 4;
+            lblStatus.Text = "label1";
+            // 
+            // lblPosition
+            // 
+            lblPosition.AutoSize = true;
+            lblPosition.Location = new Point(3, 164);
+            lblPosition.Name = "lblPosition";
+            lblPosition.Size = new Size(38, 15);
+            lblPosition.TabIndex = 3;
+            lblPosition.Text = "label1";
+            // 
+            // button3
+            // 
+            button3.Location = new Point(234, 195);
+            button3.Name = "button3";
+            button3.Size = new Size(75, 23);
+            button3.TabIndex = 2;
+            button3.Text = "Stop";
+            button3.UseVisualStyleBackColor = true;
+            button3.Click += button3_Click;
+            // 
+            // xpsTestMove
+            // 
+            xpsTestMove.Location = new Point(232, 164);
+            xpsTestMove.Name = "xpsTestMove";
+            xpsTestMove.Size = new Size(75, 23);
+            xpsTestMove.TabIndex = 1;
+            xpsTestMove.Text = "Send Y-Home";
+            xpsTestMove.UseVisualStyleBackColor = true;
+            xpsTestMove.Click += XPSTestMove_Click;
             // 
             // YAxisPropertiesGroupBox
             // 
@@ -1541,6 +1612,9 @@
             MotionControllerConnectionTableLayout.ResumeLayout(false);
             MotionControllerConnectionTableLayout.PerformLayout();
             StepperMotorValuesGroupBox.ResumeLayout(false);
+            groupBox1.ResumeLayout(false);
+            groupBox2.ResumeLayout(false);
+            groupBox2.PerformLayout();
             YAxisPropertiesGroupBox.ResumeLayout(false);
             YAxisPropertiesGroupBox.PerformLayout();
             tabControl1.ResumeLayout(false);
@@ -1660,5 +1734,11 @@
         private Label PositionReadingLabel;
         private Label label18;
         private TextBox LogTextBox;
+        private GroupBox groupBox1;
+        private GroupBox groupBox2;
+        private Label lblPosition;
+        private Button button3;
+        private Button xpsTestMove;
+        private Label lblStatus;
     }
 }

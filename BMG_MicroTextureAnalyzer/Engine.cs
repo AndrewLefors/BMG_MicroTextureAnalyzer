@@ -14,6 +14,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Diagnostics;
+using System.Security.Cryptography.X509Certificates;
 
 namespace BMG_MicroTextureAnalyzer
 {
@@ -75,7 +76,17 @@ namespace BMG_MicroTextureAnalyzer
         private double _newtonConversion;
 
         private double _voltageOffset = 0.0;
+        //ADDING XPS SHTUFF HOL' UP
+        private XpsStageController _xpsStage {  get; set; }
 
+        public event Action<double> xpsPositionChanged;
+        public event Action<XpsStageController.StageState> StateChanged;
+        public event Action<string> ErrorOccurred;
+        public event Action<XpsStageController.MoveResult> MoveCompleted;
+        public event Action<double, double> MotionParametersChanged;
+
+
+        //END PART 1 XPS SHTUFF BUT MORE TO FOLLOW SOMEWHERE SPAGHETTI
         // Force offset (Newtons) - engine-side zeroing target
         private double _forceOffset = 0.0;
         public double ForceOffset
@@ -1793,10 +1804,51 @@ namespace BMG_MicroTextureAnalyzer
             _isStageMoving = false;
             _dataLock = new object();
             this._board = new MccBoard(1);
+            //YUH MORE XPS SHTUFF FOR ENGINE CLASS, YUH YUH
+            _xpsStage = new XpsStageController
+            {
+                IpAddress = "192.168.254.254",
+                PositionerName = "Group1.Pos"
+            };
+
+            _xpsStage.PositionChanged += pos => xpsPositionChanged?.Invoke(pos);
+            _xpsStage.StateChanged += state => StateChanged?.Invoke(state);
+            _xpsStage.ErrorOccurred += msg => ErrorOccurred?.Invoke(msg);
+            _xpsStage.MoveCompleted += result => MoveCompleted?.Invoke(result);
+            _xpsStage.MotionParametersChanged += (vel, accl) => MotionParametersChanged?.Invoke(vel, accl);
 
 
         }
 
+        //Connect Method for XPS Stage
+        public async Task ConnectAsync()
+        {
+            await _xpsStage.ConnectAsync();
+        }
+        public async Task InitializeAsync()
+        {
+            await _xpsStage.InitializeAsync();
+        }
+        public async Task MoveAbsoluteAsync(double pos) => await _xpsStage.MoveAbsoluteAsync(pos);
+        public async Task MoveRelativeAsync(double delta) => await _xpsStage.MoveRelativeAsync(delta);
+        public async Task AbortAsync() => await _xpsStage.AbortAsync();
+        public async Task RetractAsync(double pos = 0.0) => await _xpsStage.RetractAsync(pos);
+        public void SetVelocity(double velocity) => _xpsStage.SetVelocity(velocity);
+        public void SetAcceleration(double acceleration) => _xpsStage.SetAcceleration(acceleration);
+        public void SetMotionParameters(double velocity, double acceleration) => _xpsStage.SetMotionParameters(velocity, acceleration);
+
+
+
+        //Disconnect from xps stage
+        public void Dispose()
+        {
+            _xpsStage.Dispose();
+        }
+
+
+        
+
+        // END OF XPS SHTUFF FOR ENGINE CLASS, YUH YUH NOW BACK TO NORMAL
 
         public void GetAvailableDevices()
         {
