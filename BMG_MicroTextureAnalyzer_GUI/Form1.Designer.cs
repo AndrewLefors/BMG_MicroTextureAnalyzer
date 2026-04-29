@@ -139,6 +139,7 @@
             ConnectionStatusResponseLabel = new Label();
             StepperMotorValuesGroupBox = new GroupBox();
             groupBox1 = new GroupBox();
+            btnStop = new Button();
             groupBox2 = new GroupBox();
             lblStatus = new Label();
             lblPosition = new Label();
@@ -706,12 +707,12 @@
             // 
             radioButton1.Anchor = AnchorStyles.None;
             radioButton1.AutoSize = true;
-            radioButton1.Location = new Point(23, 32);
+            radioButton1.Location = new Point(21, 32);
             radioButton1.Name = "radioButton1";
-            radioButton1.Size = new Size(89, 19);
+            radioButton1.Size = new Size(92, 19);
             radioButton1.TabIndex = 0;
             radioButton1.TabStop = true;
-            radioButton1.Text = "LSB200-25lb";
+            radioButton1.Text = "LSB200-250g";
             radioButton1.UseVisualStyleBackColor = true;
             radioButton1.CheckedChanged += radioButton1_CheckedChanged;
             // 
@@ -1447,6 +1448,7 @@
             // 
             // groupBox1
             // 
+            groupBox1.Controls.Add(btnStop);
             groupBox1.Controls.Add(groupBox2);
             groupBox1.Location = new Point(318, 0);
             groupBox1.Name = "groupBox1";
@@ -1455,6 +1457,16 @@
             groupBox1.TabStop = false;
             groupBox1.Text = "XPSMotion Controller Values";
             groupBox1.Enter += groupBox1_Enter;
+            // 
+            // btnStop
+            // 
+            btnStop.Location = new Point(314, 186);
+            btnStop.Name = "btnStop";
+            btnStop.Size = new Size(75, 23);
+            btnStop.TabIndex = 5;
+            btnStop.Text = "Stop";
+            btnStop.UseVisualStyleBackColor = true;
+            btnStop.Click += btnStop_Click;
             // 
             // groupBox2
             // 
@@ -1493,7 +1505,7 @@
             button3.Name = "button3";
             button3.Size = new Size(75, 23);
             button3.TabIndex = 2;
-            button3.Text = "Stop";
+            button3.Text = "Connect";
             button3.UseVisualStyleBackColor = true;
             button3.Click += button3_Click;
             // 
@@ -1503,7 +1515,7 @@
             xpsTestMove.Name = "xpsTestMove";
             xpsTestMove.Size = new Size(75, 23);
             xpsTestMove.TabIndex = 1;
-            xpsTestMove.Text = "Send Y-Home";
+            xpsTestMove.Text = "Move Test";
             xpsTestMove.UseVisualStyleBackColor = true;
             xpsTestMove.Click += XPSTestMove_Click;
             // 
@@ -1740,5 +1752,6 @@
         private Button button3;
         private Button xpsTestMove;
         private Label lblStatus;
+        private Button btnStop;
     }
 }

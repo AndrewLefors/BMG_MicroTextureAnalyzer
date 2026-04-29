@@ -56,6 +56,7 @@ namespace BMG_MicroTextureAnalyzer
 
         private bool _isPunctureTest;
         private bool _isFractureTest;
+        private bool _is250gTest;
 
         private bool thresholdMet = false;
         private bool _isStageMoving;
@@ -69,6 +70,8 @@ namespace BMG_MicroTextureAnalyzer
         private double _fractureTestNewtonConversion = 4.44822;
         private double _punctureTestKilogramConversion = 1e-3;//7.93688e-4;//7.93688;//3.893e-4;//3.96844;
         private double _punctureTestNewtonConversion = 9.81;// 1kg = 9.81N
+        private double _250gTestKilogramConversion = 0.026802; //Assuming dip switch set to 2.0mV/V 
+        private double _250gTestNewtonConversion = 9.81;
 
         private double _findPlaneThreshold = 5;
 
@@ -123,6 +126,47 @@ namespace BMG_MicroTextureAnalyzer
                 }
             }
         }
+
+        //give access to set puncture test flag
+        public bool IsPunctureTest
+        {
+            get { return _isPunctureTest; }
+            set
+            {
+                if (_isPunctureTest != value)
+                {
+                    _isPunctureTest = value;
+                    OnPropertyChanged(nameof(IsPunctureTest));
+                }
+            }
+        }
+        //Give access for fracture test flag
+        public bool IsFractureTest
+        {
+            get { return _isFractureTest; }
+            set
+            {
+                if (_isFractureTest != value)
+                {
+                    _isFractureTest = value;
+                    OnPropertyChanged(nameof(IsFractureTest));
+                }
+            }
+        }
+         public bool Is250gTest
+        {
+            get { return _is250gTest; }
+            set
+            {
+                if (_is250gTest != value)
+                {
+                    _is250gTest = value;
+                    OnPropertyChanged(nameof(Is250gTest));
+                }
+            }
+        }
+
+        
 
         private double _dataCollectionTime = 10; //default of 10 seconds
         private int _numPoints = 10000; //default of 10000 points (10 seconds @ 1kHz)
@@ -225,16 +269,21 @@ namespace BMG_MicroTextureAnalyzer
             }
             
             // Set conversion factors based on test mode, defaulting to puncture test (10g load cell)
-            if (this._isFractureTest)
+            if (this.IsFractureTest)
             {
                 _voltageConversion = _fractureTestPoundConversion;
                 _newtonConversion = _fractureTestNewtonConversion;
             }
-            else
+            else if (this.IsPunctureTest)
             {
                 // Default to puncture test conversions for 10g load cell
                 _voltageConversion = _punctureTestKilogramConversion;
                 _newtonConversion = _punctureTestNewtonConversion;
+            }
+            else if (this.Is250gTest) 
+            {
+                _voltageConversion = _250gTestKilogramConversion;
+                _newtonConversion = _250gTestNewtonConversion;
             }
 
             // allocate DAQ buffer
@@ -334,8 +383,8 @@ namespace BMG_MicroTextureAnalyzer
             _isMonitoring = true;
              // Move the stage 100mm down to get the stage on the sample
             _isStageMoving = true;
-            _isFractureTest = true;
-            _isPunctureTest = false;
+            //_isFractureTest = true; //changing to UI setting which it is
+            //_isPunctureTest = false;
             _dataQueue.Clear();
             _processedDataList.Clear();
             try
@@ -409,8 +458,8 @@ namespace BMG_MicroTextureAnalyzer
             _punctureTestComplete = false;
             ThresholdMet = false;
             _isRunning = true;
-            _isPunctureTest = true;
-            _isFractureTest = false;
+            //_isPunctureTest = true;
+            //_isFractureTest = false; //switching to UI setting which test it is
             _dataQueue.Clear();
             _processedDataList.Clear();
 
@@ -451,16 +500,27 @@ namespace BMG_MicroTextureAnalyzer
             LogInfo($"Continuous scan started: time={DataCollectionTime:F1} s, rate={Rate} Hz", "Engine.Event");
 
             // Set conversion factors based on test mode, defaulting to puncture test (10g load cell)
-            if (this._isFractureTest)
+            if (this.IsFractureTest)
             {
                 _voltageConversion = _fractureTestPoundConversion;
                 _newtonConversion = _fractureTestNewtonConversion;
             }
-            else
+            else if (this.IsPunctureTest)
             {
                 // Default to puncture test conversions for 10g load cell
                 _voltageConversion = _punctureTestKilogramConversion;
                 _newtonConversion = _punctureTestNewtonConversion;
+            }
+            else if (this.Is250gTest)
+            {
+                _voltageConversion = _250gTestKilogramConversion;
+                _newtonConversion = _250gTestNewtonConversion;
+            }
+            else 
+            {
+                //send error string
+                this.ErrorString = "Error: No test type selected. Please select a test type before starting continuous scan.";
+                return;
             }
 
             // Free the buffer and allocate a new one to Memhandle
@@ -487,8 +547,8 @@ namespace BMG_MicroTextureAnalyzer
             _isMonitoring = true;
             _isRunning = true;
             _isStageMoving = false;
-            _isFractureTest = false;
-            _isPunctureTest = false;
+            //_isFractureTest = false;
+            //_isPunctureTest = false;
             ThresholdMet = false;
             _dataQueue.Clear();
             _processedDataList.Clear();
@@ -948,6 +1008,32 @@ namespace BMG_MicroTextureAnalyzer
             }
         }
 
+        public double NewtonConversion250g //This is for the _250g load cell used in the fracture test. It is not used in the puncture test, which uses a 10g load cell.
+        {
+            get { return _250gTestNewtonConversion; }
+            set
+            {
+                if (_250gTestNewtonConversion != value)
+                {
+                    _250gTestNewtonConversion = value;
+                    OnPropertyChanged(nameof(NewtonConversion250g));
+                }
+            }
+        }
+
+        public double VoltageConversion250g
+        {
+            get { return _250gTestKilogramConversion; }
+            set
+            {
+                if (_250gTestKilogramConversion != value)
+                {
+                    _250gTestKilogramConversion = value;
+                    OnPropertyChanged(nameof(VoltageConversion250g));
+                }
+            }
+        }
+
         public double PunctureVoltageConversion
         {
             get { return _punctureTestKilogramConversion; }
@@ -1028,8 +1114,8 @@ namespace BMG_MicroTextureAnalyzer
             _isRunning = false;
             _isMonitoring = false;
             _isStageMoving = false;
-            _isFractureTest = false;
-            _isPunctureTest = false;
+            //_isFractureTest = false;
+            //_isPunctureTest = false;
             ThresholdMet = false;
 
             LogInfo("Engine stopped", "Engine.Event");
@@ -1134,7 +1220,7 @@ namespace BMG_MicroTextureAnalyzer
             {
                 this._board = new MccBoard(1);
             }
-            int channel = 7;
+            int channel = 4;
             MccDaq.Range range = MccDaq.Range.Bip10Volts;
 
             // Use high-resolution stopwatch for real timestamps
@@ -1174,7 +1260,7 @@ namespace BMG_MicroTextureAnalyzer
             {
                 this._board = new MccBoard(1);
             }
-            int channel = 7;
+            int channel = 4;
 
             MccDaq.Range iaa300 = MccDaq.Range.Bip10Volts;
             int rate = this.Rate;
@@ -1360,7 +1446,7 @@ namespace BMG_MicroTextureAnalyzer
                 this._board = new MccBoard(1);
             }
 
-            int channel = 7;
+            int channel = 4;
             MccDaq.Range range = MccDaq.Range.Bip10Volts;
 
             // Use high-resolution stopwatch for real timestamps
@@ -1400,7 +1486,7 @@ namespace BMG_MicroTextureAnalyzer
             {
                 this._board = new MccBoard(1);
             }
-            int channel = 7;
+            int channel = 4;
 
             MccDaq.Range range = MccDaq.Range.Bip10Volts;
             int rate = this.Rate;
@@ -1469,6 +1555,9 @@ namespace BMG_MicroTextureAnalyzer
                             this.ThresholdMet = true;
                             // Immediately stop stage and acquisition to prevent further motion/samples
                             try { StopAllImmediate(); } catch { }
+                            //Now retract 100um
+                            try { this.Stage.MoveYAbsolute(0.1);  } catch { }
+
                         }
                         lock (_dataLock)
                         {

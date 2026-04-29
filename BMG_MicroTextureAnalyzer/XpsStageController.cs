@@ -30,7 +30,7 @@ public class XpsStageController : IDisposable
     // =========================================================================
 
     /// <summary>XPS controller IP address. Default: 192.168.0.254</summary>
-    public string IpAddress { get; set; } = "192.168.0.254";
+    public string IpAddress { get; set; } = "192.168.254.254";
 
     /// <summary>
     /// Full positioner name from System.ini.
@@ -45,17 +45,17 @@ public class XpsStageController : IDisposable
     /// <summary>Socket timeout in ms.</summary>
     public int TimeoutMs { get; set; } = 10000;
 
-    /// <summary>Position polling interval in ms. 50ms = 20Hz.</summary>
-    public int PollingIntervalMs { get; set; } = 50;
+    /// <summary>Position polling interval in ms. 25ms = 40Hz.</summary>
+    public int PollingIntervalMs { get; set; } = 25;
 
     // =========================================================================
     // MOTION PARAMETERS — safe defaults for M-IMS300V (max speed 20 mm/s)
     // =========================================================================
 
-    private double _velocity     = 5.0;   // mm/s
-    private double _acceleration = 10.0;  // mm/s²
-    private double _minJerkTime  = 0.0;
-    private double _maxJerkTime  = 0.0;
+    private double _velocity     = 0.0100;   // mm/s
+    private double _acceleration = 80.0;  // mm/s²
+    private double _minJerkTime  = 0.10;
+    private double _maxJerkTime  = 0.10;
 
     public double Velocity     => _velocity;
     public double Acceleration => _acceleration;
@@ -68,6 +68,8 @@ public class XpsStageController : IDisposable
 
     private XPS _cmdXps  = new XPS();
     private XPS _pollXps = new XPS();
+    private XPS _abortXps = new XPS(); 
+
 
     private CancellationTokenSource _pollCts;
     private Task                    _pollTask;
@@ -143,34 +145,73 @@ public class XpsStageController : IDisposable
     /// </summary>
     public async Task ConnectAsync()
     {
+        //First kill EVERYTHING, SCORCHED EARTH
+        try { _cmdXps.CloseInstrument(); } catch { }
+        try { _pollXps.CloseInstrument(); } catch { }
+        try { _abortXps.CloseInstrument(); } catch { }
+
+        //Now instantiate sockets
+        _cmdXps  = new XPS();
+        _pollXps = new XPS();
+        _abortXps = new XPS();
+
+        
         await Task.Run(() =>
         {
-            // OpenInstrument(string ip, int port, int timeoutMs)
+            string err;
+            // Open just the command socket first
             int result = _cmdXps.OpenInstrument(IpAddress, Port, TimeoutMs);
             if (result != 0)
                 throw new InvalidOperationException(
-                    $"XPS: Failed to open command connection to {IpAddress}:{Port} (code {result}). " +
-                    $"Check IP address and that controller is powered on.");
+                    $"XPS: Failed to open command connection (code {result}). " +
+                    "Controller may be unreachable.");
+
+
+
+            // 2. Authenticate as Administrator — required for CloseAllOtherSockets
+            result = _cmdXps.Login("Administrator", "Administrator", out err);
+            System.Diagnostics.Debug.WriteLine($"[Connect] Login: {result} err='{err}'");
+            if (result != 0)
+                throw new InvalidOperationException(
+                    $"XPS: Login failed (code {result}): {err}. " +
+                    "Check Administrator credentials in web GUI.");
+            // CRITICAL: Kill any sockets leaked from previous runs.
+            // This protects against debugger-stop kills and crashes that
+            // didn't run our cleanup code. Newport documents that leaked
+            // sockets accumulate until reboot otherwise.
+            int killResult = _cmdXps.CloseAllOtherSockets(out err);
+            System.Diagnostics.Debug.WriteLine(
+                $"[Connect] CloseAllOtherSockets: {killResult} err='{err}'");
+
 
             result = _pollXps.OpenInstrument(IpAddress, Port, TimeoutMs);
             if (result != 0)
                 throw new InvalidOperationException(
                     $"XPS: Failed to open polling connection (code {result}).");
 
+            result = _abortXps.OpenInstrument(IpAddress, Port, 500);
+            System.Diagnostics.Debug.WriteLine($"[Connect] abortXps OpenInstrument: {result}");
+            if (result != 0)
+                throw new InvalidOperationException($"XPS: Failed to open abort connection (code {result}).");
+
             _isConnected = true;
             RaiseState(StageState.Connected);
         });
     }
 
+    private bool _disposing = false;
     public void Disconnect()
     {
         StopPolling();
-        _cmdXps?.CloseInstrument();
-        _pollXps?.CloseInstrument();
+        try { _cmdXps?.CloseInstrument(); } catch { }
+        try { _pollXps?.CloseInstrument(); } catch { }
+        try { _abortXps?.CloseInstrument(); } catch { }
         _isConnected   = false;
         _isInitialized = false;
+        if (!_disposing) RaiseState(StageState.Disconnected);
         RaiseState(StageState.Disconnected);
     }
+
 
     // =========================================================================
     // INITIALIZATION
@@ -203,8 +244,9 @@ public class XpsStageController : IDisposable
                 _cmdXps.GroupHomeSearch(GroupName, out err),
                 err, "GroupHomeSearch");
 
+            Thread.Sleep(10000);
             // Push velocity/acceleration to controller
-            //ApplyMotionParameters();
+            ApplyMotionParameters();
 
             _isInitialized = true;
             RaiseState(StageState.Ready);
@@ -231,7 +273,7 @@ public class XpsStageController : IDisposable
                 "M-IMS300V maximum velocity is 20 mm/s.");
 
         _velocity = velocityMmPerSec;
-        if (_isInitialized) ApplyMotionParameters();
+        //if (_isInitialized) ApplyMotionParameters();
         MotionParametersChanged?.Invoke(_velocity, _acceleration);
     }
 
@@ -245,7 +287,7 @@ public class XpsStageController : IDisposable
                 "Acceleration must be greater than 0.");
 
         _acceleration = accelerationMmPerSec2;
-        if (_isInitialized) ApplyMotionParameters();
+        //if (_isInitialized) ApplyMotionParameters();
         MotionParametersChanged?.Invoke(_velocity, _acceleration);
     }
 
@@ -293,16 +335,42 @@ public class XpsStageController : IDisposable
     private void ApplyMotionParameters()
     {
         string err;
+        int r;
 
-        // PositionerSGammaParametersSet(string positioner,
-        //   double vel, double accel, double minJerk, double maxJerk,
-        //   out string err)
-        CheckResult(
-            _cmdXps.PositionerSGammaParametersSet(
-                PositionerName,
-                _velocity, _acceleration,
-                _minJerkTime, _maxJerkTime, out err),
-            err, "PositionerSGammaParametersSet");
+        // Dump current state before attempting the set
+        double curVel, curAcc, curMinJ, curMaxJ;
+        r = _cmdXps.PositionerSGammaParametersGet(
+            PositionerName, out curVel, out curAcc, out curMinJ, out curMaxJ, out err);
+        System.Diagnostics.Debug.WriteLine(
+            $"[ApplyParams] BEFORE Get: r={r} v={curVel} a={curAcc} " +
+            $"minJ={curMinJ} maxJ={curMaxJ} err='{err}'");
+
+        int status;
+        r = _cmdXps.GroupStatusGet(GroupName, out status, out err);
+        System.Diagnostics.Debug.WriteLine(
+            $"[ApplyParams] BEFORE Status: r={r} status={status} err='{err}'");
+
+        string statusDesc;
+        _cmdXps.GroupStatusStringGet(status, out statusDesc, out err);
+        System.Diagnostics.Debug.WriteLine(
+            $"[ApplyParams] BEFORE StatusString: '{statusDesc}'");
+
+        // Now attempt the set
+        System.Diagnostics.Debug.WriteLine(
+            $"[ApplyParams] Sending: v={_velocity} a={_acceleration} " +
+            $"minJ={_minJerkTime} maxJ={_maxJerkTime}");
+
+        r = _cmdXps.PositionerSGammaParametersSet(
+            PositionerName,
+            _velocity, _acceleration,
+            _minJerkTime, _maxJerkTime, out err);
+
+        System.Diagnostics.Debug.WriteLine(
+            $"[ApplyParams] AFTER Set: r={r} err='{err}'");
+
+        if (r != 0)
+            throw new InvalidOperationException(
+                $"PositionerSGammaParametersSet failed: r={r} err='{err}'");
     }
 
     // =========================================================================
@@ -367,11 +435,9 @@ public class XpsStageController : IDisposable
             await Task.Run(() =>
             {
                 string err;
-                // GroupMoveRelative(string group, double[] displacements, int nbElements, out string err)
-                CheckResult(
-                    _cmdXps.GroupMoveRelative(
-                        GroupName, new double[] { displacementMm }, 1, out err),
-                    err, "GroupMoveRelative");
+                int result = _cmdXps.GroupMoveRelative(GroupName, new double[] { displacementMm }, 1, out err);
+                if (result != 0 && result != -1 && result != -27 && result != -22)
+                    throw new InvalidOperationException($"GroupMoveAbsolute failed (code {result}): {err}");
             }, ct);
 
             MoveCompleted?.Invoke(MoveResult.Completed);
@@ -404,10 +470,16 @@ public class XpsStageController : IDisposable
         await Task.Run(() =>
         {
             string err;
-            // GroupMoveAbort(string groupName, out string errorString)
-            int result = _cmdXps.GroupMoveAbort(GroupName, out err);
-            if (result != 0)
-                RaiseError($"GroupMoveAbort returned {result}: {err}");
+            int result = _abortXps.GroupMoveAbortFast(GroupName, 1, out err);
+            System.Diagnostics.Debug.WriteLine($"[Abort] AbortFast: {result}  err='{err}'");
+
+            if (result != 0 && result != -27 && result != -22)
+            {
+                result = _abortXps.GroupMoveAbort(GroupName, out err);
+                System.Diagnostics.Debug.WriteLine($"[Abort] MoveAbort: {result}  err='{err}'");
+                if (result != 0 && result != -27 && result != -22)
+                    RaiseError($"GroupMoveAbort returned {result}: {err}");
+            }
         });
 
         _isMoving = false;
@@ -548,7 +620,11 @@ public class XpsStageController : IDisposable
     // IDisposable
     // =========================================================================
 
-    public void Dispose() => Disconnect();
+    public void Dispose()
+    {
+        _disposing = true;
+        Disconnect();
+    }
 
     // =========================================================================
     // ENUMS

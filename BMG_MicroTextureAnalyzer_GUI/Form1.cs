@@ -1,16 +1,17 @@
 using BMG_MicroTextureAnalyzer;
-using System.Diagnostics;
-using System.Windows.Forms;
-using System.Windows.Forms.DataVisualization.Charting;
-using System.Timers;
-using System.ComponentModel;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Linq;
-using System.Collections.Generic;
+using System.Timers;
+using System.Windows.Forms;
+using System.Windows.Forms.DataVisualization.Charting;
+using static System.Windows.Forms.AxHost;
 
 namespace BMG_MicroTextureAnalyzer_GUI
 {
@@ -104,7 +105,13 @@ namespace BMG_MicroTextureAnalyzer_GUI
             board = new MccDaq.MccBoard(1);
 
             engine.xpsPositionChanged += pos => lblPosition.Invoke(() => lblPosition.Text = $"{pos:F4} mm");
-            engine.StateChanged += state => lblStatus.Invoke(() => lblStatus.Text = state.ToString());
+            engine.StateChanged += state =>
+            {
+                if (IsDisposed || Disposing || !IsHandleCreated) return;
+                try { Invoke(() => lblStatus.Invoke(() => lblStatus.Text = state.ToString())); }
+                catch (ObjectDisposedException) { }
+                catch (InvalidOperationException) { }
+            };
             engine.ErrorOccurred += msg => logger?.Log(msg, LogLevel.Error, "Engine");
             MTAengine = engine;
             MTAengine.PropertyChanged += MTAengine_PropertyChanged;
@@ -115,10 +122,22 @@ namespace BMG_MicroTextureAnalyzer_GUI
             var averageWindowList = new List<int> { 0, 10, 25, 50, 100, 150, 200, 250, 500, 1000 };
 
 
-
+            AppDomain.CurrentDomain.ProcessExit += (s, e) => MTAengine?.Dispose();
+            AppDomain.CurrentDomain.UnhandledException += (s, e) => MTAengine?.Dispose();
 
             InitializeComponent();
 
+
+            this.FormClosing += (s, e) =>
+            {
+                MTAengine.Dispose();   // This runs while the form is still alive
+            };
+
+            AppDomain.CurrentDomain.ProcessExit += (s, e) =>
+            {
+                // Belt-and-suspenders for crash paths only
+                try { MTAengine.Dispose(); } catch { }
+            };
             // Initialize logger when form is first shown (ensures LogTextBox handle exists)
             this.Shown += Form1_Shown;
 
@@ -1373,10 +1392,17 @@ namespace BMG_MicroTextureAnalyzer_GUI
                                 {
                                     sw.WriteLine(line);
                                     linesWritten++;
-                                    if (fractureFileWriteQueue.Count == 0) sw.Flush();
+
+                                    try
+                                    {
+                                        if (fractureFileWriteQueue.Count == 0) sw.Flush();
+                                    }
+                                    catch { logger?.Log($"Error in flushing writer at: {linesWritten}", LogLevel.Error, "File.Event"); }
+                                    
+               
                                 }
+                                try { logger?.Log($"Fracture file closed: {linesWritten} lines written", LogLevel.Info, "File.Event"); } catch { }
                             }
-                            try { logger?.Log($"Fracture file closed: {linesWritten} lines written", LogLevel.Info, "File.Event"); } catch { }
                         }
                         catch (Exception ex)
                         {
@@ -1392,10 +1418,22 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 {
                     MTAengine.FractureTest();
                     StartChartUpdateThread();
+                    var distance = MTAengine.FractureDistance;
                     Task.Run(async () =>
                     {
-                        await Task.Delay(TimeSpan.FromSeconds(5));
-                        try { MTAengine.TranslateYStage(MTAengine.FractureDistance); } catch { }
+                        try
+                        {
+                            await Task.Delay(TimeSpan.FromSeconds(5));
+                            var engine = MTAengine;
+                            if (engine?.Stage != null && engine.Stage.ConnectionStatus)
+                            {
+                                engine.TranslateYStage(distance);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            try { logger?.Log($"Delayed translate skipped: {ex.Message}", LogLevel.Warning, "Stage.Event"); } catch { }
+                        }
                     });
                 }
                 else
@@ -1428,8 +1466,11 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 }
                 //this.PunctureTestStartButton.Enabled = false;
                 this.FractureTestStartButton.Enabled = true;
-                MTAengine.VoltageConversion = this.MTAengine.FractureVoltageConversion;
-                MTAengine.NewtonConversion = this.MTAengine.FractureNewtonConversion;
+                MTAengine.VoltageConversion = this.MTAengine.VoltageConversion250g; //changing to 250g load cell conversion factor
+                MTAengine.NewtonConversion = this.MTAengine.NewtonConversion250g;
+                this.MTAengine.Is250gTest = true;
+                this.MTAengine.IsPunctureTest = false;
+                this.MTAengine.IsFractureTest = false;
             }
         }
 
@@ -1449,6 +1490,9 @@ namespace BMG_MicroTextureAnalyzer_GUI
                 this.FractureTestStartButton.Enabled = true;
                 MTAengine.VoltageConversion = this.MTAengine.PunctureVoltageConversion;
                 MTAengine.NewtonConversion = this.MTAengine.PunctureNewtonConversion;
+                this.MTAengine.Is250gTest = false;
+                this.MTAengine.IsPunctureTest = true;
+                this.MTAengine.IsFractureTest = false;
             }
         }
 
@@ -1749,6 +1793,8 @@ namespace BMG_MicroTextureAnalyzer_GUI
             }
             catch { }
 
+            MTAengine.Dispose();
+
             base.OnFormClosing(e);
             Environment.Exit(0);
         }
@@ -1761,7 +1807,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
         private async void XPSTestMove_Click(object sender, EventArgs e)
         {
 
-            await MTAengine.MoveRelativeAsync(1.0);
+            await MTAengine.MoveRelativeAsync(10.0);
 
         }
 
@@ -1769,6 +1815,11 @@ namespace BMG_MicroTextureAnalyzer_GUI
         {
             await MTAengine.ConnectAsync();
             await MTAengine.InitializeAsync();
+        }
+
+        private async void btnStop_Click(object sender, EventArgs e)
+        {
+            await MTAengine.AbortAsync();
         }
     }
 }
