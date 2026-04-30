@@ -1354,8 +1354,8 @@ namespace BMG_MicroTextureAnalyzer_GUI
                                         if (fractureFileWriteQueue.Count == 0) sw.Flush();
                                     }
                                     catch { logger?.Log($"Error in flushing writer at: {linesWritten}", LogLevel.Error, "File.Event"); }
-                                    
-               
+
+
                                 }
                                 try { logger?.Log($"Fracture file closed: {linesWritten} lines written", LogLevel.Info, "File.Event"); } catch { }
                             }
@@ -1730,6 +1730,23 @@ namespace BMG_MicroTextureAnalyzer_GUI
                     ? BMG_MicroTextureAnalyzer.Engine.StageBackend.Xps
                     : BMG_MicroTextureAnalyzer.Engine.StageBackend.Legacy;
                 try { logger?.Log($"UI: Active stage set to {MTAengine.ActiveStage}", LogLevel.Info, "UI.Config"); } catch { }
+            }
+        }
+
+        private void btnSetXPSSettings_Click(object sender, EventArgs e)
+        {
+            if (txtXPSAccel != null && txtXPSVel != null)
+            {
+                if (double.TryParse(txtXPSAccel.Text, out double accel) && double.TryParse(txtXPSVel.Text, out double vel))
+                {
+                    logger?.Log($"UI: Setting XPS motion parameters - Accel: {accel}, Vel: {vel}", LogLevel.Info, "UI.Config");
+                    MTAengine.SetMotionParameters(vel, accel);
+                    MessageBox.Show($"XPS motion parameters updated:\nAcceleration: {accel}\nVelocity: {vel}", "XPS Settings Updated", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    MessageBox.Show("Please enter valid numeric values for acceleration and velocity.", "Invalid Input", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
             }
         }
     }

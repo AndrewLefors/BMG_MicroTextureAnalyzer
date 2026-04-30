@@ -46,7 +46,7 @@ public class XpsStageController : IDisposable
     public int TimeoutMs { get; set; } = 10000;
 
     /// <summary>Position polling interval in ms. 25ms = 40Hz.</summary>
-    public int PollingIntervalMs { get; set; } = 25;
+    public int PollingIntervalMs { get; set; } = 1;
 
     // =========================================================================
     // MOTION PARAMETERS — safe defaults for M-IMS300V (max speed 20 mm/s)
