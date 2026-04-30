@@ -35,6 +35,40 @@ namespace BMG_MicroTextureAnalyzer
         private bool _isMonitoring;
         private MccDaq.Range _range = MccDaq.Range.Bip10Volts;
         private MotionController _stage;
+
+        // ===== DUAL-STAGE MODE =====
+        // Legacy serial MotionController and the XPS controller both live on the engine.
+        // ActiveStage selects which one TranslateYStage/HomeYStage/StopMotionController route to.
+        public enum StageBackend { Legacy, Xps }
+        private StageBackend _activeStage = StageBackend.Xps;
+        public StageBackend ActiveStage
+        {
+            get => _activeStage;
+            set
+            {
+                if (_activeStage != value)
+                {
+                    _activeStage = value;
+                    OnPropertyChanged(nameof(ActiveStage));
+                    LogInfo($"Active stage backend: {_activeStage}", "Engine.Config");
+                }
+            }
+        }
+        public bool ActiveStageReady
+        {
+            get
+            {
+                try
+                {
+                    if (_activeStage == StageBackend.Xps)
+                        return _xpsStage != null && _xpsStage.IsConnected && _xpsStage.IsInitialized;
+                    return this.Stage != null && this.Stage.ConnectionStatus;
+                }
+                catch { return false; }
+            }
+        }
+        public XpsStageController XpsStage => _xpsStage;
+
         private double _yStagePosition;
         private double _stageSpeed = 0; //default speed of 19.1um/s //Stage uses 0-255 as speed values corresponding to the following equation: Actual speed(mm/s) = (speed value+1) * 22000 * pulse equivalent / 720
                                         // The speed value is this stage speed, and pulse equivalent for the lab setup is 1/1600 -> pitch of the lead screw (mm) * stepper angle / (360 *subdivision) = (1*1.8(360*8)) -> 0.000625 
@@ -329,31 +363,8 @@ namespace BMG_MicroTextureAnalyzer
             _dataProcessorWorker.WorkerSupportsCancellation = true;
             _dataProcessorWorker.RunWorkerAsync();
 
-            // After acquisition has started, move the stage so no data is missed.
-            Task.Run(() =>
-            {
-                try
-                {
-                    // Wait briefly for acquisition to settle (ActualRate set by DataCollectorWorker)
-                    int waited = 0;
-                    while (this.ActualRate <= 0 && waited < 2000)
-                    {
-                        Thread.Sleep(20);
-                        waited += 20;
-                    }
-                    // perform stage move if available
-                    try
-                    {
-                        TranslateYStage(-100); // move toward sample
-                        _isStageMoving = true;
-                    }
-                    catch (Exception ex)
-                    {
-                        this.ErrorString = "Stage move failed: " + ex.Message;
-                    }
-                }
-                catch { }
-            });
+            // Move is issued from the Form's FindPlane button handler, mirroring
+            // the FractureTest pattern (Task.Run with await Task.Delay).
 
             // Ensure workers clear state on completion
             _dataProcessorWorker.RunWorkerCompleted += (s, e) =>
@@ -1085,7 +1096,14 @@ namespace BMG_MicroTextureAnalyzer
 
             if (IsStageRunning)
             {
-                _stage.Stop();
+                if (_activeStage == StageBackend.Xps)
+                {
+                    try { _ = _xpsStage?.AbortAsync(); } catch { }
+                }
+                else
+                {
+                    try { _stage?.Stop(); } catch { }
+                }
                 _isStageMoving = false;
             }
             if (IsMonitoring)
@@ -1161,10 +1179,21 @@ namespace BMG_MicroTextureAnalyzer
             // Immediate stop: stop stage and DAQ background, cancel workers and wait briefly for them to exit.
             try
             {
-                if (this.Stage != null)
+                if (_activeStage == StageBackend.Xps)
                 {
-                    try { this.Stage.Stop(); } catch { }
-                    this._isStageMoving = false;
+                    if (_xpsStage != null && _xpsStage.IsConnected)
+                    {
+                        try { _ = _xpsStage.AbortAsync(); } catch { }
+                        this._isStageMoving = false;
+                    }
+                }
+                else
+                {
+                    if (this.Stage != null)
+                    {
+                        try { this.Stage.Stop(); } catch { }
+                        this._isStageMoving = false;
+                    }
                 }
             }
             catch (Exception ex)
@@ -1556,7 +1585,14 @@ namespace BMG_MicroTextureAnalyzer
                             // Immediately stop stage and acquisition to prevent further motion/samples
                             try { StopAllImmediate(); } catch { }
                             //Now retract 100um
-                            try { this.Stage.MoveYAbsolute(0.1);  } catch { }
+                            if (_activeStage == StageBackend.Xps)
+                            {
+                                try { _ = _xpsStage?.MoveRelativeAsync(-0.1); } catch { }
+                            }
+                            else
+                            {
+                                try { this.Stage.MoveYAbsolute(0.1);  } catch { }
+                            }
 
                         }
                         lock (_dataLock)
@@ -1732,9 +1768,16 @@ namespace BMG_MicroTextureAnalyzer
                 }
             }
 
-            //Thread.Sleep(1000);
-            this.GetYLocation();
-            this.Stage.Delay();
+            // Post-stop: legacy stage needs GetYLocation/Delay; XPS doesn't (poll thread keeps YStagePosition fresh).
+            if (_activeStage == StageBackend.Legacy && this.Stage != null)
+            {
+                this.GetYLocation();
+                this.Stage.Delay();
+            }
+            else
+            {
+                Thread.Sleep(100);
+            }
             TranslateYStage(0.5);
             e.Cancel = true;
              
@@ -1783,9 +1826,17 @@ namespace BMG_MicroTextureAnalyzer
                     break;
                 }
             }
-             this.SetStageSpeed(100);
-             Thread.Sleep(1000);
-             TranslateYStage(3);
+            // Post-stop: SetStageSpeed is legacy-only. For XPS use SetVelocity.
+            if (_activeStage == StageBackend.Legacy)
+            {
+                this.SetStageSpeed(100);
+            }
+            else
+            {
+                this.SetVelocity(5.0);
+            }
+            Thread.Sleep(1000);
+            TranslateYStage(3);
             e.Cancel = true;
 
          }
@@ -1886,12 +1937,9 @@ namespace BMG_MicroTextureAnalyzer
             this.Stage = new MotionController();
             this.Connection.PropertyChanged += Engine_PropertyChanged;
             this.Stage.PropertyChanged += Engine_PropertyChanged;
-            _dataQueue = new ConcurrentQueue<RawDataChangedEventArgs>();
-            _processedDataList = new List<ProcessedDataChangedEventArgs>();
             _isRunning = false;
             _isMonitoring = false;
             _isStageMoving = false;
-            _dataLock = new object();
             this._board = new MccBoard(1);
             //YUH MORE XPS SHTUFF FOR ENGINE CLASS, YUH YUH
             _xpsStage = new XpsStageController
@@ -1900,8 +1948,33 @@ namespace BMG_MicroTextureAnalyzer
                 PositionerName = "Group1.Pos"
             };
 
-            _xpsStage.PositionChanged += pos => xpsPositionChanged?.Invoke(pos);
-            _xpsStage.StateChanged += state => StateChanged?.Invoke(state);
+            // XPS PositionChanged: fire UI event AND feed the ring buffer so per-sample
+            // position lookups work for the data processors.
+            _xpsStage.PositionChanged += pos =>
+            {
+                xpsPositionChanged?.Invoke(pos);
+                try
+                {
+                    double tsSec = DateTime.UtcNow.Subtract(DateTime.UnixEpoch).TotalSeconds;
+                    long idx = Interlocked.Increment(ref _stagePosWriteIndex);
+                    int slot = (int)(idx & (StagePollBufferSize - 1));
+                    _stagePosBuffer[slot] = pos;
+                    _stagePosTsBuffer[slot] = tsSec;
+                    _latestStagePosMm = pos;
+                    _latestStagePosTs = tsSec;
+                    try { this.YStagePosition = pos; } catch { }
+                }
+                catch { }
+            };
+            _xpsStage.StateChanged += state =>
+            {
+                StateChanged?.Invoke(state);
+                if (_activeStage == StageBackend.Xps)
+                {
+                    if (state == XpsStageController.StageState.Moving) _isStageMoving = true;
+                    else if (state == XpsStageController.StageState.Ready) _isStageMoving = false;
+                }
+            };
             _xpsStage.ErrorOccurred += msg => ErrorOccurred?.Invoke(msg);
             _xpsStage.MoveCompleted += result => MoveCompleted?.Invoke(result);
             _xpsStage.MotionParametersChanged += (vel, accl) => MotionParametersChanged?.Invoke(vel, accl);
@@ -1912,11 +1985,15 @@ namespace BMG_MicroTextureAnalyzer
         //Connect Method for XPS Stage
         public async Task ConnectAsync()
         {
+            LogInfo($"XPS connecting to {_xpsStage.IpAddress}:{_xpsStage.Port}", "XPS.Event");
             await _xpsStage.ConnectAsync();
+            LogInfo("XPS connected", "XPS.Event");
         }
         public async Task InitializeAsync()
         {
+            LogInfo("XPS initializing (kill → init → home search)", "XPS.Event");
             await _xpsStage.InitializeAsync();
+            LogInfo($"XPS initialized — v={_xpsStage.Velocity:F3} mm/s, a={_xpsStage.Acceleration:F3} mm/s²", "XPS.Event");
         }
         public async Task MoveAbsoluteAsync(double pos) => await _xpsStage.MoveAbsoluteAsync(pos);
         public async Task MoveRelativeAsync(double delta) => await _xpsStage.MoveRelativeAsync(delta);
@@ -2009,11 +2086,20 @@ namespace BMG_MicroTextureAnalyzer
         {
             try
             {
-                if (this.Stage != null)
+                if (_activeStage == StageBackend.Xps)
                 {
-                    //Make this run on a seperate thread so the ui is responsive
-
-                    this.Stage.ReturnYToOrigin();
+                    if (_xpsStage != null && _xpsStage.IsInitialized)
+                    {
+                        _ = _xpsStage.RetractAsync(0.0);
+                    }
+                }
+                else
+                {
+                    if (this.Stage != null)
+                    {
+                        //Make this run on a seperate thread so the ui is responsive
+                        this.Stage.ReturnYToOrigin();
+                    }
                 }
             }
             catch (Exception ex)
@@ -2027,15 +2113,37 @@ namespace BMG_MicroTextureAnalyzer
         {
             try
             {
-                if (this.Stage != null)
+                if (_activeStage == StageBackend.Xps)
                 {
-                    this.Stage.MoveYAbsolute(distance);
-
+                    if (_xpsStage == null || !_xpsStage.IsConnected)
+                    {
+                        var msg = $"TranslateYStage({distance}) skipped: XPS not connected.";
+                        this.ErrorString = msg;
+                        LogWarning(msg, "Stage.Move");
+                        return;
+                    }
+                    if (!_xpsStage.IsInitialized)
+                    {
+                        var msg = $"TranslateYStage({distance}) skipped: XPS not initialized.";
+                        this.ErrorString = msg;
+                        LogWarning(msg, "Stage.Move");
+                        return;
+                    }
+                    LogInfo($"XPS MoveRelative({distance:F4} mm)", "Stage.Move");
+                    _ = _xpsStage.MoveRelativeAsync(distance);
+                }
+                else
+                {
+                    if (this.Stage != null)
+                    {
+                        this.Stage.MoveYAbsolute(distance);
+                    }
                 }
             }
             catch (Exception ex)
             {
                 this.ErrorString = ex.Message;
+                LogError($"TranslateYStage({distance}) threw: {ex.Message}", "Stage.Move");
             }
         }
 
@@ -2043,10 +2151,21 @@ namespace BMG_MicroTextureAnalyzer
         {
             try
             {
-                if (this.Stage != null)
+                if (_activeStage == StageBackend.Xps)
                 {
-                    try { this.Stage.Stop(); } catch { }
-                    this._isStageMoving = false;
+                    if (_xpsStage != null && _xpsStage.IsConnected)
+                    {
+                        _ = _xpsStage.AbortAsync();
+                        this._isStageMoving = false;
+                    }
+                }
+                else
+                {
+                    if (this.Stage != null)
+                    {
+                        try { this.Stage.Stop(); } catch { }
+                        this._isStageMoving = false;
+                    }
                 }
             }
             catch (Exception ex)
@@ -2145,6 +2264,10 @@ namespace BMG_MicroTextureAnalyzer
         // Start/stop poller and lookup methods
         private void StartStagePoller(int pollIntervalMs = 1, int positionTimeoutMs = 10)
         {
+            // When XPS is the active backend, the XPS PositionChanged event feeds the
+            // ring buffer directly — no separate polling thread needed for legacy stage.
+            if (_activeStage == StageBackend.Xps) return;
+
             if (_stagePollCts != null) return;
             if (this.Stage == null) return;
             if (!this.Stage.ConnectionStatus) return;

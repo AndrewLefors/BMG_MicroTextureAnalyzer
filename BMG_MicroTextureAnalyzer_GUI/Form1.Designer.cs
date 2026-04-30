@@ -29,9 +29,9 @@
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
-            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea1 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
-            System.Windows.Forms.DataVisualization.Charting.Legend legend1 = new System.Windows.Forms.DataVisualization.Charting.Legend();
-            System.Windows.Forms.DataVisualization.Charting.Series series1 = new System.Windows.Forms.DataVisualization.Charting.Series();
+            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea2 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
+            System.Windows.Forms.DataVisualization.Charting.Legend legend2 = new System.Windows.Forms.DataVisualization.Charting.Legend();
+            System.Windows.Forms.DataVisualization.Charting.Series series2 = new System.Windows.Forms.DataVisualization.Charting.Series();
             MMELogoPictureBox = new PictureBox();
             backgroundWorker1 = new System.ComponentModel.BackgroundWorker();
             contextMenuStrip1 = new ContextMenuStrip(components);
@@ -495,8 +495,8 @@
             tableLayoutPanel14.BackColor = Color.DarkGray;
             tableLayoutPanel14.ColumnCount = 1;
             tableLayoutPanel14.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-            tableLayoutPanel14.Controls.Add(DAQ_StageSpeedComboBox, 0, 1);
             tableLayoutPanel14.Controls.Add(label2, 0, 0);
+            tableLayoutPanel14.Controls.Add(DAQ_StageSpeedComboBox, 0, 1);
             tableLayoutPanel14.Location = new Point(672, 6);
             tableLayoutPanel14.Name = "tableLayoutPanel14";
             tableLayoutPanel14.RowCount = 2;
@@ -507,11 +507,11 @@
             // 
             // DAQ_StageSpeedComboBox
             // 
-            DAQ_StageSpeedComboBox.Anchor = AnchorStyles.None;
+            DAQ_StageSpeedComboBox.Anchor = AnchorStyles.Left;
             DAQ_StageSpeedComboBox.FormattingEnabled = true;
-            DAQ_StageSpeedComboBox.Location = new Point(32, 69);
+            DAQ_StageSpeedComboBox.Location = new Point(3, 69);
             DAQ_StageSpeedComboBox.Name = "DAQ_StageSpeedComboBox";
-            DAQ_StageSpeedComboBox.Size = new Size(121, 23);
+            DAQ_StageSpeedComboBox.Size = new Size(114, 23);
             DAQ_StageSpeedComboBox.TabIndex = 0;
             DAQ_StageSpeedComboBox.SelectedIndexChanged += DAQ_StageSpeedComboBox_SelectedIndexChanged;
             // 
@@ -867,16 +867,16 @@
             // MonitorResponseChart
             // 
             MonitorResponseChart.BackColor = Color.Silver;
-            chartArea1.Name = "ChartArea1";
-            MonitorResponseChart.ChartAreas.Add(chartArea1);
-            legend1.Name = "Legend1";
-            MonitorResponseChart.Legends.Add(legend1);
+            chartArea2.Name = "ChartArea1";
+            MonitorResponseChart.ChartAreas.Add(chartArea2);
+            legend2.Name = "Legend1";
+            MonitorResponseChart.Legends.Add(legend2);
             MonitorResponseChart.Location = new Point(8, 112);
             MonitorResponseChart.Name = "MonitorResponseChart";
-            series1.ChartArea = "ChartArea1";
-            series1.Legend = "Legend1";
-            series1.Name = "Series1";
-            MonitorResponseChart.Series.Add(series1);
+            series2.ChartArea = "ChartArea1";
+            series2.Legend = "Legend1";
+            series2.Name = "Series1";
+            MonitorResponseChart.Series.Add(series2);
             MonitorResponseChart.Size = new Size(476, 434);
             MonitorResponseChart.TabIndex = 7;
             MonitorResponseChart.Text = "chart1";
