@@ -1337,6 +1337,11 @@ namespace BMG_MicroTextureAnalyzer_GUI
 
                     fractureFileWriterTask = Task.Run(() =>
                     {
+                        // Capture the queue into a local so the Stop path nulling the field
+                        // cannot cause a NullReferenceException on the .Count check below.
+                        var queue = fractureFileWriteQueue;
+                        if (queue == null) return;
+
                         int linesWritten = 0;
                         try
                         {
@@ -1344,18 +1349,16 @@ namespace BMG_MicroTextureAnalyzer_GUI
                             {
                                 sw.WriteLine("Time,Newtons,Position_mm");
                                 linesWritten++;
-                                foreach (var line in fractureFileWriteQueue.GetConsumingEnumerable())
+                                foreach (var line in queue.GetConsumingEnumerable())
                                 {
                                     sw.WriteLine(line);
                                     linesWritten++;
 
                                     try
                                     {
-                                        if (fractureFileWriteQueue.Count == 0) sw.Flush();
+                                        if (queue.Count == 0) sw.Flush();
                                     }
                                     catch { logger?.Log($"Error in flushing writer at: {linesWritten}", LogLevel.Error, "File.Event"); }
-
-
                                 }
                                 try { logger?.Log($"Fracture file closed: {linesWritten} lines written", LogLevel.Info, "File.Event"); } catch { }
                             }
