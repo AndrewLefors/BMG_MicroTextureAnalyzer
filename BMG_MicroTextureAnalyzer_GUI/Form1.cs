@@ -36,7 +36,7 @@ namespace BMG_MicroTextureAnalyzer_GUI
         private double _newtonConversion = 4.44822;
 
         private BackgroundWorker graphUpdaterBackgroundWorker = new BackgroundWorker();
-        private double batchIntervalMs = 50;
+        private double batchIntervalMs = 1;
         private ConcurrentQueue<Engine.ProcessedDataChangedEventArgs> dataQueue = new ConcurrentQueue<Engine.ProcessedDataChangedEventArgs>();
 
         private Thread chartUpdateThread;

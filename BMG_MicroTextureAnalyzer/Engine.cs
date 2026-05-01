@@ -1,4 +1,4 @@
-﻿using MccDaq;
+using MccDaq;
 using MicroneedleAPI;
 using System.Collections.Concurrent;
 using System.ComponentModel;
@@ -222,6 +222,10 @@ namespace BMG_MicroTextureAnalyzer
         private CancellationTokenSource _stagePollCts;
         private Task _stagePollTask;
 
+        // Acquisition start time — used to align XPS position timestamps with DAQ sample
+        // timestamps (both expressed as seconds elapsed since this moment).
+        private DateTime _acquisitionStartUtc = DateTime.MinValue;
+
         public event EventHandler<ProcessedDataChangedEventArgs> DataChanged;
         public event PropertyChangedEventHandler PropertyChanged = delegate { };
         // Event UI can subscribe to in order to show MessageBox or other user-facing messages
@@ -346,6 +350,7 @@ namespace BMG_MicroTextureAnalyzer
             _isStageMoving = false; // will set true when motion actually starts
             _dataQueue.Clear();
             _processedDataList.Clear();
+            _acquisitionStartUtc = DateTime.UtcNow;
 
             // Start continuous acquisition workers (same as ContinuousScanTest)
             _dataCollectorWorker = new BackgroundWorker();
@@ -398,6 +403,7 @@ namespace BMG_MicroTextureAnalyzer
             //_isPunctureTest = false;
             _dataQueue.Clear();
             _processedDataList.Clear();
+            _acquisitionStartUtc = DateTime.UtcNow;
             try
             {
                 _numPoints = (int)(DataCollectionTime * Rate);
@@ -563,6 +569,7 @@ namespace BMG_MicroTextureAnalyzer
             ThresholdMet = false;
             _dataQueue.Clear();
             _processedDataList.Clear();
+            _acquisitionStartUtc = DateTime.UtcNow;
 
             
 
@@ -1169,6 +1176,7 @@ namespace BMG_MicroTextureAnalyzer
             }
 
             _isMonitoring = false;
+            _acquisitionStartUtc = DateTime.MinValue;
             // Clear any transient mode flags so conversions are not left pointing at fracture/puncture
             _isFractureTest = false;
             _isPunctureTest = false;
@@ -1950,12 +1958,19 @@ namespace BMG_MicroTextureAnalyzer
 
             // XPS PositionChanged: fire UI event AND feed the ring buffer so per-sample
             // position lookups work for the data processors.
+            // IMPORTANT: timestamps are stored as seconds elapsed since _acquisitionStartUtc
+            // so they share the same time axis as DAQ sample timestamps (which are also
+            // relative elapsed seconds). Before acquisition starts _acquisitionStartUtc is
+            // DateTime.MinValue — in that case tsSec is stored as 0.0 which is harmless
+            // because GetClosestCachedStagePosition only matters during an active run.
             _xpsStage.PositionChanged += pos =>
             {
                 xpsPositionChanged?.Invoke(pos);
                 try
                 {
-                    double tsSec = DateTime.UtcNow.Subtract(DateTime.UnixEpoch).TotalSeconds;
+                    double tsSec = _acquisitionStartUtc != DateTime.MinValue
+                        ? (DateTime.UtcNow - _acquisitionStartUtc).TotalSeconds
+                        : 0.0;
                     long idx = Interlocked.Increment(ref _stagePosWriteIndex);
                     int slot = (int)(idx & (StagePollBufferSize - 1));
                     _stagePosBuffer[slot] = pos;
